@@ -1,0 +1,32 @@
+{
+  "name": "lunaticghoulpiano.github.io",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "astro dev",
+    "check": "astro check",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.9.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.9.0",
+  "type": "module",
+  "dependencies": {
+    "astro": "7.3.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "typescript": "^6.0.3"
+  }
+}
