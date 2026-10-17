@@ -1,0 +1,39 @@
+---
+import type { Locale } from "../config/site";
+import type { Post } from "../content/store";
+import { postPath, tagPath } from "../routing";
+import { tagName } from "../data/tags";
+import { useMessages } from "../i18n/ui";
+import Pagination from "./common/Pagination.astro";
+
+interface Props {
+    locale: Locale;
+    posts: Post[];
+}
+
+const { locale, posts } = Astro.props;
+const copy = useMessages(locale).content;
+---
+
+<div data-paginated-list>
+    <ol class="post-list">
+        {posts.map((post) => (
+            <li data-page-item>
+                <p class="post-meta">
+                    <time datetime={post.data.date}>{post.data.date}</time>
+                    · {copy[post.data.type]}
+                </p>
+                <h2><a href={postPath(post)}>{post.data.title}</a></h2>
+                <p>{post.data.description}</p>
+                {post.data.tags.length > 0 && (
+                    <ul class="tag-list">
+                        {post.data.tags.map((tag) => (
+                            <li><a href={tagPath(tag, locale)}>{tagName(tag, locale)}</a></li>
+                        ))}
+                    </ul>
+                )}
+            </li>
+        ))}
+    </ol>
+    <Pagination locale={locale} />
+</div>

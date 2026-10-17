@@ -1,0 +1,63 @@
+---
+import { useMessages } from "../../i18n/ui";
+import { site, type Locale } from "../../config/site";
+import { type RouteKey } from "../../config/routes";
+import { getRoutePath } from "../../routing";
+import LanguageSwitcher from "./LanguageSwitcher.astro";
+import SiteNavigation from "./SiteNavigation.astro";
+
+interface Props {
+    locale: Locale;
+    route?: RouteKey;
+    languagePaths: Partial<Record<Locale, string>>;
+}
+
+const { locale, route, languagePaths } = Astro.props;
+const copy = useMessages(locale).design;
+---
+
+<header class="site-header" id="top">
+    <div class="container header-inner">
+        <a class="brand" href={getRoutePath("profile", locale)}>
+            <svg class="brand-mark" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                <rect x="1" y="1" width="26" height="26" rx="2" fill="none" stroke="currentColor" />
+                <path d="M9.5 1v26M18.5 1v26" stroke="currentColor" />
+                <path d="M7 1h5v15H7zM16 1h5v15h-5z" fill="currentColor" />
+            </svg>
+            <span>{site.brand}</span>
+        </a>
+        <div class="header-tools">
+            {route && <LanguageSwitcher locale={locale} languagePaths={languagePaths} />}
+            <button
+                class="theme-toggle"
+                type="button"
+                data-theme-toggle
+                data-system-label={copy.themeSystem}
+                data-dark-label={copy.themeDark}
+                data-light-label={copy.themeLight}
+                aria-label={copy.themeSystem}
+                title={copy.themeSystem}
+                hidden
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" />
+                </svg>
+            </button>
+        </div>
+        <details class="mobile-menu">
+            <summary>{copy.menu}<span class="menu-symbol" aria-hidden="true">+</span></summary>
+            <SiteNavigation locale={locale} route={route} />
+        </details>
+    </div>
+</header>
+
+<script>
+    const menu = document.querySelector<HTMLDetailsElement>(".mobile-menu");
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && menu?.open) {
+            menu.open = false;
+            menu.querySelector("summary")?.focus();
+        }
+    });
+</script>

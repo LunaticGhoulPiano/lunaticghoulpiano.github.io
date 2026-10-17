@@ -1,0 +1,42 @@
+---
+import type { Locale } from "../config/site";
+import { formatMessage } from "../i18n/format";
+import { languages } from "../config/site";
+import { useMessages } from "../i18n/ui";
+import type { ActivityEntry } from "../services/feeds/github";
+
+interface Props {
+    locale: Locale;
+    entries: ActivityEntry[];
+    compact?: boolean;
+}
+
+const { locale, entries, compact = false } = Astro.props;
+const copy = useMessages(locale);
+---
+
+<ol class:list={["activity-list", { "activity-list-compact": compact }]}>
+    {entries.map((entry) => (
+        <li data-private-contributions={entry.type === "PrivateContribution" || undefined}>
+            <time datetime={entry.occurredAt}>{entry.occurredAt.slice(0, 10)}</time>
+            <div>
+                <p class="activity-action">
+                    {entry.type === "PrivateContribution"
+                        ? formatMessage(copy.activity.privateCount, {
+                            count: entry.quantity,
+                        }, languages[locale].formatLocale)
+                        : entry.type === "Commit"
+                        ? formatMessage(copy.activity.commitCount, {
+                            count: entry.quantity,
+                        }, languages[locale].formatLocale)
+                        : copy.events[entry.type]}
+                </p>
+                {entry.type === "PrivateContribution" ? (
+                    <span class="activity-repository">{copy.activity.privateRepository}</span>
+                ) : (
+                    <a class="activity-repository" href={entry.url}>{entry.repository} ↗</a>
+                )}
+            </div>
+        </li>
+    ))}
+</ol>

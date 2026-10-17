@@ -1,0 +1,84 @@
+---
+import { contentRules } from "../config/content";
+import { render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getPostContext } from "../services/blog/index";
+import type { Post } from "../content/store";
+import { postPath, tagPath, getRoutePath } from "../routing";
+import { tagName } from "../data/tags";
+import { useMessages } from "../i18n/ui";
+import { formatSequenceNumber } from "../utils/numbering";
+
+interface Props {
+    post: Post;
+}
+
+const { post } = Astro.props;
+const { locale } = post.data;
+const copy = useMessages(locale).content;
+const { related, languagePaths } = await getPostContext(post);
+const { Content, headings } = await render(post);
+const toc = headings.filter((heading) => (contentRules.tocDepths as readonly number[]).includes(heading.depth));
+---
+
+<BaseLayout
+    article={post.data}
+    title={post.data.title}
+    description={post.data.description}
+    locale={locale}
+    route="blog"
+    pagePath={postPath(post)}
+    languagePaths={languagePaths}
+>
+    <article>
+        <header class="page-heading">
+            <a class="text-link" href={getRoutePath("blog", locale)}>← {copy.allPosts}</a>
+            <h1>{post.data.title}</h1>
+            <p class="post-meta">
+                <time datetime={post.data.date}>{post.data.date}</time>
+                {post.data.updated && (
+                    <>
+                        · {copy.updated}
+                        <time datetime={post.data.updated}>{post.data.updated}</time>
+                    </>
+                )}
+            </p>
+            <p class="page-description">{post.data.description}</p>
+            <ul class="tag-list">
+                {post.data.tags.map((tag) => (
+                    <li><a href={tagPath(tag, locale)}>{tagName(tag, locale)}</a></li>
+                ))}
+            </ul>
+        </header>
+        {toc.length > 0 && (
+            <details class="article-toc" open>
+                <summary>{copy.contents}</summary>
+                <nav aria-label={copy.articleContents}>
+                    <ol>
+                        {toc.map((heading, index) => (
+                            <li
+                                class:list={{ "toc-child": heading.depth > Math.min(...contentRules.tocDepths) }}
+                                data-sequence-number={formatSequenceNumber(index + 1, toc.length)}
+                            >
+                                <a href={`#${heading.slug}`}>{heading.text}</a>
+                            </li>
+                        ))}
+                    </ol>
+                </nav>
+            </details>
+        )}
+        <div class="prose">
+            <Content />
+        </div>
+        {related.length > 0 && (
+            <aside class="content-section">
+                <h2>{copy.relatedPosts}</h2>
+                <ul>
+                    {related.map((entry) => (
+                        <li><a href={postPath(entry)}>{entry.data.title}</a></li>
+                    ))}
+                </ul>
+            </aside>
+        )}
+    </article>
+</BaseLayout>

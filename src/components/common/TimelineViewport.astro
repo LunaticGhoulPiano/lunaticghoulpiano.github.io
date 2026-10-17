@@ -1,0 +1,44 @@
+---
+import { timelinePreviewSize } from "../../config/collections";
+import type { Locale } from "../../config/site";
+import { useMessages } from "../../i18n/ui";
+
+interface Props {
+    id: string;
+    label: string;
+    locale: Locale;
+    visibleItems?: number;
+}
+
+const { id, label, locale, visibleItems = timelinePreviewSize } = Astro.props;
+const copy = useMessages(locale).timeline;
+---
+
+<div class="timeline-window" data-timeline-window data-visible-items={visibleItems}>
+    <button
+        class="timeline-jump"
+        type="button"
+        data-timeline-newest
+        aria-label={copy.newest}
+        title={copy.newest}
+        aria-controls={id}
+        hidden
+    >↑</button>
+    <div class="timeline-scroll" id={id} data-timeline-scroll tabindex="0" role="region" aria-label={label}>
+        <slot />
+    </div>
+    <button
+        class="timeline-jump"
+        type="button"
+        data-timeline-oldest
+        aria-label={copy.oldest}
+        title={copy.oldest}
+        aria-controls={id}
+        hidden
+    >↓</button>
+</div>
+
+<script>
+    import { initializeTimelines } from "../../scripts/timeline";
+    initializeTimelines();
+</script>

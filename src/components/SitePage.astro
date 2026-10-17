@@ -1,0 +1,103 @@
+---
+import { site, type Locale } from "../config/site";
+import { routes, type RouteKey } from "../config/routes";
+import { getRoutePath, tagPath } from "../routing";
+import { useMessages, useTranslations } from "../i18n/ui";
+import { getPageContext } from "../services/index";
+import type { FeedSource } from "../services/feeds/index";
+import { tagName } from "../data/tags";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProfileLayout from "../layouts/ProfileLayout.astro";
+import RepositoryList from "./RepositoryList.astro";
+import PostList from "./PostList.astro";
+import GithubActivity from "./GithubActivity.astro";
+import SnapshotNotice from "./SnapshotNotice.astro";
+
+interface Props {
+    locale: Locale;
+    route: RouteKey;
+}
+
+const { locale, route } = Astro.props;
+const t = useTranslations(locale);
+const copy = useMessages(locale).design;
+const content = useMessages(locale).content;
+const page = routes[route];
+const context = await getPageContext(route, locale);
+const description = context.section === "feeds" ? context.description : t(page.description);
+const feedComponents = {
+    github: GithubActivity,
+} satisfies Record<FeedSource, unknown>;
+---
+
+<BaseLayout title={t(page.title)} description={description} locale={locale} route={route}>
+    <header class="page-heading">
+        <h1>{route === "profile" ? site.name : t(page.title)}</h1>
+        {route === "profile" && <p class="name-alias">{site.secondaryName}</p>}
+        {context.section !== "profile" && <p class="page-description">{description}</p>}
+    </header>
+    {context.section === "profile" && (
+        <ProfileLayout locale={locale} route={route} navigation={context.navigation}>
+            <dl class="profile-fields">
+                {context.fields.map((heading) => (
+                    <div>
+                        <dt>{t(heading)}</dt>
+                        <dd>{copy.unpublished}</dd>
+                    </div>
+                ))}
+            </dl>
+        </ProfileLayout>
+    )}
+    {context.section === "projects" && (
+        <section aria-label={t("route.projects")}>
+            {context.snapshot && (
+                <RepositoryList id="projects" locale={locale} repositories={context.repositories} filterable />
+            )}
+            <SnapshotNotice locale={locale} snapshot={context.snapshot} />
+        </section>
+    )}
+    {context.section === "blog" && route === "blog" && (
+        <>
+            <a class="text-link" href={getRoutePath("blogTags", locale)}>{content.tags} →</a>
+            {context.posts.length > 0 ? (
+                <PostList locale={locale} posts={context.posts} />
+            ) : (
+                <p class="empty-message">{t("empty.blog")}</p>
+            )}
+            {locale !== site.defaultLocale
+                && context.posts.length === 0
+                && context.allPosts.some((post) => post.data.locale === site.defaultLocale)
+                && (
+                    <a class="text-link" href={getRoutePath("blog", site.defaultLocale)}>
+                        {content.defaultLanguagePosts} →
+                    </a>
+                )}
+        </>
+    )}
+    {context.section === "blog" && route === "blogTags" && (
+        context.tags.length > 0 ? (
+            <ul class="tag-index">
+                {context.tags.map(({ tag, count }) => (
+                    <li>
+                        <a href={tagPath(tag, locale)}>{tagName(tag, locale)}</a>
+                        <span>{count}</span>
+                    </li>
+                ))}
+            </ul>
+        ) : (
+            <p class="empty-message">{content.noTags}</p>
+        )
+    )}
+    {context.section === "feeds" && context.sources.map((source) => {
+        const Feed = feedComponents[source.key];
+        return (
+            <Feed
+                locale={locale}
+                data={source.data}
+                title={source.title}
+                href={getRoutePath(source.route, locale)}
+                preview={context.preview}
+            />
+        );
+    })}
+</BaseLayout>

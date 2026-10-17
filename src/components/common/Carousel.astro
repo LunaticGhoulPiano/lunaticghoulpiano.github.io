@@ -1,0 +1,53 @@
+---
+import type { Locale } from "../../config/site";
+import { useMessages } from "../../i18n/ui";
+
+interface Props {
+    id: string;
+    label: string;
+    locale: Locale;
+    loop?: boolean;
+    visibleItems?: number;
+}
+
+const { id, label, locale, loop = false, visibleItems = 3 } = Astro.props;
+const copy = useMessages(locale).carousel;
+---
+
+<div
+    class="carousel"
+    data-carousel
+    data-loop={String(loop)}
+    style={{
+        "--carousel-wide": visibleItems,
+        "--carousel-medium": Math.min(2, visibleItems),
+    }}
+>
+    <div class="carousel-track" id={id} data-carousel-track tabindex="0" role="region" aria-label={label}>
+        <slot />
+    </div>
+    <div class="carousel-controls" data-carousel-controls hidden>
+        <button type="button" data-carousel-previous aria-label={copy.previous} aria-controls={id}>←</button>
+        <div
+            class="carousel-scrollbar"
+            data-carousel-scrollbar
+            role="scrollbar"
+            aria-orientation="horizontal"
+            aria-label={label}
+            aria-controls={id}
+            aria-valuemin="0"
+            aria-valuemax="0"
+            aria-valuenow="0"
+            tabindex="0"
+        >
+            <div class="carousel-scrollbar-space" data-carousel-space></div>
+        </div>
+        <span class="sr-only" data-carousel-position role="status" aria-live="polite" aria-atomic="true"></span>
+        <button type="button" data-carousel-next aria-label={copy.next} aria-controls={id}>→</button>
+    </div>
+</div>
+
+<script>
+    import { initializeCarousels } from "../../scripts/carousel";
+    initializeCarousels();
+</script>

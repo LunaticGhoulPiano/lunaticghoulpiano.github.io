@@ -1,0 +1,32 @@
+---
+import type { Locale } from "../../config/site";
+import { socialLinks } from "../../config/social";
+import { useMessages } from "../../i18n/ui";
+
+interface Props {
+    locale: Locale;
+}
+
+const { locale } = Astro.props;
+const paths = {
+    github: "M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1 1.71 2.63 1.22 3.27.93.1-.72.39-1.22.71-1.5-2.5-.29-5.12-1.25-5.12-5.56 0-1.23.44-2.24 1.16-3.03-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.16a10.8 10.8 0 0 1 5.64 0c2.15-1.46 3.1-1.16 3.1-1.16.61 1.55.23 2.69.11 2.98.72.79 1.16 1.8 1.16 3.03 0 4.32-2.63 5.27-5.14 5.55.4.35.76 1.04.76 2.1v3.08c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z",
+    youtube: "M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z",
+    mymusic5: "M9 3v12.2A4 4 0 1 0 11 19V7.5l9-2V13a4 4 0 1 0 2 3.5V0L9 3Z",
+};
+---
+
+<div class="rail-links">
+    <p class="rail-label">{useMessages(locale).design.elsewhere}</p>
+    <ul class="social-links">
+        {socialLinks.map((link) => (
+            <li>
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d={paths[link.platform]} fill="currentColor" fill-rule="evenodd" />
+                </svg>
+                <a href={link.url} aria-label={`${link.label}: ${link.url}`}>
+                    {new URL(link.url).hostname.replace(/^www\./, "")}/<wbr />{new URL(link.url).pathname.slice(1)}
+                </a>
+            </li>
+        ))}
+    </ul>
+</div>

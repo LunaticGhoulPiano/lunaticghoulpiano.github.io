@@ -1,0 +1,28 @@
+---
+import { useMessages } from "../i18n/ui";
+import { displayTimestamp } from "../utils/dates";
+import { type Locale } from "../config/site";
+import { snapshotStatus } from "../data/github/store";
+
+interface Props {
+    locale: Locale;
+    snapshot: {
+        lastSuccessfulFetchAt: string;
+    } | null;
+}
+const { locale, snapshot } = Astro.props;
+const copy = useMessages(locale).content;
+const status = snapshotStatus(snapshot);
+const time = snapshot && displayTimestamp(snapshot.lastSuccessfulFetchAt, locale);
+---
+
+<div class="snapshot-notice">
+    {snapshot ? (
+        <>
+            <p>{copy.snapshot}: <time datetime={snapshot.lastSuccessfulFetchAt}>{time}</time></p>
+            {status === "stale" && <p>{copy.stale}</p>}
+        </>
+    ) : (
+        <p>{copy.unavailable}</p>
+    )}
+</div>

@@ -1,39 +1,115 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [master]
-  workflow_dispatch:
+    push:
+        branches: ["**"]
+    schedule:
+        - cron: "17 */6 * * *"
+    workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+    contents: read
+
+env:
+    ASTRO_TELEMETRY_DISABLED: "1"
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+    group: pages
+    cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+    build:
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+            actions: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
 
-      - name: Install, check, build, and upload
-        uses: withastro/action@v6
-        with:
-          node-version: "24.21.0"
-          build-cmd: pnpm check && pnpm build
+            - name: Check GitHub profile credential
+              env:
+                  WEBPAGE_GITHUB_PROFILE_READONLY: ${{ secrets.WEBPAGE_GITHUB_PROFILE_READONLY }}
+              run: |
+                  if [ -z "$WEBPAGE_GITHUB_PROFILE_READONLY" ]; then
+                      echo "::error::Missing Actions secret WEBPAGE_GITHUB_PROFILE_READONLY."
+                      exit 1
+                  fi
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v5
+            - name: Set up Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version-file: .node-version
+                  package-manager-cache: false
+
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v6
+              with:
+                  run_install: false
+
+            - name: Install locked dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run tests
+              run: pnpm test
+
+            - name: Find last validated snapshots
+              id: previous_snapshots
+              uses: actions/github-script@v9
+              with:
+                  script: |
+                      const { pathToFileURL } = await import("node:url");
+                      const moduleUrl = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/github/artifact.mjs`);
+                      const { selectGithubSnapshot } = await import(moduleUrl.href);
+                      await selectGithubSnapshot({
+                          github,
+                          context,
+                          core,
+                      });
+
+            - name: Restore last validated snapshots
+              if: steps.previous_snapshots.outputs.artifact_id != ''
+              uses: actions/download-artifact@v8
+              with:
+                  artifact-ids: ${{ steps.previous_snapshots.outputs.artifact_id }}
+                  run-id: ${{ steps.previous_snapshots.outputs.run_id }}
+                  github-token: ${{ github.token }}
+                  path: ${{ steps.previous_snapshots.outputs.restore_directory }}
+
+            - name: Refresh GitHub data, check, and build
+              env:
+                  WEBPAGE_GITHUB_PROFILE_READONLY: ${{ secrets.WEBPAGE_GITHUB_PROFILE_READONLY }}
+                  GITHUB_PREVIOUS_SNAPSHOT_DIR: ${{ steps.previous_snapshots.outputs.restore_directory }}
+              run: pnpm refresh:github
+
+            - name: Save validated snapshots
+              uses: actions/upload-artifact@v7
+              with:
+                  name: ${{ steps.previous_snapshots.outputs.artifact_name }}
+                  path: ${{ steps.previous_snapshots.outputs.snapshot_file }}
+                  if-no-files-found: error
+                  retention-days: 30
+
+            - name: Upload website
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: dist
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - name: Deploy
+              id: deployment
+              uses: actions/deploy-pages@v5

@@ -1,0 +1,63 @@
+---
+import type { Locale } from "../config/site";
+import { useMessages } from "../i18n/ui";
+import type { getGithubFeed } from "../services/feeds/github";
+import ActivityTimeline from "./ActivityTimeline.astro";
+import SnapshotNotice from "./SnapshotNotice.astro";
+import Carousel from "./common/Carousel.astro";
+import TimelineViewport from "./common/TimelineViewport.astro";
+
+interface Props {
+    locale: Locale;
+    preview?: boolean;
+    data: ReturnType<typeof getGithubFeed>;
+    title: string;
+    href: string;
+}
+
+const { locale, preview = false, data, title, href } = Astro.props;
+const { entries, categories, notice, hasActivity } = data;
+const messages = useMessages(locale);
+const copy = messages.activity;
+---
+
+<section class="content-section github-activity" aria-label={copy.categories}>
+    {preview && (
+        <div class="section-heading">
+            <h2>{title}</h2>
+            <a href={href}>{messages.content.details} →</a>
+        </div>
+    )}
+    {preview ? (
+        entries.length > 0 ? (
+            <TimelineViewport id="github-preview-timeline" label={messages.content.activity} locale={locale}>
+                <ActivityTimeline locale={locale} entries={entries} />
+            </TimelineViewport>
+        ) : (
+            <p class="empty-message">{hasActivity ? messages.content.noEvents : copy.unavailable}</p>
+        )
+    ) : (
+        <Carousel id="activity-categories" label={copy.categories} locale={locale} loop>
+            {categories.map((category) => (
+                <section class="activity-category" data-activity-category={category.key} aria-label={copy[category.key]}>
+                    <header class="activity-category-heading">
+                        <h3 id={`category-${category.key}`}>{copy[category.key]}</h3>
+                        {category.available && <span class="activity-count">{category.count}</span>}
+                    </header>
+                    {category.items.length > 0 ? (
+                        <TimelineViewport id={`timeline-${category.key}`} label={copy[category.key]} locale={locale}>
+                            <ActivityTimeline
+                                locale={locale}
+                                entries={category.items}
+                                compact
+                            />
+                        </TimelineViewport>
+                    ) : (
+                        <p class="activity-empty">{category.available ? copy.empty : copy.unavailable}</p>
+                    )}
+                </section>
+            ))}
+        </Carousel>
+    )}
+    <SnapshotNotice locale={locale} snapshot={notice} />
+</section>

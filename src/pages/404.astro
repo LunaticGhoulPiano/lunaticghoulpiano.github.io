@@ -1,0 +1,27 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getRoutePath } from "../routing";
+import { useTranslations } from "../i18n/ui";
+import { languages, site } from "../config/site";
+
+const t = useTranslations(site.defaultLocale);
+---
+
+<BaseLayout title={t("error.title")} locale={site.defaultLocale} noindex>
+    <section class="page-heading error-page">
+        <p class="eyebrow">404</p>
+        <h1>{t("error.title")}</h1>
+        {site.locales.map((locale) => (
+            <p class="page-description" lang={languages[locale].htmlLang}>
+                {useTranslations(locale)("error.description")}
+            </p>
+        ))}
+        <div class="error-links">
+            {site.locales.map((locale) => (
+                <a class="text-link" href={getRoutePath("profile", locale)} lang={languages[locale].htmlLang}>
+                    {useTranslations(locale)("error.profile")}
+                </a>
+            ))}
+        </div>
+    </section>
+</BaseLayout>

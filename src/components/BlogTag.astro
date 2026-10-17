@@ -1,0 +1,32 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PostList from "./PostList.astro";
+import type { Locale } from "../config/site";
+import { getRoutePath, tagPath } from "../routing";
+import { getTagContext } from "../services/blog/index";
+import { tagName } from "../data/tags";
+import { useMessages } from "../i18n/ui";
+
+interface Props {
+    tag: string;
+    locale: Locale;
+}
+
+const { tag, locale } = Astro.props;
+const copy = useMessages(locale).content;
+const { posts, languagePaths } = await getTagContext(tag, locale);
+---
+
+<BaseLayout
+    title={tagName(tag, locale)}
+    locale={locale}
+    route="blogTags"
+    pagePath={tagPath(tag, locale)}
+    languagePaths={languagePaths}
+>
+    <header class="page-heading">
+        <a class="text-link" href={getRoutePath("blogTags", locale)}>← {copy.allTags}</a>
+        <h1>{tagName(tag, locale)}</h1>
+    </header>
+    <PostList locale={locale} posts={posts} />
+</BaseLayout>

@@ -1,0 +1,32 @@
+---
+import type { Locale } from "../config/site";
+import { routes, type RouteKey } from "../config/routes";
+import { getRoutePath } from "../routing";
+import { useTranslations } from "../i18n/ui";
+
+interface Props {
+    locale: Locale;
+    route: RouteKey;
+    navigation: readonly RouteKey[];
+}
+
+const { locale, route, navigation } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<div class="profile-layout">
+    <nav class="profile-nav" aria-label={t("nav.profile")}>
+        <ul>
+            {navigation.map((item) => (
+                <li>
+                    <a href={getRoutePath(item, locale)} aria-current={route === item ? "page" : undefined}>
+                        {item === "profile" ? t("common.overview") : t(routes[item].title)}
+                    </a>
+                </li>
+            ))}
+        </ul>
+    </nav>
+    <div class="section-stack">
+        <slot />
+    </div>
+</div>

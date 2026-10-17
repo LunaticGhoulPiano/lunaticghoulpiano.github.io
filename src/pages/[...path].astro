@@ -1,0 +1,18 @@
+---
+import SitePage from "../components/SitePage.astro";
+import BlogPost from "../components/BlogPost.astro";
+import BlogTag from "../components/BlogTag.astro";
+import { getPageEntries } from "../routing";
+import { getPublicPosts } from "../services/blog/index";
+
+export async function getStaticPaths() {
+    return getPageEntries(await getPublicPosts());
+}
+
+type Props = ReturnType<typeof getPageEntries>[number]["props"];
+const props = Astro.props;
+---
+
+{props.kind === "page" && <SitePage route={props.route} locale={props.locale} />}
+{props.kind === "post" && <BlogPost post={props.post} />}
+{props.kind === "tag" && <BlogTag tag={props.tag} locale={props.locale} />}
