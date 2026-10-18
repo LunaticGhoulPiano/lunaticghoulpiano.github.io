@@ -101,18 +101,21 @@ export async function runGithubRefresh({
             ...result,
             report,
         };
-    } catch (error) {
+    }
+    catch (error) {
         execution.status = readiness.ready ? "failed" : "blocked";
         throw Object.assign(error instanceof Error ? error : new Error("GitHub refresh failed.", {
             cause: error,
         }), {
             report,
         });
-    } finally {
+    }
+    finally {
         if (summaryFile) {
             try {
                 await appendFile(summaryFile, renderGithubSummary(report));
-            } catch {
+            }
+            catch {
                 console.warn("Unable to write the GitHub Actions summary.");
             }
         }
@@ -129,10 +132,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
         await runGithubRefresh({
             client: new GithubClient(githubReadToken()),
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error instanceof Error ? error.message : "GitHub refresh failed.");
         process.exitCode = 1;
-    } finally {
+    }
+    finally {
         const restored = process.env.GITHUB_PREVIOUS_SNAPSHOT_DIR;
         if (restored && resolve(restored) === restoredSnapshotDirectory) {
             await removeTemporaryDirectory(restored).catch(() => {

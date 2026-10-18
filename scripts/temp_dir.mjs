@@ -10,7 +10,8 @@ export async function createTemporaryDirectory(prefix = "validation_") {
         });
         try {
             return await mkdtemp(join(temporaryRoot, prefix));
-        } catch (error) {
+        }
+        catch (error) {
             // Another test process may remove the empty parent between mkdir and mkdtemp.
             if (error.code !== "ENOENT" || attempt > 0) throw error;
         }
@@ -33,7 +34,8 @@ export async function withTemporaryDirectory(run) {
     const directory = await createTemporaryDirectory();
     try {
         return await run(directory);
-    } finally {
+    }
+    finally {
         await removeTemporaryDirectory(directory);
     }
 }

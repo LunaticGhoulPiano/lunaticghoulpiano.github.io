@@ -21,7 +21,8 @@ export function githubReadToken(directory = projectRoot, environment = process.e
         try {
             const values = parseEnv(readFileSync(resolve(directory, filename), "utf8"));
             if (values.WEBPAGE_GITHUB_PROFILE_READONLY) return values.WEBPAGE_GITHUB_PROFILE_READONLY;
-        } catch (error) {
+        }
+        catch (error) {
             if (error.code !== "ENOENT") throw new Error(`Cannot read GitHub credential from ${filename}.`);
         }
     }

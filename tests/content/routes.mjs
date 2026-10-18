@@ -380,7 +380,8 @@ test("isolated builds cover every configured language plus an additional locale,
         const duplicate = build();
         assert.notEqual(duplicate.status, 0, "Duplicate IDs must stop the build.");
         assert.match(duplicate.stdout + duplicate.stderr, /duplicate/i);
-    } finally {
+    }
+    finally {
         await removeTemporaryDirectory(fixtureRoot);
     }
 });

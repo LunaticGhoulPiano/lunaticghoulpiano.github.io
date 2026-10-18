@@ -8,7 +8,8 @@
     try {
         const saved = localStorage.getItem("site-theme");
         if (preferences.includes(saved)) preference = saved;
-    } catch {
+    }
+    catch {
         // Keep the system preference when browser storage is unavailable.
     }
 
@@ -37,7 +38,8 @@
             applyTheme();
             try {
                 localStorage.setItem("site-theme", preference);
-            } catch {
+            }
+            catch {
                 // Keep the selected theme active for this page.
             }
         });

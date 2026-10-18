@@ -62,7 +62,8 @@ export class GithubClient {
                     signal: AbortSignal.timeout(Math.min(githubToolPolicy.requestTimeoutMs, Math.max(1, githubToolPolicy.refreshTimeoutMs - (Date.now() - this.startedAt)))),
                     redirect: "error",
                 });
-            } catch {
+            }
+            catch {
                 if (attempt === githubToolPolicy.attempts - 1) throw new Error("GitHub connection failed; previous snapshot retained.");
                 this.retries++;
                 await new Promise((resolve) => setTimeout(resolve, githubToolPolicy.retryDelayMs));

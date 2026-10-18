@@ -10,7 +10,8 @@ export function readSnapshotBundle(
     const filename = join(directory, githubPolicy.snapshotFilename);
     try {
         return JSON.parse(readFileSync(filename, "utf8"));
-    } catch (error) {
+    }
+    catch (error) {
         console.warn(`[GitHub] Cannot read snapshot bundle at ${filename}: ${error instanceof SyntaxError ? "invalid JSON" : error.code ?? "read failure"}.`);
         return null;
     }

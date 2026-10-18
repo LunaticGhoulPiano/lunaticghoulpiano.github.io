@@ -181,7 +181,8 @@ export async function fetchGithubSnapshots(
                 [name]: parsed,
             });
             updated.push(name);
-        } catch (error) {
+        }
+        catch (error) {
             failures.push({
                 dataset: name,
                 reason:
