@@ -10,8 +10,13 @@ export type FeedSource = Exclude<SectionRoute<"feeds">, "feeds">;
 export const feedSources = {
     github: {
         title: "GitHub",
-        periodDescription: "description.githubPeriod",
+        periodDescription: "description.activityPeriod",
         load: getGithubFeed,
+    },
+    youtube: {
+        title: "YouTube",
+        periodDescription: "description.activityPeriod",
+        load: () => null,
     },
 } as const satisfies Record<FeedSource, {
     title: string;
@@ -21,7 +26,7 @@ export const feedSources = {
             from: string;
             to: string;
         } | null;
-    };
+    } | null;
 }>;
 
 export function getFeedsPage(route: RouteKey, locale: Locale) {
@@ -39,7 +44,7 @@ export function getFeedsPage(route: RouteKey, locale: Locale) {
         });
     const t = useTranslations(locale);
     const detail = preview ? undefined : sources[0];
-    const period = detail?.data.period;
+    const period = detail?.data?.period;
     return {
         section: "feeds" as const,
         preview,

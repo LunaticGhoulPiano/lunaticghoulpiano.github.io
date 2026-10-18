@@ -18,6 +18,7 @@ import { languages, locales, defaultLocale, localizedPath } from "../../src/conf
 import { site } from "../../src/config/site.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { routes } from "../../src/config/routes.ts";
+import { feedSources } from "../../src/services/feeds/index.ts";
 
 function decodeHtml(value) {
     const entities = {
@@ -214,10 +215,20 @@ test("isolated builds cover every configured language plus an additional locale,
             const feed = await page("feeds/github", locale);
             assert.deepEqual(headings(main(overview), 1), [copy.ui["route.feeds"]]);
             assert.deepEqual(headings(main(feed), 1), [copy.ui["route.github"]]);
-            assert.deepEqual(headings(main(overview), 2), ["GitHub"]);
+            assert.deepEqual(headings(main(overview), 2), Object.values(feedSources).map((source) => source.title));
             assert.deepEqual(headings(main(feed), 2), []);
+            const youtube = await page(routes.youtube.path, locale);
+            assert.deepEqual(headings(main(youtube), 1), [copy.ui[routes.youtube.title]]);
+            assert.doesNotMatch(main(youtube), /<time\b|data-timeline-window/);
+            assert.ok(text(main(youtube)).includes(`${copy.content.snapshot}: —`));
+            for (const [key, source] of Object.entries(feedSources)) {
+                const link = [...overview.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
+                    .find((match) => match[1] === localizedPath(routes[key].path, locale));
+                assert.ok(link);
+                assert.equal(text(link[2]), `${formatMessage(copy.content.details, { source: source.title }, testLanguages[locale].formatLocale)} →`);
+            }
             const description = feed.match(/<p class="page-description">([\s\S]*?)<\/p>/)[1];
-            assert.equal(text(description), copy.ui["description.githubPeriod"]
+            assert.equal(text(description), copy.ui["description.activityPeriod"]
                 .replace("{from}", "2026 / 09 / 17")
                 .replace("{to}", "2026 / 10 / 17"));
             for (const category of feed.matchAll(/<section[^>]*data-activity-category="([^"]+)"[^>]*>([\s\S]*?)<\/section>/g)) {
@@ -243,7 +254,7 @@ test("isolated builds cover every configured language plus an additional locale,
             for (const html of [overview, feed]) {
                 assert.doesNotMatch(html, /private_project|hidden_issue|fixture_only/);
                 assert.doesNotMatch(html, /contribution-stats|contribution-calendar|github-summary|account-snapshot|data-timeline-toggle/);
-                assert.equal([...html.matchAll(/class="content-section github-activity"/g)].length, 1);
+                assert.equal([...html.matchAll(/data-feed-source="github"/g)].length, 1);
                 const notice = html.match(/<div class="snapshot-notice">([\s\S]*?)<\/div>/)[1];
                 assert.ok(text(notice).startsWith(`${copy.content.snapshot}:`));
                 assert.ok(html.includes(`data-timeline-window data-visible-items="${timelinePreviewSize}"`));

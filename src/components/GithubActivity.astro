@@ -3,7 +3,6 @@ import type { Locale } from "../config/site";
 import { useMessages } from "../i18n/ui";
 import type { getGithubFeed } from "../services/feeds/github";
 import ActivityTimeline from "./ActivityTimeline.astro";
-import SnapshotNotice from "./SnapshotNotice.astro";
 import Carousel from "./common/Carousel.astro";
 import TimelineViewport from "./common/TimelineViewport.astro";
 
@@ -11,23 +10,14 @@ interface Props {
     locale: Locale;
     preview?: boolean;
     data: ReturnType<typeof getGithubFeed>;
-    title: string;
-    href: string;
 }
 
-const { locale, preview = false, data, title, href } = Astro.props;
-const { entries, categories, notice, hasActivity } = data;
+const { locale, preview = false, data } = Astro.props;
+const { entries, categories, hasActivity } = data;
 const messages = useMessages(locale);
 const copy = messages.activity;
 ---
 
-<section class="content-section github-activity" aria-label={copy.categories}>
-    {preview && (
-        <div class="section-heading">
-            <h2>{title}</h2>
-            <a href={href}>{messages.content.details} →</a>
-        </div>
-    )}
     {preview ? (
         entries.length > 0 ? (
             <TimelineViewport id="github-preview-timeline" label={messages.content.activity} locale={locale}>
@@ -59,5 +49,3 @@ const copy = messages.activity;
             ))}
         </Carousel>
     )}
-    <SnapshotNotice locale={locale} snapshot={notice} />
-</section>

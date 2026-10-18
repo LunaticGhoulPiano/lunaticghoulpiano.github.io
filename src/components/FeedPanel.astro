@@ -1,0 +1,45 @@
+---
+import type { Locale } from "../config/locales";
+import { languages } from "../config/locales";
+import { useMessages } from "../i18n/ui";
+import { formatMessage } from "../i18n/format";
+import SnapshotNotice from "./SnapshotNotice.astro";
+
+interface Props {
+    locale: Locale;
+    source: string;
+    title: string;
+    href: string;
+    preview: boolean;
+    snapshot: {
+        lastSuccessfulFetchAt: string;
+    } | null;
+}
+
+const { locale, source, title, href, preview, snapshot } = Astro.props;
+const copy = useMessages(locale).content;
+---
+
+<section class="content-section feed-panel" data-feed-source={source} data-preview={preview} aria-label={title}>
+    {preview && (
+        <div class="section-heading">
+            <h2>{title}</h2>
+            <a href={href}>{formatMessage(copy.details, { source: title }, languages[locale].formatLocale)} →</a>
+        </div>
+    )}
+    <div class:list={{ "feed-preview": preview }}>
+        <slot />
+    </div>
+    <SnapshotNotice locale={locale} snapshot={snapshot} showMissingTimestamp />
+</section>
+
+<style>
+    .feed-panel[data-preview="true"] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .feed-preview {
+        flex: 1;
+    }
+</style>

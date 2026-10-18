@@ -62,6 +62,12 @@ export const routes = {
         title: "route.github",
         description: "description.github",
     },
+    youtube: {
+        section: "feeds",
+        path: "feeds/youtube",
+        title: "route.youtube",
+        description: "description.youtube",
+    },
 } as const satisfies Record<SiteSection, unknown> & Record<
     string,
     {

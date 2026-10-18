@@ -1,0 +1,92 @@
+---
+import type { Locale } from "../../config/locales";
+import { pageTurnInterval } from "../../config/collections";
+import { useMessages } from "../../i18n/ui";
+
+interface Props {
+    id: string;
+    label: string;
+    locale: Locale;
+    enabled?: boolean;
+    interval?: number;
+}
+
+const { id, label, locale, enabled = true, interval = pageTurnInterval } = Astro.props;
+const copy = useMessages(locale).carousel;
+---
+
+{enabled ? (
+    <div class="page-turner carousel" data-page-turner data-interval={interval}>
+        <div class="page-turner-pages" id={id} data-page-turner-pages role="region" aria-label={label}>
+            <slot />
+        </div>
+        <div class="carousel-controls page-turner-controls" data-page-turner-controls hidden>
+            <button type="button" data-page-turner-previous aria-label={copy.previous} aria-controls={id}>←</button>
+            <button type="button" data-page-turner-next aria-label={copy.next} aria-controls={id}>→</button>
+            <span class="sr-only" data-page-turner-position role="status" aria-live="off" aria-atomic="true"></span>
+        </div>
+    </div>
+) : <slot />}
+
+<style>
+    .page-turner {
+        margin-top: 3.5rem;
+    }
+
+    .page-turner[data-ready] .page-turner-pages {
+        display: grid;
+        perspective: 1800px;
+        isolation: isolate;
+    }
+
+    .page-turner[data-ready] .page-turner-pages > :global(*) {
+        grid-area: 1 / 1;
+        min-width: 0;
+        margin-top: 0;
+        visibility: hidden;
+        background: var(--background);
+        transform-origin: left center;
+        backface-visibility: hidden;
+    }
+
+    .page-turner[data-ready] .page-turner-pages > :global([data-current]),
+    .page-turner[data-ready] .page-turner-pages > :global([data-turning]) {
+        visibility: visible;
+    }
+
+    .page-turner-pages > :global([data-current]) {
+        z-index: 1;
+    }
+
+    .page-turner-pages > :global([data-turning]) {
+        z-index: 2;
+    }
+
+    .page-turner-controls {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+        .page-turner {
+            margin-top: 2rem;
+        }
+    }
+
+    @media print {
+        .page-turner[data-ready] .page-turner-pages {
+            display: block;
+        }
+
+        .page-turner[data-ready] .page-turner-pages > :global(*) {
+            visibility: visible;
+            transform: none !important;
+        }
+    }
+</style>
+
+<script>
+    import { initializePageTurners } from "../../scripts/page_turner";
+    initializePageTurners();
+</script>

@@ -6,6 +6,14 @@ import { locales, languages } from "../../src/config/locales.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { formatMessage } from "../../src/i18n/format.ts";
 
+test("an unimplemented feed has no snapshot or fabricated reporting period", () => {
+    for (const locale of locales) {
+        const detail = getFeedsPage("youtube", locale);
+        assert.equal(detail.sources[0].data, null);
+        assert.equal(detail.description, messages[locale].ui[routes.youtube.description]);
+    }
+});
+
 test("feeds load all registered previews and only the selected detail source, including an additional source", (context) => {
     const keys = Object.keys(feedSources);
     assert.deepEqual(keys.sort(), Object.keys(routes).filter((route) => routes[route].section === "feeds" && route !== "feeds").sort());

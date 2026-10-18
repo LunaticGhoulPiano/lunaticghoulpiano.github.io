@@ -11,6 +11,8 @@ import ProfileLayout from "../layouts/ProfileLayout.astro";
 import RepositoryList from "./RepositoryList.astro";
 import PostList from "./PostList.astro";
 import GithubActivity from "./GithubActivity.astro";
+import FeedPanel from "./FeedPanel.astro";
+import PageTurner from "./common/PageTurner.astro";
 import SnapshotNotice from "./SnapshotNotice.astro";
 
 interface Props {
@@ -27,6 +29,7 @@ const context = await getPageContext(route, locale);
 const description = context.section === "feeds" ? context.description : t(page.description);
 const feedComponents = {
     github: GithubActivity,
+    youtube: null,
 } satisfies Record<FeedSource, unknown>;
 ---
 
@@ -88,16 +91,23 @@ const feedComponents = {
             <p class="empty-message">{content.noTags}</p>
         )
     )}
-    {context.section === "feeds" && context.sources.map((source) => {
-        const Feed = feedComponents[source.key];
-        return (
-            <Feed
-                locale={locale}
-                data={source.data}
-                title={source.title}
-                href={getRoutePath(source.route, locale)}
-                preview={context.preview}
-            />
-        );
-    })}
+    {context.section === "feeds" && (
+        <PageTurner id="feed-pages" label={t("route.feeds")} locale={locale} enabled={context.preview}>
+            {context.sources.map((source) => {
+                const Feed = feedComponents[source.key];
+                return (
+                    <FeedPanel
+                        locale={locale}
+                        source={source.key}
+                        title={source.title}
+                        href={getRoutePath(source.route, locale)}
+                        preview={context.preview}
+                        snapshot={source.data?.notice ?? null}
+                    >
+                        {Feed && source.data && <Feed locale={locale} data={source.data} preview={context.preview} />}
+                    </FeedPanel>
+                );
+            })}
+        </PageTurner>
+    )}
 </BaseLayout>
