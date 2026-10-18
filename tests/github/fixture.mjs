@@ -56,7 +56,8 @@ export function fixtureFetch({ calls = [], transformGraphql = (data) => data, em
                     },
                 ]),
             );
-        } else if (query.includes("commitContributionsByRepository")) {
+        }
+        else if (query.includes("commitContributionsByRepository")) {
             collection = {
                 restrictedContributionsCount: empty ? 0 : 82,
                 totalRepositoriesWithContributedCommits: empty ? 0 : 2,
@@ -96,7 +97,8 @@ export function fixtureFetch({ calls = [], transformGraphql = (data) => data, em
                     },
                 ],
             };
-        } else {
+        }
+        else {
             const field = query.match(/entries: (\w+)/)?.[1];
             const sources = {
                 issueContributions: [contribution("issue1"), contribution("hidden_issue", "PRIVATE"), contribution("issue2")],

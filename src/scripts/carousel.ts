@@ -104,13 +104,15 @@ export function initializeCarousels() {
                     render(start + (end - start) * eased);
                     if (progress < 1) {
                         slideFrame = requestAnimationFrame(frame);
-                    } else {
+                    }
+                    else {
                         finish();
                     }
                 }
                 slideFrame = requestAnimationFrame(frame);
                 slideTimer = setTimeout(finish, duration);
-            } else {
+            }
+            else {
                 render(target);
                 automatic.schedule();
             }
@@ -166,7 +168,8 @@ export function initializeCarousels() {
             if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
                 event.preventDefault();
                 move(event.key === "ArrowLeft" ? -1 : 1);
-            } else if (["Home", "End"].includes(event.key)) {
+            }
+            else if (["Home", "End"].includes(event.key)) {
                 event.preventDefault();
                 interact(event.key === "Home" ? 0 : maximum);
             }

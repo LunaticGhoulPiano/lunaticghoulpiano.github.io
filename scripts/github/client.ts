@@ -30,7 +30,8 @@ export class GithubClient {
                 if (! this.token) throw new Error("A GitHub read token is required for contributions.");
                 if (this.graphqlExhausted || this.graphqlRequests >= requestBudgets.graphql || this.graphqlPoints >= githubToolPolicy.graphqlPoints) throw new Error("GraphQL budget reached.");
                 this.graphqlRequests++;
-            } else {
+            }
+            else {
                 if (this.restExhausted || this.restRequests >= requestBudgets.rest) throw new Error("REST request budget reached.");
                 this.restRequests++;
             }
