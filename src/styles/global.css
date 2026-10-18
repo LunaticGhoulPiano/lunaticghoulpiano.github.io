@@ -1,8 +1,9 @@
 :root {
     font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    font-style: italic;
     color: var(--text);
     background: var(--background);
-    font-synthesis: none;
+    font-synthesis: style;
     --mono: "Cascadia Code", Consolas, monospace;
 }
 
