@@ -1031,6 +1031,7 @@ h3 {
 
 .carousel, .timeline-window {
     --scroll-control-size: 27.5px;
+    --timeline-control-gap: 0.75rem;
 }
 
 .carousel-controls {
@@ -1077,6 +1078,9 @@ h3 {
 }
 
 .activity-category {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) calc(var(--activity-timeline-height) + 2 * (var(--scroll-control-size) + var(--timeline-control-gap)));
+    height: var(--activity-category-height);
     min-width: 0;
     padding-top: 1rem;
     border-top: 2px solid var(--line);
@@ -1136,11 +1140,34 @@ h3 {
     padding-bottom: 1.5rem;
 }
 
+.activity-category .activity-list li {
+    height: var(--activity-item-height);
+    grid-template-rows: max-content minmax(0, 1fr);
+    line-height: 1.5;
+}
+
+.activity-category .activity-list li > div {
+    min-width: 0;
+    padding-bottom: 0.5rem;
+}
+
+.activity-category .activity-repository {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--activity-repository-lines);
+    line-clamp: var(--activity-repository-lines);
+    overflow: hidden;
+}
+
+.activity-category .timeline-window {
+    margin-top: 0;
+}
+
 .timeline-window {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--scroll-control-size);
     grid-template-rows: var(--scroll-control-size) auto var(--scroll-control-size);
-    row-gap: 0.75rem;
+    row-gap: var(--timeline-control-gap);
     margin-top: 1rem;
 }
 
@@ -1184,6 +1211,15 @@ h3 {
 }
 
 @media print {
+    .activity-category {
+        display: block;
+        height: auto;
+    }
+
+    .activity-category .activity-list li {
+        height: auto;
+    }
+
     .timeline-jump {
         display: none;
     }

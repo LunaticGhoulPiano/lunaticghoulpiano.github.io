@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { carouselState } from "../src/utils/carousel.ts";
 import { initializeCarousels } from "../src/scripts/carousel.ts";
+import { categorySlideInterval, categorySlideDuration } from "../src/config/collections.ts";
 
 function element() {
     const handlers = new Map();
@@ -26,11 +27,14 @@ function element() {
     };
 }
 
-function fixture(context, loop = true) {
+function fixture(context, loop = true, { interval = 0, duration = 0, hovered = false, reduced = false } = {}) {
+    context.mock.timers.enable({ apis: ["setTimeout"] });
     let columns = 3;
     let resizeCallback;
     const gap = 12;
-    const frames = [];
+    const frames = new Map();
+    let frameId = 0;
+    let now = 0;
     const controls = element();
     const previous = element();
     const next = element();
@@ -88,18 +92,29 @@ function fixture(context, loop = true) {
         scrollbar,
         space,
     };
-    const root = {
+    const root = Object.assign(element(), {
         dataset: {
             loop: String(loop),
+            interval: String(interval),
+            slideDuration: String(duration),
         },
+        matches: () => hovered,
+        contains: (target) => target != null && (cards.includes(target) || Object.values(nodes).includes(target)),
         querySelector(selector) {
             return nodes[selector.slice("[data-carousel-".length, -1)];
         },
-    };
+    });
+    const document = Object.assign(element(), {
+        hidden: false,
+        activeElement: null,
+        querySelectorAll: () => [root],
+    });
+    const motion = Object.assign(element(), { matches: reduced });
+    const window = Object.assign(element(), { matchMedia: () => motion });
     const environment = {
-        document: {
-            querySelectorAll: () => [root],
-        },
+        document,
+        window,
+        performance: { now: () => now },
         getComputedStyle: () => ({
             columnGap: String(gap),
             paddingTop: "8",
@@ -113,9 +128,10 @@ function fixture(context, loop = true) {
             observe() {}
         },
         requestAnimationFrame(callback) {
-            frames.push(callback);
-            return frames.length;
+            frames.set(++frameId, callback);
+            return frameId;
         },
+        cancelAnimationFrame: (id) => frames.delete(id),
     };
     const previousGlobals = new Map(Object.keys(environment).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
     for (const [key, value] of Object.entries(environment)) Object.defineProperty(globalThis, key, {
@@ -130,9 +146,21 @@ function fixture(context, loop = true) {
         }
     });
     initializeCarousels();
+    function frame(elapsed = 0) {
+        now += elapsed;
+        const callbacks = [...frames.values()];
+        frames.clear();
+        callbacks.forEach((callback) => callback(now));
+    }
     return {
         ...nodes,
         cards,
+        root,
+        document,
+        window,
+        motion,
+        frame,
+        tick: (elapsed = categorySlideInterval) => context.mock.timers.tick(elapsed),
         visible: () => track.children.filter((card) => {
             const bounds = card.getBoundingClientRect();
             return bounds.right > 1 && bounds.left < track.clientWidth - 1;
@@ -141,7 +169,7 @@ function fixture(context, loop = true) {
             columns = visibleItems;
             track.clientWidth = 200;
             resizeCallback();
-            while (frames.length) frames.shift()();
+            frame();
         },
     };
 }
@@ -192,6 +220,97 @@ test("non-looping carousel stops at both boundaries", (context) => {
     for (let index = 0; index < 12; index++) view.previous.dispatch("click");
     assert.deepEqual(view.visible(), [0, 1, 2]);
     assert.equal(view.previous.disabled, true);
+});
+
+test("automatic sliding advances one card after each interval and wraps without replacing timelines", (context) => {
+    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration });
+    view.tick(categorySlideInterval - 1);
+    assert.deepEqual(view.visible(), [0, 1, 2]);
+    view.tick(1);
+    view.frame(categorySlideDuration / 2);
+    assert.ok(view.track.scrollLeft > 0 && view.track.scrollLeft < 104);
+    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
+    view.frame(categorySlideDuration / 2);
+    assert.deepEqual(view.visible(), [1, 2, 3]);
+    assert.equal(view.position.getAttribute("aria-live"), "off");
+    for (let index = 2; index <= 11; index++) {
+        view.tick();
+        view.frame(categorySlideDuration);
+        assert.deepEqual(view.visible(), [index % 10, (index + 1) % 10, (index + 2) % 10]);
+    }
+    assert.equal(new Set(view.track.children).size, view.cards.length);
+    view.cards.forEach((card, index) => assert.equal(card.timelineScrollTop, index * 20));
+});
+
+test("only hover pauses sliding and keyboard focus does not prevent resuming", (context) => {
+    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration, hovered: true });
+    view.tick();
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [0, 1, 2]);
+    view.root.dispatch("mouseleave");
+    view.tick(categorySlideInterval - 1);
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [0, 1, 2]);
+    view.tick(1);
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [1, 2, 3]);
+    view.root.dispatch("focusin");
+    view.root.dispatch("mouseenter");
+    view.root.dispatch("mouseleave");
+    view.tick();
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [2, 3, 4]);
+    view.root.dispatch("focusout", { relatedTarget: null });
+    view.document.hidden = true;
+    view.document.dispatch("visibilitychange");
+    view.tick();
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [3, 4, 5]);
+    view.root.matches = () => false;
+    view.document.hidden = false;
+    view.document.dispatch("visibilitychange");
+    view.tick();
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [4, 5, 6]);
+});
+
+test("boundary animations slide through adjacent cards in either direction", (context) => {
+    const view = fixture(context, true, { duration: categorySlideDuration });
+    view.previous.dispatch("click");
+    view.frame(categorySlideDuration / 2);
+    assert.deepEqual(view.visible(), [9, 0, 1, 2]);
+    view.frame(categorySlideDuration / 2);
+    assert.deepEqual(view.visible(), [9, 0, 1]);
+    view.next.dispatch("click");
+    view.frame(categorySlideDuration / 2);
+    assert.deepEqual(view.visible(), [9, 0, 1, 2]);
+    view.frame(categorySlideDuration / 2);
+    assert.deepEqual(view.visible(), [0, 1, 2]);
+});
+
+test("reduced motion skips animation without disabling automatic or manual navigation", (context) => {
+    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration, reduced: true });
+    view.tick();
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [1, 2, 3]);
+    view.next.dispatch("click");
+    assert.deepEqual(view.visible(), [2, 3, 4]);
+    view.motion.matches = false;
+    view.motion.dispatch("change");
+    view.tick();
+    view.frame(categorySlideDuration);
+    assert.deepEqual(view.visible(), [3, 4, 5]);
+});
+
+test("background sliding keeps looping without receiving animation frames", (context) => {
+    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration });
+    view.document.hidden = true;
+    view.document.dispatch("visibilitychange");
+    for (let index = 1; index <= 11; index++) {
+        view.tick();
+        view.tick(categorySlideDuration);
+        assert.deepEqual(view.visible(), [index % 10, (index + 1) % 10, (index + 2) % 10]);
+    }
 });
 
 test("carousel advances one item across either boundary and stops when looping is disabled", () => {

@@ -1,5 +1,6 @@
 ---
 import type { Locale } from "../config/site";
+import { timelineCategorySize, activityCategoryLayout, categorySlideInterval, categorySlideDuration } from "../config/collections";
 import { useMessages } from "../i18n/ui";
 import type { getGithubFeed } from "../services/feeds/github";
 import ActivityTimeline from "./ActivityTimeline.astro";
@@ -27,15 +28,38 @@ const copy = messages.activity;
             <p class="empty-message">{hasActivity ? messages.content.noEvents : copy.unavailable}</p>
         )
     ) : (
-        <Carousel id="activity-categories" label={copy.categories} locale={locale} loop>
+        <Carousel
+            id="activity-categories"
+            label={copy.categories}
+            locale={locale}
+            interval={categorySlideInterval}
+            slideDuration={categorySlideDuration}
+            loop
+        >
             {categories.map((category) => (
-                <section class="activity-category" data-activity-category={category.key} aria-label={copy[category.key]}>
+                <section
+                    class="activity-category"
+                    data-activity-category={category.key}
+                    aria-label={copy[category.key]}
+                    style={{
+                        "--activity-category-height": `${activityCategoryLayout.height}px`,
+                        "--activity-timeline-height": `${activityCategoryLayout.timelineHeight}px`,
+                        "--activity-item-height": `${activityCategoryLayout.itemHeight}px`,
+                        "--activity-repository-lines": activityCategoryLayout.repositoryLines,
+                    }}
+                >
                     <header class="activity-category-heading">
                         <h3 id={`category-${category.key}`}>{copy[category.key]}</h3>
                         {category.available && <span class="activity-count">{category.count}</span>}
                     </header>
                     {category.items.length > 0 ? (
-                        <TimelineViewport id={`timeline-${category.key}`} label={copy[category.key]} locale={locale}>
+                        <TimelineViewport
+                            id={`timeline-${category.key}`}
+                            label={copy[category.key]}
+                            locale={locale}
+                            visibleItems={timelineCategorySize}
+                            height={activityCategoryLayout.timelineHeight}
+                        >
                             <ActivityTimeline
                                 locale={locale}
                                 entries={category.items}

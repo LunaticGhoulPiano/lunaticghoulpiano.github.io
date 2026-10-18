@@ -8,13 +8,14 @@ interface Props {
     label: string;
     locale: Locale;
     visibleItems?: number;
+    height?: number;
 }
 
-const { id, label, locale, visibleItems = timelinePreviewSize } = Astro.props;
+const { id, label, locale, visibleItems = timelinePreviewSize, height } = Astro.props;
 const copy = useMessages(locale).timeline;
 ---
 
-<div class="timeline-window" data-timeline-window data-visible-items={visibleItems}>
+<div class="timeline-window" data-timeline-window data-visible-items={visibleItems} data-height={height}>
     <button
         class="timeline-jump"
         type="button"
@@ -24,7 +25,15 @@ const copy = useMessages(locale).timeline;
         aria-controls={id}
         hidden
     >↑</button>
-    <div class="timeline-scroll" id={id} data-timeline-scroll tabindex="0" role="region" aria-label={label}>
+    <div
+        class="timeline-scroll"
+        id={id}
+        data-timeline-scroll
+        tabindex="0"
+        role="region"
+        aria-label={label}
+        style={height === undefined ? undefined : { height: `${height}px` }}
+    >
         <slot />
     </div>
     <button

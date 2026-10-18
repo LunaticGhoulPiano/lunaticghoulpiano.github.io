@@ -1,5 +1,6 @@
 import { carouselState } from "../utils/carousel.ts";
 import { pageTurnDuration } from "../config/collections.ts";
+import { createAutoAdvance } from "./auto_advance.ts";
 
 export function initializePageTurners() {
     document.querySelectorAll<HTMLElement>("[data-page-turner]").forEach((root) => {
@@ -10,23 +11,13 @@ export function initializePageTurners() {
         const previous = root.querySelector<HTMLButtonElement>("[data-page-turner-previous]")!;
         const next = root.querySelector<HTMLButtonElement>("[data-page-turner-next]")!;
         const position = root.querySelector<HTMLElement>("[data-page-turner-position]")!;
-        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-        const interval = Number(root.dataset.interval);
         let state = carouselState(pages.length, 1, 0, true);
-        let hovered = root.matches(":hover");
-        let focused = root.contains(document.activeElement);
-        let timer: ReturnType<typeof setTimeout> | undefined;
         let animation: Animation | undefined;
-
-        function schedule() {
-            clearTimeout(timer);
-            timer = undefined;
-            const stopped = hovered || focused || document.hidden || reducedMotion.matches;
-            root.dataset.paused = String(stopped);
-            if (! stopped && ! animation && state.next !== null && Number.isFinite(interval) && interval > 0) {
-                timer = setTimeout(() => move(1), interval);
-            }
-        }
+        const automatic = createAutoAdvance(root, {
+            interval: Number(root.dataset.interval),
+            advance: () => move(1),
+            canAdvance: () => ! animation && state.next !== null,
+        });
 
         function render() {
             pages.forEach((page, index) => {
@@ -44,53 +35,41 @@ export function initializePageTurners() {
         function move(direction: number, manual = false) {
             const target = direction < 0 ? state.previous : state.next;
             if (animation || target === null) return;
-            clearTimeout(timer);
+            automatic.cancel();
             const outgoing = pages[state.index];
             state = carouselState(pages.length, 1, target, true);
             position.setAttribute("aria-live", manual ? "polite" : "off");
             render();
             const turning = direction < 0 ? pages[state.index] : outgoing;
-            if (! reducedMotion.matches && typeof turning.animate === "function") {
+            if (! automatic.reducedMotion.matches && typeof turning.animate === "function") {
                 turning.setAttribute("data-turning", "");
                 const frames = [
                     { transform: "rotateY(0deg)", opacity: 1, boxShadow: "0 0 0 transparent" },
                     { transform: "rotateY(-105deg)", opacity: 0, boxShadow: "18px 0 32px #0000001a" },
                 ];
-                animation = turning.animate(direction < 0 ? frames.reverse() : frames, {
+                const currentAnimation = turning.animate(direction < 0 ? frames.reverse() : frames, {
                     duration: pageTurnDuration,
                     easing: "ease-in-out",
                 });
-                animation.finished.catch(() => {}).then(() => {
+                animation = currentAnimation;
+                const completionTimer = setTimeout(finish, pageTurnDuration);
+                function finish() {
+                    if (animation !== currentAnimation) return;
+                    clearTimeout(completionTimer);
                     turning.removeAttribute("data-turning");
                     animation = undefined;
-                    schedule();
-                });
+                    currentAnimation.cancel();
+                    automatic.schedule();
+                }
+                currentAnimation.finished.then(finish, finish);
             }
-            schedule();
+            automatic.schedule();
         }
 
         previous.addEventListener("click", () => move(-1, true));
         next.addEventListener("click", () => move(1, true));
-        root.addEventListener("mouseenter", () => {
-            hovered = true;
-            schedule();
-        });
-        root.addEventListener("mouseleave", () => {
-            hovered = false;
-            schedule();
-        });
-        root.addEventListener("focusin", () => {
-            focused = true;
-            schedule();
-        });
-        root.addEventListener("focusout", (event) => {
-            focused = root.contains(event.relatedTarget as Node | null);
-            schedule();
-        });
-        document.addEventListener("visibilitychange", schedule);
-        reducedMotion.addEventListener("change", schedule);
         root.dataset.ready = "true";
         render();
-        schedule();
+        automatic.schedule();
     });
 }

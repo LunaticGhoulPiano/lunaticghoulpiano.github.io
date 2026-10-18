@@ -1,4 +1,5 @@
 import { carouselState } from "../utils/carousel.ts";
+import { createAutoAdvance } from "./auto_advance.ts";
 
 export function initializeCarousels() {
     document.querySelectorAll<HTMLElement>("[data-carousel]").forEach((carousel) => {
@@ -12,6 +13,7 @@ export function initializeCarousels() {
         const scrollbar = carousel.querySelector<HTMLElement>("[data-carousel-scrollbar]")!;
         const space = carousel.querySelector<HTMLElement>("[data-carousel-space]")!;
         const loop = carousel.dataset.loop === "true";
+        const duration = Number(carousel.dataset.slideDuration);
         let offset = 0;
         let base = 0;
         let columns = 1;
@@ -22,6 +24,22 @@ export function initializeCarousels() {
         let trackOffset = 0;
         let barOffset = 0;
         let state = carouselState(cards.length, columns, 0, loop);
+        let sliding = false;
+        let slideFrame = 0;
+        let slideTimer: ReturnType<typeof setTimeout> | undefined;
+        const automatic = createAutoAdvance(carousel, {
+            interval: Number(carousel.dataset.interval),
+            advance: () => move(1, false),
+            canAdvance: () => ! sliding && state.next !== null,
+        });
+
+        function stopSlide() {
+            cancelAnimationFrame(slideFrame);
+            clearTimeout(slideTimer);
+            slideTimer = undefined;
+            slideFrame = 0;
+            sliding = false;
+        }
 
         function syncHeight() {
             const viewport = track.getBoundingClientRect();
@@ -36,7 +54,9 @@ export function initializeCarousels() {
         }
 
         function render(requestedOffset: number, updateScrollbar = true) {
-            offset = Math.max(0, Math.min(maximum, requestedOffset));
+            offset = loop && maximum > 0
+                ? ((requestedOffset % cards.length) + cards.length) % cards.length
+                : Math.max(0, Math.min(maximum, requestedOffset));
             state = carouselState(cards.length, columns, Math.round(offset), loop);
             const lastLinearIndex = Math.max(0, cards.length - columns);
             base = loop ? Math.max(0, Math.ceil(offset) - lastLinearIndex) : 0;
@@ -59,10 +79,48 @@ export function initializeCarousels() {
             syncHeight();
         }
 
-        function move(direction: number) {
+        function move(direction: number, manual = true) {
             const target = direction < 0 ? state.previous : state.next;
-            if (target === null) return;
-            render(target);
+            if (sliding || target === null) return;
+            automatic.cancel();
+            position.setAttribute("aria-live", manual ? "polite" : "off");
+            if (! automatic.reducedMotion.matches && Number.isFinite(duration) && duration > 0) {
+                const start = offset;
+                let end = target;
+                if (loop && direction > 0 && end < start) end += cards.length;
+                if (loop && direction < 0 && end > start) end -= cards.length;
+                const startedAt = performance.now();
+                sliding = true;
+                function finish() {
+                    if (! sliding) return;
+                    stopSlide();
+                    render(end);
+                    automatic.schedule();
+                }
+                function frame(now: number) {
+                    const progress = automatic.reducedMotion.matches
+                        ? 1 : Math.min(1, (now - startedAt) / duration);
+                    const eased = progress * progress * (3 - 2 * progress);
+                    render(start + (end - start) * eased);
+                    if (progress < 1) {
+                        slideFrame = requestAnimationFrame(frame);
+                    } else {
+                        finish();
+                    }
+                }
+                slideFrame = requestAnimationFrame(frame);
+                slideTimer = setTimeout(finish, duration);
+            } else {
+                render(target);
+                automatic.schedule();
+            }
+        }
+
+        function interact(requestedOffset: number, updateScrollbar = true) {
+            stopSlide();
+            position.setAttribute("aria-live", "polite");
+            render(requestedOffset, updateScrollbar);
+            automatic.schedule();
         }
 
         function geometryChanged() {
@@ -79,7 +137,7 @@ export function initializeCarousels() {
                 return;
             }
             if (Math.abs(track.scrollLeft - trackOffset) <= 1) return;
-            render(base + track.scrollLeft / step);
+            interact(base + track.scrollLeft / step);
         }, {
             passive: true,
         });
@@ -90,7 +148,7 @@ export function initializeCarousels() {
             }
             if (Math.abs(scrollbar.scrollLeft - barOffset) <= 1) return;
             const distance = scrollbar.scrollWidth - scrollbar.clientWidth;
-            render(distance > 0 ? scrollbar.scrollLeft / distance * maximum : 0, false);
+            interact(distance > 0 ? scrollbar.scrollLeft / distance * maximum : 0, false);
         }, {
             passive: true,
         });
@@ -100,7 +158,7 @@ export function initializeCarousels() {
             event.preventDefault();
             const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16
                 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? track.clientWidth : 1;
-            render(offset + horizontal * scale / step);
+            interact(offset + horizontal * scale / step);
         }, {
             passive: false,
         });
@@ -110,7 +168,7 @@ export function initializeCarousels() {
                 move(event.key === "ArrowLeft" ? -1 : 1);
             } else if (["Home", "End"].includes(event.key)) {
                 event.preventDefault();
-                render(event.key === "Home" ? 0 : maximum);
+                interact(event.key === "Home" ? 0 : maximum);
             }
         });
         track.addEventListener("keydown", (event) => {
@@ -119,6 +177,7 @@ export function initializeCarousels() {
             move(event.key === "ArrowLeft" ? -1 : 1);
         });
         function resize() {
+            if (geometryChanged()) stopSlide();
             const style = getComputedStyle(track);
             columns = Number.parseInt(style.getPropertyValue("--carousel-columns"), 10) || 1;
             step = (track.clientWidth + Number.parseFloat(style.columnGap)) / columns;
@@ -130,6 +189,7 @@ export function initializeCarousels() {
             const nativeHeight = scrollbar.offsetHeight - scrollbar.clientHeight;
             scrollbar.style.height = `${Math.max(16, nativeHeight + 1)}px`;
             render(offset);
+            automatic.schedule();
         }
         let resizeFrame = 0;
         const observer = new ResizeObserver(() => {

@@ -1,7 +1,7 @@
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
-import { collectionPageSize, timelinePreviewSize } from "../../src/config/collections.ts";
+import { collectionPageSize, timelinePreviewSize, timelineCategorySize, activityCategoryLayout } from "../../src/config/collections.ts";
 import { formatMessage } from "../../src/i18n/format.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -251,13 +251,17 @@ test("isolated builds cover every configured language plus an additional locale,
             }
             assert.equal([...feed.matchAll(/data-private-contributions/g)].length, 4);
             assert.equal([...overview.matchAll(/data-private-contributions/g)].length, 2);
-            for (const html of [overview, feed]) {
+            for (const [html, visibleItems] of [[overview, timelinePreviewSize], [feed, timelineCategorySize]]) {
                 assert.doesNotMatch(html, /private_project|hidden_issue|fixture_only/);
                 assert.doesNotMatch(html, /contribution-stats|contribution-calendar|github-summary|account-snapshot|data-timeline-toggle/);
                 assert.equal([...html.matchAll(/data-feed-source="github"/g)].length, 1);
                 const notice = html.match(/<div class="snapshot-notice">([\s\S]*?)<\/div>/)[1];
                 assert.ok(text(notice).startsWith(`${copy.content.snapshot}:`));
-                assert.ok(html.includes(`data-timeline-window data-visible-items="${timelinePreviewSize}"`));
+                assert.ok(html.includes(`data-timeline-window data-visible-items="${visibleItems}"`));
+                const windows = [...html.matchAll(/<div\b[^>]*data-timeline-window[^>]*>/g)];
+                for (const [window] of windows) {
+                    assert.equal(attributes(window)["data-height"], html === feed ? String(activityCategoryLayout.timelineHeight) : undefined);
+                }
                 const newest = html.match(/<button\b[^>]*data-timeline-newest[^>]*>/)[0];
                 const oldest = html.match(/<button\b[^>]*data-timeline-oldest[^>]*>/)[0];
                 assert.equal(attributes(newest)["aria-label"], copy.timeline.newest);

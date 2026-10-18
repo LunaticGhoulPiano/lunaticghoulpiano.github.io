@@ -9,6 +9,7 @@ export function initializeTimelines() {
         const newest = root.querySelector<HTMLButtonElement>("[data-timeline-newest]")!;
         const oldest = root.querySelector<HTMLButtonElement>("[data-timeline-oldest]")!;
         const visibleItems = Number(root.dataset.visibleItems) || timelinePreviewSize;
+        const fixedHeight = Number(root.dataset.height);
 
         function sync() {
             const maximum = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
@@ -22,7 +23,9 @@ export function initializeTimelines() {
             if (viewport.clientWidth === 0 || items.length === 0) return;
             root.style.setProperty("--timeline-scrollbar-width", `${viewport.offsetWidth - viewport.clientWidth}px`);
             const lastVisible = items[Math.min(visibleItems, items.length) - 1];
-            const height = Math.ceil(lastVisible.getBoundingClientRect().bottom - list.getBoundingClientRect().top);
+            const height = Number.isFinite(fixedHeight) && fixedHeight > 0
+                ? fixedHeight
+                : Math.ceil(lastVisible.getBoundingClientRect().bottom - list.getBoundingClientRect().top);
             viewport.style.height = `${height}px`;
             sync();
         }
