@@ -20,7 +20,7 @@ test("all uploads are paginated and batched, sorted by publication time, without
     assert.equal(snapshot.videos[0].id, fixtureVideoId(56));
     assert.equal(snapshot.videos.at(-1).id, fixtureVideoId(0));
     assert.equal(snapshot.channel.views, "9007199254740993");
-    assert.equal(requests, 5);
+    assert.equal(requests, 6);
     assert.equal(calls.filter((call) => call.resource === "playlistItems").length, 2);
     assert.equal(calls.filter((call) => call.resource === "videos").length, 2);
     for (const call of calls) {
@@ -171,6 +171,15 @@ test("updates save validated snapshots atomically and preserve previous data on 
         }));
         assert.equal(videoBatches, 2);
         assert.equal(await readFile(filename, "utf8"), previous);
+        const playlistResponse = fixtureFetch({ count: 2, playlists: [{ id: "PL_failure", items: [1] }] });
+        await assert.rejects(runYoutubeRefresh({
+            key: fixtureKey,
+            now: fixtureNow,
+            outputDirectory: directory,
+            request: (url, options) => new URL(url).searchParams.get("playlistId") === "PL_failure"
+                ? Promise.resolve(new Response(null, { status: 503 })) : playlistResponse(url, options),
+        }));
+        assert.equal(await readFile(filename, "utf8"), previous);
         const wrongChannel = JSON.parse(previous);
         wrongChannel.handle = "@different_channel";
         await writeFile(filename, JSON.stringify(wrongChannel));
@@ -188,4 +197,121 @@ test("YouTube credentials use environment then local and base env files", async 
         assert.equal(readCredential(name, directory, {}), "fixture_local");
         assert.equal(readCredential(name, directory, { [name]: fixtureKey }), fixtureKey);
     });
+});
+
+test("public owned playlists preserve positions and share video data without adding collaborators to uploads", async () => {
+    const calls = [];
+    const { snapshot } = await fetchYoutubeSnapshot(fixtureKey, fixtureNow, fixtureFetch({
+        count: 3,
+        calls,
+        playlists: [
+            { id: "PL_first", title: "A & B", description: "First playlist", items: [2, 100, 0, 2] },
+            { id: "PL_second", items: [100, 0] },
+            { id: "PL_private", privacy: "private", items: [101] },
+            { id: "PL_unlisted", privacy: "unlisted", items: [102] },
+            { id: "PL_empty", items: [] },
+        ],
+        transform(resource, data, parameters) {
+            if (resource === "playlistItems" && parameters.get("playlistId") !== "fixture_uploads") data.items.reverse();
+            return data;
+        },
+    }));
+    assert.deepEqual(snapshot.playlists.map((playlist) => playlist.id), ["PL_first", "PL_second", "PL_empty"]);
+    assert.deepEqual(snapshot.playlists[0].items.map((item) => item.videoId), [2, 100, 0, 2].map(fixtureVideoId));
+    assert.deepEqual(snapshot.playlists[0].items.map((item) => item.position), [0, 1, 2, 3]);
+    assert.equal(snapshot.playlists[0].title, "A & B");
+    assert.equal(snapshot.playlists[0].description, "First playlist");
+    assert.equal(snapshot.videos.length, 4);
+    const requestedIds = calls.filter((call) => call.resource === "videos").flatMap((call) => call.parameters.id.split(","));
+    assert.equal(new Set(requestedIds).size, requestedIds.length);
+    assert.deepEqual(new Set(requestedIds), new Set([0, 1, 2, 100].map(fixtureVideoId)));
+    assert.ok(calls.filter((call) => call.resource === "playlistItems").every((call) => ! /private|unlisted/.test(call.parameters.playlistId)));
+    const feed = getYoutubeFeed(snapshot);
+    assert.deepEqual(feed.videos.map((video) => video.id), [2, 1, 0].map(fixtureVideoId));
+    assert.equal(feed.library.length, 4);
+    assert.deepEqual(feed.playlists[2].items, []);
+});
+
+test("playlist catalogs and playlist contents both paginate without a fixed number of lists", async () => {
+    const calls = [];
+    const playlists = Array.from({ length: 51 }, (_, index) => ({
+        id: `PL_${index}`,
+        items: index === 50 ? Array.from({ length: 55 }, (_, position) => 54 - position) : [],
+    }));
+    const { snapshot } = await fetchYoutubeSnapshot(fixtureKey, fixtureNow, fixtureFetch({ count: 55, playlists, calls }));
+    assert.equal(snapshot.playlists.length, playlists.length);
+    assert.deepEqual(snapshot.playlists.at(-1).items.map((item) => item.videoId), playlists.at(-1).items.map(fixtureVideoId));
+    assert.equal(calls.filter((call) => call.resource === "playlists").length, 2);
+    assert.equal(calls.filter((call) => call.parameters.playlistId === "PL_50").length, 2);
+    assert.equal(snapshot.videos.length, 55);
+});
+
+test("unavailable and nonpublic playlist videos leave no dangling references or private data", async () => {
+    const { snapshot } = await fetchYoutubeSnapshot(fixtureKey, fixtureNow, fixtureFetch({
+        count: 1,
+        playlists: [{ id: "PL_public", items: [0, 100, 101, 102, 103] }],
+        transform(resource, data, parameters) {
+            if (resource === "playlistItems" && parameters.get("playlistId") === "PL_public") {
+                data.items[1].status.privacyStatus = "private";
+                data.items[2].status.privacyStatus = "unlisted";
+            }
+            if (resource === "videos") {
+                data.items = data.items.filter((video) => video.id !== fixtureVideoId(102));
+                for (const video of data.items) {
+                    if (video.id === fixtureVideoId(103)) video.status.privacyStatus = "private";
+                }
+            }
+            return data;
+        },
+    }));
+    assert.deepEqual(snapshot.videos.map((video) => video.id), [fixtureVideoId(0)]);
+    assert.deepEqual(snapshot.playlists[0].items.map((item) => item.videoId), [fixtureVideoId(0)]);
+    for (const index of [100, 101, 102, 103]) assert.equal(JSON.stringify(snapshot).includes(fixtureVideoId(index)), false);
+});
+
+test("playlist ownership, membership identity, order and pagination are validated", async () => {
+    const transforms = [
+        (resource, data) => {
+            if (resource === "playlists") data.items[0].snippet.channelId = `UC${"b".repeat(22)}`;
+        },
+        (resource, data) => {
+            if (resource === "playlists") data.items.push(data.items[0]);
+        },
+        (resource, data) => {
+            if (resource === "playlists") data.nextPageToken = "repeat";
+        },
+        (_resource, data) => { data.items[0].snippet.playlistId = "PL_wrong"; },
+        (_resource, data) => { data.items[1].snippet.position = data.items[0].snippet.position; },
+        (_resource, data) => { data.items[1].id = data.items[0].id; },
+    ];
+    for (const [index, transform] of transforms.entries()) {
+        await assert.rejects(fetchYoutubeSnapshot(fixtureKey, fixtureNow, fixtureFetch({
+            count: 2,
+            playlists: [{ id: "PL_owned", items: [1, 0] }],
+            transform(resource, data, parameters) {
+                if (index < 3 || (resource === "playlistItems" && parameters.get("playlistId") === "PL_owned")) transform(resource, data);
+                return data;
+            },
+        })));
+    }
+});
+
+test("snapshot validation rejects dangling references, duplicates, foreign uploads and foreign playlists", async () => {
+    const { snapshot } = await fetchYoutubeSnapshot(fixtureKey, fixtureNow, fixtureFetch({
+        count: 2,
+        playlists: [{ id: "PL_owned", items: [1, 100] }],
+    }));
+    for (const mutate of [
+        (data) => data.uploadedVideoIds.push(fixtureVideoId(100)),
+        (data) => data.uploadedVideoIds.push(data.uploadedVideoIds[0]),
+        (data) => { data.playlists[0].channelId = `UC${"b".repeat(22)}`; },
+        (data) => { data.playlists[0].items[0].videoId = fixtureVideoId(999); },
+        (data) => data.playlists.push(data.playlists[0]),
+        (data) => data.playlists[0].items.reverse(),
+        (data) => { data.playlists[0].items = []; },
+    ]) {
+        const changed = structuredClone(snapshot);
+        mutate(changed);
+        assert.equal(youtubeSnapshotSchema.safeParse(changed).success, false);
+    }
 });

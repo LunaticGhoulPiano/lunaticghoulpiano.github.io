@@ -139,6 +139,14 @@ export default {
         privateRepository: "Private Repository",
     },
     youtube: {
+        sortBy: "Sort by",
+        newest: "Newest first",
+        oldest: "Oldest first",
+        mostViewed: "Most viewed",
+        mostLiked: "Most liked",
+        all: "All",
+        playlists: "Playlists",
+        emptyPlaylist: "No public videos available in this playlist.",
         subscribers: "Subscribers",
         created: "Created",
         publicVideos: "Public videos",
@@ -150,6 +158,8 @@ export default {
         likes: "Likes",
     },
     timeline: {
+        first: "Jump to First Item",
+        last: "Jump to Last Item",
         newest: "Jump to Newest Activity",
         oldest: "Jump to Oldest Activity",
     },

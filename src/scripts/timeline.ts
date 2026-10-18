@@ -3,11 +3,10 @@ export function initializeTimelines() {
         if (root.dataset.ready) return;
         const viewport = root.querySelector<HTMLElement>("[data-timeline-scroll]")!;
         const list = viewport.querySelector<HTMLOListElement>("ol")!;
-        const items = [...list.children] as HTMLElement[];
         const newest = root.querySelector<HTMLButtonElement>("[data-timeline-newest]")!;
         const oldest = root.querySelector<HTMLButtonElement>("[data-timeline-oldest]")!;
         const visibleItems = Number(root.dataset.visibleItems);
-        const fixedHeight = Number(root.dataset.height);
+        const fixedHeight = root.dataset.height;
 
         function sync() {
             const maximum = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
@@ -18,13 +17,17 @@ export function initializeTimelines() {
         }
 
         function resize() {
-            if (viewport.clientWidth === 0 || items.length === 0) return;
+            if (viewport.clientWidth === 0) return;
             root.style.setProperty("--timeline-scrollbar-width", `${viewport.offsetWidth - viewport.clientWidth}px`);
-            const lastVisible = items[Math.min(visibleItems, items.length) - 1];
-            const height = Number.isFinite(fixedHeight) && fixedHeight > 0
-                ? fixedHeight
-                : Math.ceil(lastVisible.getBoundingClientRect().bottom - list.getBoundingClientRect().top);
-            viewport.style.height = `${height}px`;
+            if (fixedHeight) {
+                viewport.style.height = Number(fixedHeight) > 0 ? `${fixedHeight}px` : fixedHeight;
+            }
+            else {
+                const items = [...list.children].filter((item) => ! (item as HTMLElement).hidden);
+                if (items.length === 0) return;
+                const lastVisible = items[Math.min(visibleItems, items.length) - 1];
+                viewport.style.height = `${Math.ceil(lastVisible.getBoundingClientRect().bottom - list.getBoundingClientRect().top)}px`;
+            }
             sync();
         }
 
@@ -40,6 +43,7 @@ export function initializeTimelines() {
         viewport.addEventListener("scroll", sync, {
             passive: true,
         });
+        root.addEventListener("timeline:change", resize);
         viewport.addEventListener("keydown", (event) => {
             if (event.target !== viewport || ! ["Home", "End"].includes(event.key)) return;
             event.preventDefault();

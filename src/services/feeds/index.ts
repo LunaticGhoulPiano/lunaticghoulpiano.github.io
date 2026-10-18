@@ -17,12 +17,12 @@ export const feedSources = {
     youtube: {
         title: "YouTube",
         periodDescription: "description.activityPeriod",
-        load: ({ preview }: { preview: boolean }) => preview ? getYoutubeFeed() : null,
+        load: () => getYoutubeFeed(),
     },
 } as const satisfies Record<FeedSource, {
     title: string;
     periodDescription: TranslationKey;
-    load: (options: { preview: boolean }) => {
+    load: () => {
         period: {
             from: string;
             to: string;
@@ -40,7 +40,7 @@ export function getFeedsPage(route: RouteKey, locale: Locale) {
                 ...source,
                 key,
                 route: key,
-                data: load({ preview }),
+                data: load(),
             };
         });
     const t = useTranslations(locale);

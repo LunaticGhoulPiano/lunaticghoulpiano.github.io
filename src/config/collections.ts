@@ -18,7 +18,19 @@ export const githubCategorySlideDuration = 450;
 
 // youtube
 export const youtubeTimelinePreviewSize = 3;
-export const youtubePreviewLayout = {
+export const youtubeVideoSortOptions = ["newest", "oldest", "mostViewed", "mostLiked"] as const;
+export const youtubePlaylistNavigation = {
+    visibleItems: 4,
+    interval: 5_000,
+    duration: 450,
+};
+export const youtubePageLayout = {
+    visibleItems: 3,
+    itemHeight: 176,
+    mobileItemHeight: 280,
+    playlistDescriptionLines: 2,
+};
+export const youtubeVideoLayout = {
     titleLines: 2,
     descriptionLines: 3,
 };

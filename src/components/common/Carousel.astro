@@ -10,15 +10,17 @@ interface Props {
     visibleItems?: number;
     interval?: number;
     slideDuration?: number;
+    navigation?: boolean;
 }
 
-const { id, label, locale, loop = false, visibleItems = 3, interval = 0, slideDuration = 0 } = Astro.props;
+const { id, label, locale, loop = false, visibleItems = 3, interval = 0, slideDuration = 0, navigation = false } = Astro.props;
 const copy = useMessages(locale).carousel;
 ---
 
 <div
-    class="carousel"
+    class:list={["carousel", { "carousel-navigation": navigation }]}
     data-carousel
+    data-navigation={navigation || undefined}
     data-loop={String(loop)}
     data-interval={interval}
     data-slide-duration={slideDuration}
@@ -27,12 +29,12 @@ const copy = useMessages(locale).carousel;
         "--carousel-medium": Math.min(2, visibleItems),
     }}
 >
-    <div class="carousel-track" id={id} data-carousel-track tabindex="0" role="region" aria-label={label}>
+    <div class:list={["carousel-track", { "filter-options": navigation }]} id={id} data-carousel-track tabindex="0" role="region" aria-label={label}>
         <slot />
     </div>
     <div class="carousel-controls" data-carousel-controls hidden>
         <button type="button" data-carousel-previous aria-label={copy.previous} aria-controls={id}>←</button>
-        <div
+        {! navigation && <div
             class="carousel-scrollbar"
             data-carousel-scrollbar
             role="scrollbar"
@@ -45,11 +47,53 @@ const copy = useMessages(locale).carousel;
             tabindex="0"
         >
             <div class="carousel-scrollbar-space" data-carousel-space></div>
-        </div>
+        </div>}
         <span class="sr-only" data-carousel-position role="status" aria-live="polite" aria-atomic="true"></span>
         <button type="button" data-carousel-next aria-label={copy.next} aria-controls={id}>→</button>
     </div>
 </div>
+
+<style>
+    .carousel-navigation {
+        display: grid;
+        grid-template-columns: var(--scroll-control-size) minmax(0, 1fr) var(--scroll-control-size);
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .carousel-navigation .carousel-track {
+        grid-column: 2;
+        grid-row: 1;
+        display: flex;
+        gap: 0.25rem;
+        min-width: 0;
+        padding-top: 0;
+        overflow: hidden;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .carousel-navigation .carousel-track > :global(*) {
+        flex: none;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .carousel-navigation .carousel-controls {
+        display: contents;
+    }
+
+    .carousel-navigation [data-carousel-previous] {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .carousel-navigation [data-carousel-next] {
+        grid-column: 3;
+        grid-row: 1;
+    }
+</style>
 
 <script>
     import { initializeCarousels } from "../../scripts/carousel";

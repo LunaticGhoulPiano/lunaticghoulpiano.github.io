@@ -1,3 +1,11 @@
+export function carouselWidths(widths: number[], available: number) {
+    const total = widths.reduce((sum, width) => sum + width, 0);
+    const space = Math.max(0, available);
+    return widths.map((width) => total > space
+        ? width / total * space
+        : width + (space - total) / widths.length);
+}
+
 export function carouselState(totalItems: number, visibleItems: number, requestedIndex = 0, loop = false) {
     if (! Number.isInteger(totalItems) || totalItems < 0) throw new Error("Item count must be a nonnegative integer.");
     if (! Number.isInteger(visibleItems) || visibleItems < 1) throw new Error("Visible count must be a positive integer.");

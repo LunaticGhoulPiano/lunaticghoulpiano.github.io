@@ -3,7 +3,7 @@ export const fixtureNow = new Date("2026-10-18T00:00:00Z");
 export const fixtureChannelId = `UC${"a".repeat(22)}`;
 export const fixtureVideoId = (index) => `video${String(index).padStart(6, "0")}`;
 
-export function fixtureFetch({ count = 57, calls = [], transform = (_resource, data) => data } = {}) {
+export function fixtureFetch({ count = 57, playlists = [], calls = [], transform = (_resource, data) => data } = {}) {
     return async (input) => {
         const url = new URL(input);
         const resource = url.pathname.split("/").at(-1);
@@ -28,14 +28,44 @@ export function fixtureFetch({ count = 57, calls = [], transform = (_resource, d
                 }],
             };
         }
-        else if (resource === "playlistItems") {
+        else if (resource === "playlists") {
             const start = Number(url.searchParams.get("pageToken") ?? 0);
-            const end = Math.min(count, start + Number(url.searchParams.get("maxResults")));
+            const end = Math.min(playlists.length, start + Number(url.searchParams.get("maxResults")));
             data = {
-                items: Array.from({ length: end - start }, (_, index) => ({
-                    contentDetails: { videoId: fixtureVideoId(start + index) },
+                items: playlists.slice(start, end).map((playlist) => ({
+                    id: playlist.id,
+                    snippet: {
+                        channelId: fixtureChannelId,
+                        title: playlist.title ?? playlist.id,
+                        description: playlist.description ?? "",
+                        publishedAt: "2022-03-04T00:00:00Z",
+                        thumbnails: {},
+                    },
+                    status: { privacyStatus: playlist.privacy ?? "public" },
                 })),
-                ...(end < count ? { nextPageToken: String(end) } : {}),
+                ...(end < playlists.length ? { nextPageToken: String(end) } : {}),
+            };
+        }
+        else if (resource === "playlistItems") {
+            const playlistId = url.searchParams.get("playlistId");
+            const uploads = playlistId === "fixture_uploads";
+            const entries = uploads ? Array.from({ length: count }, (_, index) => index)
+                : playlists.find((playlist) => playlist.id === playlistId).items;
+            const start = Number(url.searchParams.get("pageToken") ?? 0);
+            const end = Math.min(entries.length, start + Number(url.searchParams.get("maxResults")));
+            data = {
+                items: entries.slice(start, end).map((index, offset) => uploads ? {
+                    contentDetails: { videoId: fixtureVideoId(index) },
+                } : {
+                    id: `${playlistId}_${start + offset}`,
+                    snippet: {
+                        playlistId,
+                        position: start + offset,
+                        resourceId: { kind: "youtube#video", videoId: fixtureVideoId(index) },
+                    },
+                    status: { privacyStatus: "public" },
+                }),
+                ...(end < entries.length ? { nextPageToken: String(end) } : {}),
             };
         }
         else if (resource === "videos") {
@@ -46,7 +76,7 @@ export function fixtureFetch({ count = 57, calls = [], transform = (_resource, d
                         id,
                         status: { privacyStatus: "public" },
                         snippet: {
-                            channelId: fixtureChannelId,
+                            channelId: index < count ? fixtureChannelId : `UC${"b".repeat(22)}`,
                             title: `Video ${index}`,
                             description: index % 2 ? `Description ${index}\nSecond line.` : "",
                             publishedAt: new Date(Date.UTC(2020, 0, index + 1)).toISOString(),
@@ -62,6 +92,6 @@ export function fixtureFetch({ count = 57, calls = [], transform = (_resource, d
         else {
             throw new Error(`Unexpected resource: ${resource}`);
         }
-        return Response.json(transform(resource, data));
+        return Response.json(transform(resource, data, url.searchParams));
     };
 }

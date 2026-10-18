@@ -7,11 +7,14 @@ interface Props {
     label: string;
     locale: Locale;
     visibleItems: number;
-    height?: number;
+    height?: number | string;
+    chronological?: boolean;
 }
 
-const { id, label, locale, visibleItems, height } = Astro.props;
+const { id, label, locale, visibleItems, height, chronological = true } = Astro.props;
 const copy = useMessages(locale).timeline;
+const start = chronological ? copy.newest : copy.first;
+const end = chronological ? copy.oldest : copy.last;
 ---
 
 <div class="timeline-window" data-timeline-window data-visible-items={visibleItems} data-height={height}>
@@ -19,8 +22,8 @@ const copy = useMessages(locale).timeline;
         class="timeline-jump"
         type="button"
         data-timeline-newest
-        aria-label={copy.newest}
-        title={copy.newest}
+        aria-label={start}
+        title={start}
         aria-controls={id}
         hidden
     >↑</button>
@@ -31,7 +34,7 @@ const copy = useMessages(locale).timeline;
         tabindex="0"
         role="region"
         aria-label={label}
-        style={height === undefined ? undefined : { height: `${height}px` }}
+        style={height === undefined ? undefined : { height: typeof height === "number" ? `${height}px` : height }}
     >
         <slot />
     </div>
@@ -39,8 +42,8 @@ const copy = useMessages(locale).timeline;
         class="timeline-jump"
         type="button"
         data-timeline-oldest
-        aria-label={copy.oldest}
-        title={copy.oldest}
+        aria-label={end}
+        title={end}
         aria-controls={id}
         hidden
     >↓</button>

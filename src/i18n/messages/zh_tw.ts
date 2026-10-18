@@ -135,6 +135,14 @@ export default {
         privateRepository: "私人儲存庫",
     },
     youtube: {
+        sortBy: "排序依據",
+        newest: "由新到舊",
+        oldest: "由舊到新",
+        mostViewed: "觀看數由高至低",
+        mostLiked: "喜歡數由高至低",
+        all: "全部",
+        playlists: "播放清單",
+        emptyPlaylist: "此播放清單目前沒有可顯示的公開影片。",
         subscribers: "訂閱人數",
         created: "建立日期",
         publicVideos: "公開影片數",
@@ -146,6 +154,8 @@ export default {
         likes: "喜歡數",
     },
     timeline: {
+        first: "跳到第一筆",
+        last: "跳到最後一筆",
         newest: "跳到最新活動",
         oldest: "跳到最舊活動",
     },

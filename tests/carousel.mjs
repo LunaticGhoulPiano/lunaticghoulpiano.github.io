@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { carouselState } from "../src/utils/carousel.ts";
+import { carouselState, carouselWidths } from "../src/utils/carousel.ts";
 import { initializeCarousels } from "../src/scripts/carousel.ts";
 import { githubCategorySlideInterval, githubCategorySlideDuration } from "../src/config/collections.ts";
 
@@ -18,6 +18,10 @@ function element() {
         dispatch(type, event = {}) {
             handlers.get(type)?.(event);
         },
+        dispatchEvent(event) {
+            handlers.get(event.type)?.(event);
+            return true;
+        },
         getAttribute(name) {
             return attributes.get(name) ?? null;
         },
@@ -27,9 +31,9 @@ function element() {
     };
 }
 
-function fixture(context, loop = true, { interval = 0, duration = 0, hovered = false, reduced = false } = {}) {
+function fixture(context, loop = true, { interval = 0, duration = 0, hovered = false, reduced = false, navigation = false, count = 10, hoverScope = false } = {}) {
     context.mock.timers.enable({ apis: ["setTimeout"] });
-    let columns = 3;
+    let columns = navigation ? 4 : 3;
     let resizeCallback;
     const gap = 12;
     const frames = new Map();
@@ -68,11 +72,16 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         get: () => Number.parseFloat(space.style.width),
     });
     const cards = Array.from({
-        length: 10,
+        length: count,
     }, (_, index) => Object.assign(element(), {
         offsetHeight: 100 + index * 10,
         timelineScrollTop: index * 20,
         getBoundingClientRect() {
+            if (navigation) {
+                const width = this.style.width === "max-content" ? 40 + index * 10 : Number.parseFloat(this.style.width) || 40 + index * 10;
+                const left = track.children.slice(0, track.children.indexOf(this)).reduce((sum, card) => sum + card.getBoundingClientRect().width + gap, 0) - track.scrollLeft;
+                return { left, right: left + width, width };
+            }
             const step = (track.clientWidth + gap) / columns;
             const left = track.children.indexOf(this) * step - track.scrollLeft;
             return {
@@ -82,6 +91,11 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         },
     }));
     cards.forEach((card, index) => card.setAttribute("aria-label", `Category ${index}`));
+    const selections = [];
+    if (navigation) cards.forEach((card, index) => {
+        card.setAttribute("aria-pressed", String(index === 0));
+        card.addEventListener("carousel:select", () => selections.push(index));
+    });
     track.children = [...cards];
     const nodes = {
         track,
@@ -89,16 +103,19 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         next,
         position,
         controls,
-        scrollbar,
-        space,
+        scrollbar: navigation ? null : scrollbar,
+        space: navigation ? null : space,
     };
+    const hoverArea = hoverScope ? Object.assign(element(), { matches: () => hovered }) : null;
     const root = Object.assign(element(), {
         dataset: {
             loop: String(loop),
             interval: String(interval),
             slideDuration: String(duration),
+            navigation: String(navigation),
         },
         matches: () => hovered,
+        closest: () => hoverArea,
         contains: (target) => target != null && (cards.includes(target) || Object.values(nodes).includes(target)),
         querySelector(selector) {
             return nodes[selector.slice("[data-carousel-".length, -1)];
@@ -155,7 +172,9 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
     return {
         ...nodes,
         cards,
+        selections,
         root,
+        hoverArea,
         document,
         window,
         motion,
@@ -165,6 +184,7 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
             const bounds = card.getBoundingClientRect();
             return bounds.right > 1 && bounds.left < track.clientWidth - 1;
         }).map((card) => cards.indexOf(card)),
+        selected: () => cards.findIndex((card) => card.getAttribute("aria-pressed") === "true"),
         resize(visibleItems) {
             columns = visibleItems;
             track.clientWidth = 200;
@@ -191,6 +211,120 @@ test("carousel controls wrap one card at a time without replacing timeline nodes
     assert.equal(view.track.style.height, "198px");
     assert.equal(new Set(view.track.children).size, view.cards.length);
     view.cards.forEach((card, index) => assert.equal(card.timelineScrollTop, index * 20));
+});
+
+test("navigation distributes label widths with equal extra space and fills narrow windows", () => {
+    assert.deepEqual(carouselWidths([40, 80, 120, 160], 600), [90, 130, 170, 210]);
+    assert.deepEqual(carouselWidths([40, 80, 120, 160], 200), [20, 40, 60, 80]);
+    assert.deepEqual(carouselWidths([], 200), []);
+});
+
+test("navigation moves one label per arrow and rightmost selection, including wraparound", (context) => {
+    const view = fixture(context, true, { navigation: true });
+    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
+    assert.ok(Number.parseFloat(view.cards[3].style.width) > Number.parseFloat(view.cards[0].style.width));
+    assert.equal(view.cards[4].inert, true);
+    view.cards[1].dispatch("click");
+    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
+    view.cards[3].dispatch("click");
+    assert.deepEqual(view.visible(), [1, 2, 3, 4]);
+    assert.equal(view.selected(), 3);
+    view.previous.dispatch("click");
+    assert.equal(view.selected(), 2);
+    view.previous.dispatch("click");
+    assert.deepEqual(view.visible(), [9, 0, 1, 2]);
+    view.next.dispatch("click");
+    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
+    assert.deepEqual(view.selections, [1, 3, 2, 1, 2]);
+    assert.equal(new Set(view.track.children).size, view.cards.length);
+});
+
+test("navigation shares hover-only auto advance and maintains adjacent labels during animation", (context) => {
+    const view = fixture(context, true, { navigation: true, interval: 5000, duration: 450, hovered: true });
+    view.tick(5000);
+    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
+    view.root.dispatch("mouseleave");
+    view.tick(5000);
+    view.frame(225);
+    assert.ok(view.track.scrollLeft > 0);
+    view.frame(225);
+    assert.deepEqual(view.visible(), [1, 2, 3, 4]);
+    assert.equal(view.selected(), 1);
+    assert.deepEqual(view.selections, [1]);
+    view.root.dispatch("mouseenter");
+    view.tick(5000);
+    assert.deepEqual(view.visible(), [1, 2, 3, 4]);
+    assert.equal(view.selected(), 1);
+    view.window.dispatch("blur");
+    view.tick(5000);
+    view.tick(450);
+    assert.deepEqual(view.visible(), [2, 3, 4, 5]);
+    view.resize(2);
+    assert.deepEqual(view.visible(), [2, 3]);
+    assert.equal(view.selected(), 2);
+});
+
+test("short navigation cycles selection even when all labels fit in the window", (context) => {
+    const view = fixture(context, true, { navigation: true, count: 2, interval: 5000 });
+    assert.deepEqual(view.visible(), [0, 1]);
+    assert.equal(view.controls.hidden, false);
+    assert.equal(view.previous.disabled, false);
+    assert.equal(view.next.disabled, false);
+    assert.equal(view.cards[1].getBoundingClientRect().right, view.track.clientWidth);
+    view.tick(5000);
+    assert.equal(view.selected(), 1);
+    assert.deepEqual(view.visible(), [0, 1]);
+    view.next.dispatch("click");
+    assert.equal(view.selected(), 0);
+    view.previous.dispatch("click");
+    assert.equal(view.selected(), 1);
+    assert.deepEqual(view.selections, [1, 0, 1]);
+});
+
+test("navigation selection wraps with automatic sliding and keeps a clicked selection during animation", (context) => {
+    const view = fixture(context, true, { navigation: true, interval: 5000, duration: 450 });
+    for (let index = 1; index <= 11; index++) {
+        view.tick(5000);
+        view.tick(450);
+        assert.equal(view.selected(), index % 10);
+        assert.ok(view.visible().includes(view.selected()));
+        assert.equal(view.selections.length, index);
+    }
+    view.next.dispatch("click");
+    view.cards[3].dispatch("click");
+    view.frame(450);
+    assert.equal(view.selected(), 3);
+    assert.equal(view.selections.at(-1), 3);
+    view.resize(1);
+    assert.deepEqual(view.visible(), [3]);
+    view.cards[3].dispatch("click");
+    view.frame(450);
+    assert.deepEqual(view.visible(), [3]);
+    view.next.dispatch("click");
+    view.frame(450);
+    assert.deepEqual(view.visible(), [4]);
+    assert.equal(view.selected(), 4);
+});
+
+test("one navigation item has no next selection or automatic advance", (context) => {
+    const view = fixture(context, true, { navigation: true, count: 1, interval: 5000 });
+    view.tick(10000);
+    assert.equal(view.previous.disabled, true);
+    assert.equal(view.next.disabled, true);
+    assert.equal(view.selected(), 0);
+    assert.deepEqual(view.selections, []);
+});
+
+test("a shared hover area pauses navigation while reading content outside the label track", (context) => {
+    const view = fixture(context, true, { navigation: true, interval: 5000, hoverScope: true });
+    view.hoverArea.dispatch("mouseenter");
+    view.tick(15000);
+    assert.equal(view.selected(), 0);
+    assert.equal(view.hoverArea.dataset.paused, "true");
+    view.hoverArea.dispatch("mouseleave");
+    view.tick(5000);
+    assert.equal(view.selected(), 1);
+    assert.equal(view.hoverArea.dataset.paused, "false");
 });
 
 test("scrollbar movement, keyboard and responsive layout preserve the active window", (context) => {

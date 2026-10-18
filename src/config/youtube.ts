@@ -9,5 +9,5 @@ export const youtubeChannel = {
 
 export const youtubePolicy = {
     snapshotFilename: "youtube_snapshot.json",
-    schemaVersion: 2,
+    schemaVersion: 3,
 } as const;

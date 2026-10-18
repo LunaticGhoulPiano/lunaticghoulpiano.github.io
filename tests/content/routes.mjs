@@ -1,7 +1,7 @@
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
-import { collectionPageSize, githubTimelinePreviewSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeTimelinePreviewSize } from "../../src/config/collections.ts";
+import { collectionPageSize, githubTimelinePreviewSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeTimelinePreviewSize, youtubeVideoSortOptions } from "../../src/config/collections.ts";
 import { youtubePolicy } from "../../src/config/youtube.ts";
 import { fetchYoutubeSnapshot } from "../../scripts/youtube/fetch.ts";
 import { fixtureFetch as youtubeFetch, fixtureKey, fixtureNow as youtubeNow, fixtureChannelId, fixtureVideoId } from "../youtube/fixture.mjs";
@@ -144,7 +144,12 @@ test("isolated builds cover every configured language plus an additional locale,
         await mkdir(generated, {
             recursive: true,
         });
-        const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 6 }));
+        const youtubePlaylists = [
+            { id: "PL_fixture", title: 'Playlist & "One"', description: "Playlist description", items: [1, 100, 0, 1] },
+            { id: "PL_empty", title: "Empty playlist", items: [] },
+            { id: "PL_private", title: "Hidden playlist", privacy: "private", items: [101] },
+        ];
+        const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 6, playlists: youtubePlaylists }));
         await writeFile(join(generated, youtubePolicy.snapshotFilename), JSON.stringify(youtubeData.snapshot), "utf8");
 
         const mixedActivity = {
@@ -224,8 +229,26 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.deepEqual(headings(main(feed), 2), []);
             const youtube = await page(routes.youtube.path, locale);
             assert.deepEqual(headings(main(youtube), 1), [copy.ui[routes.youtube.title]]);
-            assert.doesNotMatch(main(youtube), /<time\b|data-timeline-window/);
-            assert.ok(text(main(youtube)).includes(`${copy.content.snapshot}: —`));
+            assert.match(main(youtube), /data-timeline-window/);
+            assert.match(main(youtube), /data-navigation="true"/);
+            assert.match(main(youtube), /data-carousel-previous/);
+            assert.match(main(youtube), /data-carousel-next/);
+            assert.doesNotMatch(main(youtube), /data-carousel-scrollbar/);
+            assert.match(main(youtube), /data-carousel-hover="true"/);
+            const sorting = youtube.match(/<select\b[^>]*data-youtube-sort[\s\S]*?<\/select>/)[0];
+            assert.deepEqual([...sorting.matchAll(/<option\b[^>]*value="([^"]+)"/g)].map((match) => match[1]), youtubeVideoSortOptions);
+            assert.match(sorting, /autocomplete="off"/);
+            for (const option of youtubeVideoSortOptions) assert.ok(text(sorting).includes(copy.youtube[option]));
+            assert.ok(text(main(youtube)).includes(youtubeData.snapshot.channel.title));
+            const playlistButtons = [...youtube.matchAll(/<button\b[^>]*data-youtube-filter[^>]*>/g)].map((match) => attributes(match[0]));
+            assert.deepEqual(playlistButtons.map((button) => button["data-youtube-filter"]), ["", "PL_fixture", "PL_empty"]);
+            assert.deepEqual(JSON.parse(playlistButtons[1]["data-video-ids"]), [1, 100, 0, 1].map(fixtureVideoId));
+            assert.equal(playlistButtons[1]["data-description"], "Playlist description");
+            assert.ok(text(main(youtube)).includes(youtubePlaylists[0].title));
+            assert.ok(text(main(youtube)).includes(copy.youtube.all));
+            assert.ok(youtube.includes(`aria-label="${copy.timeline.first.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`));
+            assert.doesNotMatch(youtube, /PL_private|Hidden playlist|fixture_youtube_key/);
+            assert.equal([...youtube.matchAll(/data-video-id=/g)].length, youtubeData.snapshot.videos.length);
             const youtubePreview = overview.match(/<section\b[^>]*data-feed-source="youtube"[\s\S]*?<\/section>/)[0];
             assert.ok(text(youtubePreview).includes(youtubeData.snapshot.channel.title));
             assert.equal(text(youtubePreview).includes(fixtureChannelId), false);
@@ -233,6 +256,8 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.deepEqual([...youtubePreview.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
                 [5, 4, 3, 2, 1, 0].map(fixtureVideoId));
             assert.ok(youtubePreview.includes(`data-visible-items="${youtubeTimelinePreviewSize}"`));
+            assert.doesNotMatch(youtubePreview, /data-navigation/);
+            assert.doesNotMatch(youtubePreview, /data-youtube-sort/);
             for (const key of ["subscribers", "created", "publicVideos", "views", "duration", "videoViews", "likes"]) {
                 assert.ok(text(youtubePreview).includes(copy.youtube[key]));
             }

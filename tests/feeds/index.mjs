@@ -6,10 +6,12 @@ import { locales, languages } from "../../src/config/locales.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { formatMessage } from "../../src/i18n/format.ts";
 
-test("the YouTube detail page stays unimplemented while its preview loads separately", () => {
+test("YouTube preview and detail load the same channel data", () => {
     for (const locale of locales) {
         const detail = getFeedsPage("youtube", locale);
-        assert.equal(detail.sources[0].data, null);
+        const preview = getFeedsPage("feeds", locale).sources.find((source) => source.key === "youtube");
+        assert.deepEqual(detail.sources[0].data, preview.data);
+        assert.ok(detail.sources[0].data);
         assert.equal(detail.description, messages[locale].ui[routes.youtube.description]);
     }
 });

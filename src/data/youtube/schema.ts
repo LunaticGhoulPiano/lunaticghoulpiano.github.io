@@ -6,6 +6,12 @@ export const youtubeTimestamp = z.iso.datetime({ offset: true })
 export const youtubeCount = z.string().regex(/^(0|[1-9]\d*)$/);
 export const channelId = z.string().regex(/^UC[\w-]{22}$/);
 export const videoId = z.string().regex(/^[\w-]{11}$/);
+export const playlistId = z.string().regex(/^[\w-]+$/);
+export const youtubePlaylistItemSchema = z.object({
+    id: z.string().min(1),
+    videoId,
+    position: z.number().int().nonnegative(),
+});
 export const youtubeDuration = z.string()
     .regex(/^P(?=\d+D|T\d)(?:(\d+)D)?(?:T(?=\d)(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
     .transform((value) => {
@@ -22,6 +28,7 @@ export const youtubeImage = z.url().refine((value) => {
 
 export const youtubeVideoSchema = z.object({
     id: videoId,
+    channelId,
     title: z.string().min(1),
     description: z.string().trim(),
     durationSeconds: z.number().int().nonnegative(),
@@ -46,7 +53,41 @@ export const youtubeSnapshotSchema = z.object({
         views: youtubeCount,
     }),
     videos: z.array(youtubeVideoSchema),
-}).refine((snapshot) => new Set(snapshot.videos.map((video) => video.id)).size === snapshot.videos.length,
-    "Duplicate YouTube videos.");
+    uploadedVideoIds: z.array(videoId),
+    playlists: z.array(z.object({
+        id: playlistId,
+        channelId,
+        title: z.string().min(1),
+        description: z.string().trim(),
+        thumbnail: youtubeImage.nullable(),
+        createdAt: youtubeTimestamp,
+        items: z.array(youtubePlaylistItemSchema),
+    })),
+}).superRefine((snapshot, context) => {
+    const invalid = (message: string) => context.addIssue({ code: "custom", message });
+    const videos = new Map(snapshot.videos.map((video) => [video.id, video]));
+    if (videos.size !== snapshot.videos.length) invalid("Duplicate YouTube videos.");
+    const referenced = new Set(snapshot.uploadedVideoIds);
+    if (referenced.size !== snapshot.uploadedVideoIds.length) invalid("Duplicate uploaded video references.");
+    for (const id of snapshot.uploadedVideoIds) {
+        if (videos.get(id)?.channelId !== snapshot.channel.id) invalid("Invalid uploaded video ownership or reference.");
+    }
+    const playlists = new Set<string>();
+    for (const playlist of snapshot.playlists) {
+        if (playlists.has(playlist.id)) invalid("Duplicate YouTube playlists.");
+        playlists.add(playlist.id);
+        if (playlist.channelId !== snapshot.channel.id) invalid("Unexpected playlist owner.");
+        const items = new Set<string>();
+        let previousPosition = -1;
+        for (const item of playlist.items) {
+            if (items.has(item.id) || item.position <= previousPosition) invalid("Invalid playlist item order or identity.");
+            items.add(item.id);
+            previousPosition = item.position;
+            if (! videos.has(item.videoId)) invalid("Unresolved playlist video reference.");
+            referenced.add(item.videoId);
+        }
+    }
+    if (snapshot.videos.some((video) => ! referenced.has(video.id))) invalid("Unreferenced YouTube video.");
+});
 
 export type YoutubeSnapshot = z.infer<typeof youtubeSnapshotSchema>;
