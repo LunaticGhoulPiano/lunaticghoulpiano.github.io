@@ -1,11 +1,11 @@
 ---
-import { useMessages } from "../i18n/ui";
-import { formatMessage } from "../i18n/format";
-import { languages, type Locale } from "../config/site";
-import { repositoryColor } from "../config/theme";
-import { formatSequenceNumber } from "../utils/numbering";
-import type { Repository } from "../data/github/schema";
-import Pagination from "./common/Pagination.astro";
+import { useMessages } from "../../i18n/ui";
+import { formatMessage } from "../../i18n/format";
+import { languages, type Locale } from "../../config/site";
+import { repositoryColor } from "../../config/theme";
+import { formatSequenceNumber } from "../../utils/numbering";
+import type { Repository } from "../../data/github/schema";
+import Pagination from "../common/Pagination.astro";
 
 interface Props {
     locale: Locale;
@@ -88,9 +88,9 @@ const copy = useMessages(locale).design;
 </div>
 
 <script>
-    import { formatMessage } from "../i18n/format";
-    import { paginationFor } from "../scripts/pagination";
-    import { formatSequenceNumber } from "../utils/numbering";
+    import { formatMessage } from "../../i18n/format";
+    import { paginationFor } from "../../scripts/pagination";
+    import { formatSequenceNumber } from "../../utils/numbering";
 
     document.querySelectorAll<HTMLElement>("[data-repository-browser]").forEach((browser) => {
         const controls = browser.querySelector<HTMLElement>("[data-repository-controls]");

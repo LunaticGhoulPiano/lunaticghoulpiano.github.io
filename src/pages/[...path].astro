@@ -1,7 +1,7 @@
 ---
 import SitePage from "../components/SitePage.astro";
-import BlogPost from "../components/BlogPost.astro";
-import BlogTag from "../components/BlogTag.astro";
+import Post from "../components/blog/Post.astro";
+import Tag from "../components/blog/Tag.astro";
 import { getPageEntries } from "../routing";
 import { getPublicPosts } from "../services/blog/index";
 
@@ -14,5 +14,5 @@ const props = Astro.props;
 ---
 
 {props.kind === "page" && <SitePage route={props.route} locale={props.locale} />}
-{props.kind === "post" && <BlogPost post={props.post} />}
-{props.kind === "tag" && <BlogTag tag={props.tag} locale={props.locale} />}
+{props.kind === "post" && <Post post={props.post} />}
+{props.kind === "tag" && <Tag tag={props.tag} locale={props.locale} />}

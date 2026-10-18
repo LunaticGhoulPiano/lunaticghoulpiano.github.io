@@ -1,5 +1,4 @@
 ---
-import { timelinePreviewSize } from "../../config/collections";
 import type { Locale } from "../../config/site";
 import { useMessages } from "../../i18n/ui";
 
@@ -7,11 +6,11 @@ interface Props {
     id: string;
     label: string;
     locale: Locale;
-    visibleItems?: number;
+    visibleItems: number;
     height?: number;
 }
 
-const { id, label, locale, visibleItems = timelinePreviewSize, height } = Astro.props;
+const { id, label, locale, visibleItems, height } = Astro.props;
 const copy = useMessages(locale).timeline;
 ---
 

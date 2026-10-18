@@ -4,6 +4,7 @@ import { useTranslations, type TranslationKey } from "../../i18n/ui.ts";
 import { formatMessage } from "../../i18n/format.ts";
 import { displayDate } from "../../utils/dates.ts";
 import { getGithubFeed } from "./github.ts";
+import { getYoutubeFeed } from "./youtube.ts";
 
 export type FeedSource = Exclude<SectionRoute<"feeds">, "feeds">;
 
@@ -16,12 +17,12 @@ export const feedSources = {
     youtube: {
         title: "YouTube",
         periodDescription: "description.activityPeriod",
-        load: () => null,
+        load: ({ preview }: { preview: boolean }) => preview ? getYoutubeFeed() : null,
     },
 } as const satisfies Record<FeedSource, {
     title: string;
     periodDescription: TranslationKey;
-    load: () => {
+    load: (options: { preview: boolean }) => {
         period: {
             from: string;
             to: string;
@@ -39,7 +40,7 @@ export function getFeedsPage(route: RouteKey, locale: Locale) {
                 ...source,
                 key,
                 route: key,
-                data: load(),
+                data: load({ preview }),
             };
         });
     const t = useTranslations(locale);
@@ -57,3 +58,5 @@ export function getFeedsPage(route: RouteKey, locale: Locale) {
             : t(routes[route].description),
     };
 }
+
+export type FeedData = NonNullable<ReturnType<(typeof feedSources)[FeedSource]["load"]>>;

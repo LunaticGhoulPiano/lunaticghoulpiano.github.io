@@ -1,3 +1,5 @@
+import { snapshotMaxAgeHours } from "./time.ts";
+
 export const eventCategories = {
     PushEvent: "push",
     PullRequestEvent: "pull_request",
@@ -58,7 +60,7 @@ export const activityDefinitions = {
 } as const;
 
 export const githubPolicy = {
-    maxSnapshotAgeHours: 24,
+    maxSnapshotAgeHours: snapshotMaxAgeHours,
     snapshotFilename: "github_snapshots.json",
     schemaVersion: 1,
 } as const;

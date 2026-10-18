@@ -80,6 +80,11 @@ jobs:
                   github-token: ${{ github.token }}
                   path: ${{ steps.previous_snapshots.outputs.restore_directory }}
 
+            - name: Refresh YouTube preview data
+              env:
+                  WEBPAGE_YOUTUBE_PROFILE_READONLY: ${{ secrets.WEBPAGE_YOUTUBE_PROFILE_READONLY }}
+              run: pnpm refresh:youtube
+
             - name: Refresh GitHub data, check, and build
               env:
                   WEBPAGE_GITHUB_PROFILE_READONLY: ${{ secrets.WEBPAGE_GITHUB_PROFILE_READONLY }}

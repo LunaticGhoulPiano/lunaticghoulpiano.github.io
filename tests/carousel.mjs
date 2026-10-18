@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { carouselState } from "../src/utils/carousel.ts";
 import { initializeCarousels } from "../src/scripts/carousel.ts";
-import { categorySlideInterval, categorySlideDuration } from "../src/config/collections.ts";
+import { githubCategorySlideInterval, githubCategorySlideDuration } from "../src/config/collections.ts";
 
 function element() {
     const handlers = new Map();
@@ -160,7 +160,7 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         window,
         motion,
         frame,
-        tick: (elapsed = categorySlideInterval) => context.mock.timers.tick(elapsed),
+        tick: (elapsed = githubCategorySlideInterval) => context.mock.timers.tick(elapsed),
         visible: () => track.children.filter((card) => {
             const bounds = card.getBoundingClientRect();
             return bounds.right > 1 && bounds.left < track.clientWidth - 1;
@@ -223,19 +223,19 @@ test("non-looping carousel stops at both boundaries", (context) => {
 });
 
 test("automatic sliding advances one card after each interval and wraps without replacing timelines", (context) => {
-    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration });
-    view.tick(categorySlideInterval - 1);
+    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration });
+    view.tick(githubCategorySlideInterval - 1);
     assert.deepEqual(view.visible(), [0, 1, 2]);
     view.tick(1);
-    view.frame(categorySlideDuration / 2);
+    view.frame(githubCategorySlideDuration / 2);
     assert.ok(view.track.scrollLeft > 0 && view.track.scrollLeft < 104);
     assert.deepEqual(view.visible(), [0, 1, 2, 3]);
-    view.frame(categorySlideDuration / 2);
+    view.frame(githubCategorySlideDuration / 2);
     assert.deepEqual(view.visible(), [1, 2, 3]);
     assert.equal(view.position.getAttribute("aria-live"), "off");
     for (let index = 2; index <= 11; index++) {
         view.tick();
-        view.frame(categorySlideDuration);
+        view.frame(githubCategorySlideDuration);
         assert.deepEqual(view.visible(), [index % 10, (index + 1) % 10, (index + 2) % 10]);
     }
     assert.equal(new Set(view.track.children).size, view.cards.length);
@@ -243,72 +243,72 @@ test("automatic sliding advances one card after each interval and wraps without 
 });
 
 test("only hover pauses sliding and keyboard focus does not prevent resuming", (context) => {
-    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration, hovered: true });
+    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration, hovered: true });
     view.tick();
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [0, 1, 2]);
     view.root.dispatch("mouseleave");
-    view.tick(categorySlideInterval - 1);
-    view.frame(categorySlideDuration);
+    view.tick(githubCategorySlideInterval - 1);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [0, 1, 2]);
     view.tick(1);
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [1, 2, 3]);
     view.root.dispatch("focusin");
     view.root.dispatch("mouseenter");
     view.root.dispatch("mouseleave");
     view.tick();
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [2, 3, 4]);
     view.root.dispatch("focusout", { relatedTarget: null });
     view.document.hidden = true;
     view.document.dispatch("visibilitychange");
     view.tick();
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [3, 4, 5]);
     view.root.matches = () => false;
     view.document.hidden = false;
     view.document.dispatch("visibilitychange");
     view.tick();
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [4, 5, 6]);
 });
 
 test("boundary animations slide through adjacent cards in either direction", (context) => {
-    const view = fixture(context, true, { duration: categorySlideDuration });
+    const view = fixture(context, true, { duration: githubCategorySlideDuration });
     view.previous.dispatch("click");
-    view.frame(categorySlideDuration / 2);
+    view.frame(githubCategorySlideDuration / 2);
     assert.deepEqual(view.visible(), [9, 0, 1, 2]);
-    view.frame(categorySlideDuration / 2);
+    view.frame(githubCategorySlideDuration / 2);
     assert.deepEqual(view.visible(), [9, 0, 1]);
     view.next.dispatch("click");
-    view.frame(categorySlideDuration / 2);
+    view.frame(githubCategorySlideDuration / 2);
     assert.deepEqual(view.visible(), [9, 0, 1, 2]);
-    view.frame(categorySlideDuration / 2);
+    view.frame(githubCategorySlideDuration / 2);
     assert.deepEqual(view.visible(), [0, 1, 2]);
 });
 
 test("reduced motion skips animation without disabling automatic or manual navigation", (context) => {
-    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration, reduced: true });
+    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration, reduced: true });
     view.tick();
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [1, 2, 3]);
     view.next.dispatch("click");
     assert.deepEqual(view.visible(), [2, 3, 4]);
     view.motion.matches = false;
     view.motion.dispatch("change");
     view.tick();
-    view.frame(categorySlideDuration);
+    view.frame(githubCategorySlideDuration);
     assert.deepEqual(view.visible(), [3, 4, 5]);
 });
 
 test("background sliding keeps looping without receiving animation frames", (context) => {
-    const view = fixture(context, true, { interval: categorySlideInterval, duration: categorySlideDuration });
+    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration });
     view.document.hidden = true;
     view.document.dispatch("visibilitychange");
     for (let index = 1; index <= 11; index++) {
         view.tick();
-        view.tick(categorySlideDuration);
+        view.tick(githubCategorySlideDuration);
         assert.deepEqual(view.visible(), [index % 10, (index + 1) % 10, (index + 2) % 10]);
     }
 });

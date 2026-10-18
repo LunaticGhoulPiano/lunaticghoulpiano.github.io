@@ -134,6 +134,17 @@ export default {
         },
         privateRepository: "私人儲存庫",
     },
+    youtube: {
+        subscribers: "訂閱人數",
+        created: "建立日期",
+        publicVideos: "公開影片數",
+        views: "累計觀看數",
+        videos: "公開影片",
+        noVideos: "目前尚無公開影片。",
+        duration: "片長",
+        videoViews: "觀看數",
+        likes: "喜歡數",
+    },
     timeline: {
         newest: "跳到最新活動",
         oldest: "跳到最舊活動",

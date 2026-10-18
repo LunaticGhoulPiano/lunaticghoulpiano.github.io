@@ -8,12 +8,13 @@ import type { FeedSource } from "../services/feeds/index";
 import { tagName } from "../data/tags";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProfileLayout from "../layouts/ProfileLayout.astro";
-import RepositoryList from "./RepositoryList.astro";
-import PostList from "./PostList.astro";
-import GithubActivity from "./GithubActivity.astro";
-import FeedPanel from "./FeedPanel.astro";
+import RepositoryList from "./projects/RepositoryList.astro";
+import PostList from "./blog/PostList.astro";
+import GitHub from "./feeds/GitHub.astro";
+import YouTube from "./feeds/YouTube.astro";
+import FeedPanel from "./feeds/FeedPanel.astro";
 import PageTurner from "./common/PageTurner.astro";
-import SnapshotNotice from "./SnapshotNotice.astro";
+import SnapshotNotice from "./common/SnapshotNotice.astro";
 
 interface Props {
     locale: Locale;
@@ -28,8 +29,8 @@ const page = routes[route];
 const context = await getPageContext(route, locale);
 const description = context.section === "feeds" ? context.description : t(page.description);
 const feedComponents = {
-    github: GithubActivity,
-    youtube: null,
+    github: GitHub,
+    youtube: YouTube,
 } satisfies Record<FeedSource, unknown>;
 ---
 
@@ -108,6 +109,13 @@ const feedComponents = {
                     </FeedPanel>
                 );
             })}
+            <Fragment slot="footer">
+                {context.preview && context.sources.map((source) => (
+                    <div data-page-turner-footer>
+                        <SnapshotNotice locale={locale} snapshot={source.data?.notice ?? null} showMissingTimestamp />
+                    </div>
+                ))}
+            </Fragment>
         </PageTurner>
     )}
 </BaseLayout>

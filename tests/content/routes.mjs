@@ -1,7 +1,10 @@
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
-import { collectionPageSize, timelinePreviewSize, timelineCategorySize, activityCategoryLayout } from "../../src/config/collections.ts";
+import { collectionPageSize, githubTimelinePreviewSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeTimelinePreviewSize } from "../../src/config/collections.ts";
+import { youtubePolicy } from "../../src/config/youtube.ts";
+import { fetchYoutubeSnapshot } from "../../scripts/youtube/fetch.ts";
+import { fixtureFetch as youtubeFetch, fixtureKey, fixtureNow as youtubeNow, fixtureChannelId, fixtureVideoId } from "../youtube/fixture.mjs";
 import { formatMessage } from "../../src/i18n/format.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -141,6 +144,8 @@ test("isolated builds cover every configured language plus an additional locale,
         await mkdir(generated, {
             recursive: true,
         });
+        const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 6 }));
+        await writeFile(join(generated, youtubePolicy.snapshotFilename), JSON.stringify(youtubeData.snapshot), "utf8");
 
         const mixedActivity = {
             ...github.snapshots.activity,
@@ -221,6 +226,20 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.deepEqual(headings(main(youtube), 1), [copy.ui[routes.youtube.title]]);
             assert.doesNotMatch(main(youtube), /<time\b|data-timeline-window/);
             assert.ok(text(main(youtube)).includes(`${copy.content.snapshot}: —`));
+            const youtubePreview = overview.match(/<section\b[^>]*data-feed-source="youtube"[\s\S]*?<\/section>/)[0];
+            assert.ok(text(youtubePreview).includes(youtubeData.snapshot.channel.title));
+            assert.equal(text(youtubePreview).includes(fixtureChannelId), false);
+            assert.ok(youtubePreview.includes(`https://www.youtube.com/channel/${fixtureChannelId}`));
+            assert.deepEqual([...youtubePreview.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
+                [5, 4, 3, 2, 1, 0].map(fixtureVideoId));
+            assert.ok(youtubePreview.includes(`data-visible-items="${youtubeTimelinePreviewSize}"`));
+            for (const key of ["subscribers", "created", "publicVideos", "views", "duration", "videoViews", "likes"]) {
+                assert.ok(text(youtubePreview).includes(copy.youtube[key]));
+            }
+            assert.equal([...youtubePreview.matchAll(/class="youtube-description"/g)].length, 3);
+            assert.ok(text(youtubePreview).includes("Description 5"));
+            assert.ok(text(youtubePreview).includes("1:02:03"));
+            assert.doesNotMatch(youtubePreview, /fixture_youtube_key/);
             for (const [key, source] of Object.entries(feedSources)) {
                 const link = [...overview.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
                     .find((match) => match[1] === localizedPath(routes[key].path, locale));
@@ -251,7 +270,7 @@ test("isolated builds cover every configured language plus an additional locale,
             }
             assert.equal([...feed.matchAll(/data-private-contributions/g)].length, 4);
             assert.equal([...overview.matchAll(/data-private-contributions/g)].length, 2);
-            for (const [html, visibleItems] of [[overview, timelinePreviewSize], [feed, timelineCategorySize]]) {
+            for (const [html, visibleItems] of [[overview, githubTimelinePreviewSize], [feed, githubTimelineCategorySize]]) {
                 assert.doesNotMatch(html, /private_project|hidden_issue|fixture_only/);
                 assert.doesNotMatch(html, /contribution-stats|contribution-calendar|github-summary|account-snapshot|data-timeline-toggle/);
                 assert.equal([...html.matchAll(/data-feed-source="github"/g)].length, 1);
@@ -260,7 +279,7 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.ok(html.includes(`data-timeline-window data-visible-items="${visibleItems}"`));
                 const windows = [...html.matchAll(/<div\b[^>]*data-timeline-window[^>]*>/g)];
                 for (const [window] of windows) {
-                    assert.equal(attributes(window)["data-height"], html === feed ? String(activityCategoryLayout.timelineHeight) : undefined);
+                    assert.equal(attributes(window)["data-height"], html === feed ? String(githubActivityCategoryLayout.timelineHeight) : undefined);
                 }
                 const newest = html.match(/<button\b[^>]*data-timeline-newest[^>]*>/)[0];
                 const oldest = html.match(/<button\b[^>]*data-timeline-oldest[^>]*>/)[0];

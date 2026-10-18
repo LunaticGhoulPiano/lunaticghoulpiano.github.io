@@ -26,12 +26,14 @@ function fixture(context, { names = ["Page A", "Page B", "Page C"], reduced = fa
         return page;
     });
     const nodes = Object.fromEntries(["controls", "previous", "next", "position"].map((key) => [key, element()]));
+    const footers = names.map(() => element());
     nodes.pages = { children: pages };
     const root = Object.assign(element(), {
         dataset: { interval: String(pageTurnInterval) },
         matches: () => hovered,
         contains: (target) => target != null && (pages.includes(target) || Object.values(nodes).includes(target)),
         querySelector: (selector) => nodes[selector.slice("[data-page-turner-".length, -1)],
+        querySelectorAll: () => footers,
     });
     const document = Object.assign(element(), {
         hidden: false,
@@ -60,6 +62,7 @@ function fixture(context, { names = ["Page A", "Page B", "Page C"], reduced = fa
         window,
         motion,
         pages,
+        footers,
         current: () => pages.findIndex((page) => page.getAttribute("data-current") !== null),
         tick: () => context.mock.timers.tick(pageTurnInterval),
         dispatch(target, type, properties = {}) {
@@ -78,6 +81,9 @@ test("automatic pages cycle through every source and retain existing timeline no
             assert.equal(page.inert, index !== expected);
             assert.equal(page.getAttribute("aria-hidden"), String(index !== expected));
             assert.equal(page.scrollTop, 120);
+            assert.equal(view.footers[index].getAttribute("data-current") !== null, index === expected);
+            assert.equal(view.footers[index].inert, index !== expected);
+            assert.equal(view.footers[index].getAttribute("aria-hidden"), String(index !== expected));
         });
     }
     assert.equal(view.position.getAttribute("aria-live"), "off");

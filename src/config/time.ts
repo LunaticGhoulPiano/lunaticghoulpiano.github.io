@@ -1,5 +1,6 @@
 export const hourMilliseconds = 60 * 60 * 1000;
 export const dayMilliseconds = 24 * hourMilliseconds;
+export const snapshotMaxAgeHours = 24;
 const displayTimeZone = "Asia/Taipei";
 
 export const snapshotDateOptions = {

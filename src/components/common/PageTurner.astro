@@ -20,10 +20,15 @@ const copy = useMessages(locale).carousel;
         <div class="page-turner-pages" id={id} data-page-turner-pages role="region" aria-label={label}>
             <slot />
         </div>
-        <div class="carousel-controls page-turner-controls" data-page-turner-controls hidden>
-            <button type="button" data-page-turner-previous aria-label={copy.previous} aria-controls={id}>←</button>
-            <button type="button" data-page-turner-next aria-label={copy.next} aria-controls={id}>→</button>
-            <span class="sr-only" data-page-turner-position role="status" aria-live="off" aria-atomic="true"></span>
+        <div class="page-turner-footer">
+            <div class="page-turner-notices">
+                <slot name="footer" />
+            </div>
+            <div class="carousel-controls page-turner-controls" data-page-turner-controls hidden>
+                <button type="button" data-page-turner-previous aria-label={copy.previous} aria-controls={id}>←</button>
+                <button type="button" data-page-turner-next aria-label={copy.next} aria-controls={id}>→</button>
+                <span class="sr-only" data-page-turner-position role="status" aria-live="off" aria-atomic="true"></span>
+            </div>
         </div>
     </div>
 ) : <slot />}
@@ -62,8 +67,36 @@ const copy = useMessages(locale).carousel;
         z-index: 2;
     }
 
+    .page-turner-footer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .page-turner-notices {
+        display: grid;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .page-turner[data-ready] .page-turner-notices > :global(*) {
+        grid-area: 1 / 1;
+        visibility: hidden;
+    }
+
+    .page-turner[data-ready] .page-turner-notices > :global([data-current]) {
+        visibility: visible;
+    }
+
+    .page-turner-notices :global(.snapshot-notice) {
+        margin-top: 0;
+    }
+
     .page-turner-controls {
         display: flex;
+        margin: 0;
         justify-content: flex-end;
         gap: 0.5rem;
     }
@@ -82,6 +115,15 @@ const copy = useMessages(locale).carousel;
         .page-turner[data-ready] .page-turner-pages > :global(*) {
             visibility: visible;
             transform: none !important;
+        }
+
+        .page-turner[data-ready] .page-turner-notices > :global(*) {
+            grid-area: auto;
+            visibility: visible;
+        }
+
+        .page-turner-controls {
+            display: none;
         }
     }
 </style>

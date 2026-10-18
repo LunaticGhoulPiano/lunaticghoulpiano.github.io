@@ -138,6 +138,17 @@ export default {
         },
         privateRepository: "Private Repository",
     },
+    youtube: {
+        subscribers: "Subscribers",
+        created: "Created",
+        publicVideos: "Public videos",
+        views: "Total views",
+        videos: "Public videos",
+        noVideos: "No public videos yet.",
+        duration: "Duration",
+        videoViews: "Views",
+        likes: "Likes",
+    },
     timeline: {
         newest: "Jump to Newest Activity",
         oldest: "Jump to Oldest Activity",

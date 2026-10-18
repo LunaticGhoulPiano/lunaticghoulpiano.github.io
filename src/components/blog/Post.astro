@@ -1,13 +1,13 @@
 ---
-import { contentRules } from "../config/content";
+import { contentRules } from "../../config/content";
 import { render } from "astro:content";
-import BaseLayout from "../layouts/BaseLayout.astro";
-import { getPostContext } from "../services/blog/index";
-import type { Post } from "../content/store";
-import { postPath, tagPath, getRoutePath } from "../routing";
-import { tagName } from "../data/tags";
-import { useMessages } from "../i18n/ui";
-import { formatSequenceNumber } from "../utils/numbering";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getPostContext } from "../../services/blog/index";
+import type { Post } from "../../content/store";
+import { postPath, tagPath, getRoutePath } from "../../routing";
+import { tagName } from "../../data/tags";
+import { useMessages } from "../../i18n/ui";
+import { formatSequenceNumber } from "../../utils/numbering";
 
 interface Props {
     post: Post;

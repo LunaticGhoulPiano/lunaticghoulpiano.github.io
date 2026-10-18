@@ -352,6 +352,7 @@ test("missing credentials stop before any API request and child environments exc
     }), /Missing WEBPAGE_GITHUB_PROFILE_READONLY/);
     const environment = validationEnvironment("fixture_stage", {
         WEBPAGE_GITHUB_PROFILE_READONLY: "fixture_only",
+        WEBPAGE_YOUTUBE_PROFILE_READONLY: "fixture_only",
         GH_PROFILE_TOKEN: "fixture_only",
         GITHUB_TOKEN: "fixture_only",
         GH_TOKEN: "fixture_only",

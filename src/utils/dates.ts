@@ -41,6 +41,13 @@ export function displayDate(value: string) {
     return utcDate(value).replaceAll("-", " / ");
 }
 
+export function displayDuration(seconds: number) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor(seconds % 3600 / 60);
+    const remainder = String(seconds % 60).padStart(2, "0");
+    return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${remainder}` : `${minutes}:${remainder}`;
+}
+
 export function displayTimestamp(value: string, locale: Locale) {
     return new Intl.DateTimeFormat(languages[locale].formatLocale, snapshotDateOptions).format(new Date(value));
 }

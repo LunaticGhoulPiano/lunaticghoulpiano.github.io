@@ -1,5 +1,3 @@
-import { timelinePreviewSize } from "../config/collections";
-
 export function initializeTimelines() {
     document.querySelectorAll<HTMLElement>("[data-timeline-window]").forEach((root) => {
         if (root.dataset.ready) return;
@@ -8,7 +6,7 @@ export function initializeTimelines() {
         const items = [...list.children] as HTMLElement[];
         const newest = root.querySelector<HTMLButtonElement>("[data-timeline-newest]")!;
         const oldest = root.querySelector<HTMLButtonElement>("[data-timeline-oldest]")!;
-        const visibleItems = Number(root.dataset.visibleItems) || timelinePreviewSize;
+        const visibleItems = Number(root.dataset.visibleItems);
         const fixedHeight = Number(root.dataset.height);
 
         function sync() {

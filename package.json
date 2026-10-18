@@ -9,7 +9,8 @@
         "build": "node scripts/astro/run.mjs build",
         "preview": "node scripts/astro/run.mjs preview",
         "test": "node --test \"tests/**/!(fixture).mjs\"",
-        "refresh:github": "node scripts/github/update.mjs"
+        "refresh:github": "node scripts/github/update.mjs",
+        "refresh:youtube": "node scripts/youtube/update.mjs"
     },
     "keywords": [],
     "author": "",

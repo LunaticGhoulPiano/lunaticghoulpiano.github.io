@@ -6,7 +6,7 @@ import { locales, languages } from "../../src/config/locales.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { formatMessage } from "../../src/i18n/format.ts";
 
-test("an unimplemented feed has no snapshot or fabricated reporting period", () => {
+test("the YouTube detail page stays unimplemented while its preview loads separately", () => {
     for (const locale of locales) {
         const detail = getFeedsPage("youtube", locale);
         assert.equal(detail.sources[0].data, null);

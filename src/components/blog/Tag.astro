@@ -1,11 +1,11 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostList from "./PostList.astro";
-import type { Locale } from "../config/site";
-import { getRoutePath, tagPath } from "../routing";
-import { getTagContext } from "../services/blog/index";
-import { tagName } from "../data/tags";
-import { useMessages } from "../i18n/ui";
+import type { Locale } from "../../config/site";
+import { getRoutePath, tagPath } from "../../routing";
+import { getTagContext } from "../../services/blog/index";
+import { tagName } from "../../data/tags";
+import { useMessages } from "../../i18n/ui";
 
 interface Props {
     tag: string;

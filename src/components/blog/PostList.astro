@@ -1,10 +1,10 @@
 ---
-import type { Locale } from "../config/site";
-import type { Post } from "../content/store";
-import { postPath, tagPath } from "../routing";
-import { tagName } from "../data/tags";
-import { useMessages } from "../i18n/ui";
-import Pagination from "./common/Pagination.astro";
+import type { Locale } from "../../config/site";
+import type { Post } from "../../content/store";
+import { postPath, tagPath } from "../../routing";
+import { tagName } from "../../data/tags";
+import { useMessages } from "../../i18n/ui";
+import Pagination from "../common/Pagination.astro";
 
 interface Props {
     locale: Locale;

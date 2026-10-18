@@ -1,18 +1,5 @@
 import { readSnapshotBundle } from "./files.mjs";
-import { githubPolicy } from "../../config/github.ts";
-import { hourMilliseconds } from "../../config/time.ts";
-import { isWithinAge } from "../../utils/dates.ts";
 import { snapshotSchemas, type Dataset, type SnapshotMap } from "./schema.ts";
-
-export function snapshotStatus(
-    snapshot: {
-        lastSuccessfulFetchAt: string;
-    } | null,
-    now = Date.now(),
-) {
-    if (! snapshot) return "unavailable" as const;
-    return isWithinAge(snapshot.lastSuccessfulFetchAt, now, githubPolicy.maxSnapshotAgeHours * hourMilliseconds) ? "fresh" as const : "stale" as const;
-}
 
 export function getGithubData(directory?: string) {
     const bundle = readSnapshotBundle(directory) as Partial<SnapshotMap> | null;
