@@ -7,7 +7,7 @@ export function initializePageTurners() {
         if (root.dataset.ready) return;
         const region = root.querySelector<HTMLElement>("[data-page-turner-pages]")!;
         const pages = [...region.children] as HTMLElement[];
-        const footers = [...root.querySelectorAll<HTMLElement>("[data-page-turner-footer]")];
+        const headings = [...root.querySelectorAll<HTMLElement>("[data-page-turner-heading]")];
         const controls = root.querySelector<HTMLElement>("[data-page-turner-controls]")!;
         const previous = root.querySelector<HTMLButtonElement>("[data-page-turner-previous]")!;
         const next = root.querySelector<HTMLButtonElement>("[data-page-turner-next]")!;
@@ -26,11 +26,11 @@ export function initializePageTurners() {
                 page.toggleAttribute("data-current", current);
                 page.inert = ! current;
                 page.setAttribute("aria-hidden", String(! current));
-                const footer = footers[index];
-                if (footer) {
-                    footer.toggleAttribute("data-current", current);
-                    footer.inert = ! current;
-                    footer.setAttribute("aria-hidden", String(! current));
+                const heading = headings[index];
+                if (heading) {
+                    heading.toggleAttribute("data-current", current);
+                    heading.inert = ! current;
+                    heading.setAttribute("aria-hidden", String(! current));
                 }
             });
             previous.disabled = state.previous === null;

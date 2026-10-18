@@ -38,6 +38,18 @@ export const routes = {
         title: "route.projects",
         description: "description.projects",
     },
+    githubProjects: {
+        section: "projects",
+        path: "projects/github",
+        title: "route.githubProjects",
+        description: "description.githubProjects",
+    },
+    youtubeProjects: {
+        section: "projects",
+        path: "projects/youtube",
+        title: "route.youtubeProjects",
+        description: "description.youtubeProjects",
+    },
     blog: {
         section: "blog",
         path: "blog",

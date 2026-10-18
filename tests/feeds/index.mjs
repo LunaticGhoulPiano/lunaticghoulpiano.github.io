@@ -6,17 +6,17 @@ import { locales, languages } from "../../src/config/locales.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { formatMessage } from "../../src/i18n/format.ts";
 
-test("YouTube preview and detail load the same channel data", () => {
+test("YouTube overview and detail load the same channel data", () => {
     for (const locale of locales) {
         const detail = getFeedsPage("youtube", locale);
-        const preview = getFeedsPage("feeds", locale).sources.find((source) => source.key === "youtube");
-        assert.deepEqual(detail.sources[0].data, preview.data);
+        const overview = getFeedsPage("feeds", locale).sources.find((source) => source.key === "youtube");
+        assert.deepEqual(detail.sources[0].data, overview.data);
         assert.ok(detail.sources[0].data);
         assert.equal(detail.description, messages[locale].ui[routes.youtube.description]);
     }
 });
 
-test("feeds load all registered previews and only the selected detail source, including an additional source", (context) => {
+test("feeds load all registered sources and only the selected detail source, including an additional source", (context) => {
     const keys = Object.keys(feedSources);
     assert.deepEqual(keys.sort(), Object.keys(routes).filter((route) => routes[route].section === "feeds" && route !== "feeds").sort());
     const calls = [];
@@ -34,6 +34,7 @@ test("feeds load all registered previews and only the selected detail source, in
     while (Object.hasOwn(feedSources, extra) || Object.hasOwn(routes, extra)) extra += "_extra";
     feedSources[extra] = {
         title: "Fixture Source",
+        route: extra,
         periodDescription: feedSources[keys[0]].periodDescription,
         load: () => {
             calls.push(extra);
@@ -54,14 +55,12 @@ test("feeds load all registered previews and only the selected detail source, in
     for (const locale of locales) {
         calls.length = 0;
         const overview = getFeedsPage("feeds", locale);
-        assert.equal(overview.preview, true);
         assert.deepEqual(overview.sources.map((source) => source.key).sort(), [...keys, extra].sort());
         assert.deepEqual([...calls].sort(), [...keys, extra].sort());
         assert.equal(overview.description, messages[locale].ui[routes.feeds.description]);
         for (const key of [...keys, extra]) {
             calls.length = 0;
             const detail = getFeedsPage(key, locale);
-            assert.equal(detail.preview, false);
             assert.deepEqual(calls, [key]);
             assert.deepEqual(detail.sources.map((source) => source.route), [key]);
             assert.equal(detail.description, formatMessage(messages[locale].ui[feedSources[key].periodDescription], {

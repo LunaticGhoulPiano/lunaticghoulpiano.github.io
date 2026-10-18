@@ -7,44 +7,41 @@ interface Props {
     id: string;
     label: string;
     locale: Locale;
-    enabled?: boolean;
     interval?: number;
 }
 
-const { id, label, locale, enabled = true, interval = pageTurnInterval } = Astro.props;
+const { id, label, locale, interval = pageTurnInterval } = Astro.props;
 const copy = useMessages(locale).carousel;
 ---
 
-{enabled ? (
-    <div class="page-turner carousel" data-page-turner data-interval={interval}>
-        <div class="page-turner-pages" id={id} data-page-turner-pages role="region" aria-label={label}>
-            <slot />
+<div class="page-turner carousel" data-page-turner data-interval={interval}>
+    <header class="page-turner-header">
+        <div class="page-turner-headings">
+            <slot name="heading" />
         </div>
-        <div class="page-turner-footer">
-            <div class="page-turner-notices">
-                <slot name="footer" />
-            </div>
-            <div class="carousel-controls page-turner-controls" data-page-turner-controls hidden>
-                <button type="button" data-page-turner-previous aria-label={copy.previous} aria-controls={id}>←</button>
-                <button type="button" data-page-turner-next aria-label={copy.next} aria-controls={id}>→</button>
-                <span class="sr-only" data-page-turner-position role="status" aria-live="off" aria-atomic="true"></span>
-            </div>
+        <div class="carousel-controls page-turner-controls" data-page-turner-controls hidden>
+            <button type="button" data-page-turner-previous aria-label={copy.previous} aria-controls={id}>←</button>
+            <button type="button" data-page-turner-next aria-label={copy.next} aria-controls={id}>→</button>
+            <span class="sr-only" data-page-turner-position role="status" aria-live="off" aria-atomic="true"></span>
         </div>
+    </header>
+    <div class="page-turner-pages" id={id} data-page-turner-pages role="region" aria-label={label}>
+        <slot />
     </div>
-) : <slot />}
+</div>
 
 <style>
     .page-turner {
         margin-top: 3.5rem;
     }
 
-    .page-turner[data-ready] .page-turner-pages {
+    .page-turner-pages {
         display: grid;
         perspective: 1800px;
         isolation: isolate;
     }
 
-    .page-turner[data-ready] .page-turner-pages > :global(*) {
+    .page-turner-pages > :global(*) {
         grid-area: 1 / 1;
         min-width: 0;
         margin-top: 0;
@@ -54,8 +51,8 @@ const copy = useMessages(locale).carousel;
         backface-visibility: hidden;
     }
 
-    .page-turner[data-ready] .page-turner-pages > :global([data-current]),
-    .page-turner[data-ready] .page-turner-pages > :global([data-turning]) {
+    .page-turner-pages > :global([data-current]),
+    .page-turner-pages > :global([data-turning]) {
         visibility: visible;
     }
 
@@ -67,34 +64,52 @@ const copy = useMessages(locale).carousel;
         z-index: 2;
     }
 
-    .page-turner-footer {
+    .page-turner-header {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 0.75rem;
-        margin-top: 1rem;
+        padding-bottom: 0.9rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--line);
     }
 
-    .page-turner-notices {
+    .page-turner-headings {
+        grid-area: 1 / 1;
         display: grid;
-        align-items: center;
         min-width: 0;
     }
 
-    .page-turner[data-ready] .page-turner-notices > :global(*) {
+    .page-turner-headings > :global(*) {
         grid-area: 1 / 1;
         visibility: hidden;
+        display: grid;
+        grid-template-columns: minmax(4.5rem, 1fr) minmax(0, auto) minmax(4.5rem, 1fr);
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
     }
 
-    .page-turner[data-ready] .page-turner-notices > :global([data-current]) {
+    .page-turner-headings > :global([data-current]) {
         visibility: visible;
     }
 
-    .page-turner-notices :global(.snapshot-notice) {
+    .page-turner-headings :global(h2) {
+        grid-column: 1;
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .page-turner-headings :global(.snapshot-notice) {
+        grid-column: 2;
         margin-top: 0;
+        min-width: 0;
+        text-align: center;
+        overflow-wrap: anywhere;
     }
 
     .page-turner-controls {
+        grid-area: 1 / 1;
+        justify-self: end;
+        z-index: 1;
         display: flex;
         margin: 0;
         justify-content: flex-end;
@@ -105,19 +120,27 @@ const copy = useMessages(locale).carousel;
         .page-turner {
             margin-top: 2rem;
         }
+
+        .page-turner-headings > :global(*) {
+            gap: 0.5rem;
+        }
+
+        .page-turner-headings :global(h2) {
+            font-size: 1rem;
+        }
     }
 
     @media print {
-        .page-turner[data-ready] .page-turner-pages {
+        .page-turner-pages {
             display: block;
         }
 
-        .page-turner[data-ready] .page-turner-pages > :global(*) {
+        .page-turner-pages > :global(*) {
             visibility: visible;
             transform: none !important;
         }
 
-        .page-turner[data-ready] .page-turner-notices > :global(*) {
+        .page-turner-headings > :global(*) {
             grid-area: auto;
             visibility: visible;
         }

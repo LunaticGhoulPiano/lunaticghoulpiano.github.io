@@ -1,0 +1,39 @@
+---
+import type { Locale } from "../../config/locales";
+import type { AstroComponentFactory } from "astro/runtime/server/index.js";
+import PageTurner from "./PageTurner.astro";
+import SnapshotNotice from "./SnapshotNotice.astro";
+
+interface Props {
+    locale: Locale;
+    section: string;
+    label: string;
+    sources: {
+        key: string;
+        title: string;
+        data: { notice: { lastSuccessfulFetchAt: string } | null };
+    }[];
+    components: Record<string, AstroComponentFactory>;
+}
+
+const { locale, section, label, sources, components } = Astro.props;
+---
+
+<PageTurner id={`${section}-pages`} label={label} locale={locale}>
+    <Fragment slot="heading">
+        {sources.map((source, index) => (
+            <div data-page-turner-heading data-current={index === 0 ? "" : undefined} inert={index !== 0} aria-hidden={index !== 0}>
+                {sources.length > 1 && <h2>{source.title}</h2>}
+                <SnapshotNotice locale={locale} snapshot={source.data.notice} showMissingTimestamp />
+            </div>
+        ))}
+    </Fragment>
+    {sources.map((source, index) => {
+        const Content = components[source.key];
+        return (
+            <section class="content-section" data-source={source.key} data-current={index === 0 ? "" : undefined} inert={index !== 0} aria-hidden={index !== 0} aria-label={source.title}>
+                <Content locale={locale} data={source.data} />
+            </section>
+        );
+    })}
+</PageTurner>

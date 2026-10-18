@@ -1,0 +1,14 @@
+---
+import type { Locale } from "../../config/locales";
+import type { projectSources } from "../../services/projects/index";
+import RepositoryList from "./RepositoryList.astro";
+
+interface Props {
+    locale: Locale;
+    data: ReturnType<typeof projectSources.github.load>;
+}
+
+const { locale, data } = Astro.props;
+---
+
+{data.notice && <RepositoryList id="projects" locale={locale} repositories={data.repositories} filterable />}

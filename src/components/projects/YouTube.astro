@@ -1,0 +1,141 @@
+---
+import type { Locale } from "../../config/locales";
+import { useMessages } from "../../i18n/ui";
+import type { getYoutubeContent } from "../../data/youtube/content";
+import Channel from "../common/youtube/Channel.astro";
+import Videos from "../common/youtube/Videos.astro";
+import TimelineViewport from "../common/TimelineViewport.astro";
+import { youtubeProjectsLayout, youtubePlaylistNavigation, youtubeVideoSortOptions } from "../../config/collections";
+import Carousel from "../common/Carousel.astro";
+
+interface Props {
+    locale: Locale;
+    data: ReturnType<typeof getYoutubeContent>;
+}
+
+const { locale, data } = Astro.props;
+const messages = useMessages(locale);
+const copy = messages.youtube;
+const { channel, videos, library, playlists } = data;
+const uploads = new Set(videos.map((video) => video.id));
+const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
+---
+
+{channel ? (
+    <>
+        <Channel locale={locale} channel={channel} />
+        <div class="youtube-browser" data-youtube-browser data-carousel-hover style={{
+            "--youtube-wide-item-height": `${youtubeProjectsLayout.itemHeight}px`,
+            "--youtube-mobile-item-height": `${youtubeProjectsLayout.mobileItemHeight}px`,
+            "--youtube-page-size": youtubeProjectsLayout.visibleItems,
+            "--youtube-playlist-description-lines": youtubeProjectsLayout.playlistDescriptionLines,
+        }}>
+            {playlists.length > 0 && (
+                <div data-youtube-controls hidden>
+                    <Carousel
+                        id="youtube-playlists"
+                        label={copy.playlists}
+                        locale={locale}
+                        visibleItems={youtubePlaylistNavigation.visibleItems}
+                        interval={youtubePlaylistNavigation.interval}
+                        slideDuration={youtubePlaylistNavigation.duration}
+                        navigation
+                        loop
+                    >
+                        <button type="button" data-youtube-filter="" data-video-ids={JSON.stringify(videos.map((video) => video.id))} data-description="" aria-pressed="true" title={copy.all}>{copy.all}</button>
+                        {playlists.map((playlist) => (
+                            <button type="button" data-youtube-filter={playlist.id} data-video-ids={JSON.stringify(playlist.items.map((item) => item.videoId))} data-description={playlist.description} aria-pressed="false" title={playlist.title}>{playlist.title}</button>
+                        ))}
+                    </Carousel>
+                </div>
+            )}
+            <div class="youtube-toolbar">
+                <p class="youtube-playlist-description" data-youtube-description></p>
+                <div class="youtube-sort" data-youtube-sort-controls hidden>
+                    <label for="youtube-sort">{copy.sortBy}</label>
+                    <select id="youtube-sort" data-youtube-sort autocomplete="off">
+                        {youtubeVideoSortOptions.map((option) => (
+                            <option value={option} selected={option === youtubeVideoSortOptions[0]}>{copy[option]}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <TimelineViewport
+                id="youtube-timeline"
+                label={copy.videos}
+                locale={locale}
+                visibleItems={youtubeProjectsLayout.visibleItems}
+                height="calc(var(--youtube-item-height) * var(--youtube-page-size))"
+                chronological={false}
+            >
+                <Videos locale={locale} videos={rows} visibleIds={uploads} />
+                <p class="empty-message" data-youtube-empty data-all-label={copy.noVideos} data-playlist-label={copy.emptyPlaylist} role="status" hidden={videos.length > 0}>{copy.noVideos}</p>
+            </TimelineViewport>
+        </div>
+    </>
+) : <p class="empty-message">{messages.content.unavailable}</p>}
+
+<style>
+    .youtube-browser {
+        --youtube-item-height: var(--youtube-wide-item-height);
+    }
+
+    .youtube-playlist-description {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: var(--youtube-playlist-description-lines);
+        height: calc(var(--youtube-playlist-description-lines) * 1lh);
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        color: var(--muted);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .youtube-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.75rem;
+    }
+
+    .youtube-sort {
+        display: flex;
+        align-items: center;
+        justify-self: end;
+        gap: 0.5rem;
+        min-width: 0;
+        font-size: 0.875rem;
+        color: var(--muted);
+    }
+
+    .youtube-sort label {
+        white-space: nowrap;
+    }
+
+    .youtube-sort select {
+        min-width: 0;
+        min-height: 2.25rem;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid var(--line);
+        color: var(--text);
+        background: var(--background);
+        font: inherit;
+    }
+
+    .youtube-browser :global(.youtube-videos > li) {
+        height: var(--youtube-item-height);
+    }
+
+    @media (max-width: 46rem) {
+        .youtube-browser {
+            --youtube-item-height: var(--youtube-mobile-item-height);
+        }
+    }
+</style>
+
+<script>
+    import { initializeYoutubePlaylists } from "../../scripts/youtube";
+    initializeYoutubePlaylists();
+</script>

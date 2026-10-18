@@ -1,0 +1,80 @@
+---
+import type { Locale } from "../../../config/locales";
+import { languages } from "../../../config/locales";
+import { useMessages } from "../../../i18n/ui";
+import type { YoutubeSnapshot } from "../../../data/youtube/schema";
+import { displayDate } from "../../../utils/dates";
+
+interface Props {
+    locale: Locale;
+    channel: YoutubeSnapshot["channel"];
+}
+
+const { locale, channel } = Astro.props;
+const copy = useMessages(locale).youtube;
+const number = new Intl.NumberFormat(languages[locale].formatLocale);
+const count = (value: string | null) => value === null ? "—" : number.format(BigInt(value));
+---
+
+<div class="youtube-channel">
+    {channel.avatar && <img class="youtube-avatar" src={channel.avatar} alt="" width="64" height="64" />}
+    <div class="youtube-identity">
+        <a class="youtube-name" href={`https://www.youtube.com/channel/${channel.id}`}>{channel.title}</a>
+    </div>
+</div>
+<dl class="youtube-statistics">
+    <div><dt>{copy.subscribers}</dt><dd>{count(channel.subscribers)}</dd></div>
+    <div><dt>{copy.created}</dt><dd><time datetime={channel.createdAt}>{displayDate(channel.createdAt)}</time></dd></div>
+    <div><dt>{copy.publicVideos}</dt><dd>{count(channel.publicVideos)}</dd></div>
+    <div><dt>{copy.views}</dt><dd>{count(channel.views)}</dd></div>
+</dl>
+
+<style>
+    .youtube-channel {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .youtube-avatar {
+        flex: none;
+        width: 4rem;
+        height: 4rem;
+        border-radius: 50%;
+    }
+
+    .youtube-identity {
+        min-width: 0;
+    }
+
+    .youtube-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .youtube-statistics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        margin-block: 1.5rem;
+    }
+
+    .youtube-statistics dt {
+        color: var(--muted);
+        font-size: 0.75rem;
+    }
+
+    .youtube-statistics dd {
+        margin: 0.4rem 0 0;
+        font-size: 0.9375rem;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 46rem) {
+        .youtube-statistics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>

@@ -8,13 +8,13 @@ import type { FeedSource } from "../services/feeds/index";
 import { tagName } from "../data/tags";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProfileLayout from "../layouts/ProfileLayout.astro";
-import RepositoryList from "./projects/RepositoryList.astro";
+import type { ProjectSource } from "../services/projects/index";
+import GithubProjects from "./projects/GitHub.astro";
+import YoutubeProjects from "./projects/YouTube.astro";
 import PostList from "./blog/PostList.astro";
 import GitHub from "./feeds/GitHub.astro";
 import YouTube from "./feeds/YouTube.astro";
-import FeedPanel from "./feeds/FeedPanel.astro";
-import PageTurner from "./common/PageTurner.astro";
-import SnapshotNotice from "./common/SnapshotNotice.astro";
+import SourcePages from "./common/SourcePages.astro";
 
 interface Props {
     locale: Locale;
@@ -32,6 +32,10 @@ const feedComponents = {
     github: GitHub,
     youtube: YouTube,
 } satisfies Record<FeedSource, unknown>;
+const projectComponents = {
+    github: GithubProjects,
+    youtube: YoutubeProjects,
+} satisfies Record<ProjectSource, unknown>;
 ---
 
 <BaseLayout title={t(page.title)} description={description} locale={locale} route={route}>
@@ -51,14 +55,6 @@ const feedComponents = {
                 ))}
             </dl>
         </ProfileLayout>
-    )}
-    {context.section === "projects" && (
-        <section aria-label={t("route.projects")}>
-            {context.snapshot && (
-                <RepositoryList id="projects" locale={locale} repositories={context.repositories} filterable />
-            )}
-            <SnapshotNotice locale={locale} snapshot={context.snapshot} />
-        </section>
     )}
     {context.section === "blog" && route === "blog" && (
         <>
@@ -92,30 +88,13 @@ const feedComponents = {
             <p class="empty-message">{content.noTags}</p>
         )
     )}
-    {context.section === "feeds" && (
-        <PageTurner id="feed-pages" label={t("route.feeds")} locale={locale} enabled={context.preview}>
-            {context.sources.map((source) => {
-                const Feed = feedComponents[source.key];
-                return (
-                    <FeedPanel
-                        locale={locale}
-                        source={source.key}
-                        title={source.title}
-                        href={getRoutePath(source.route, locale)}
-                        preview={context.preview}
-                        snapshot={source.data?.notice ?? null}
-                    >
-                        {Feed && source.data && <Feed locale={locale} data={source.data} preview={context.preview} />}
-                    </FeedPanel>
-                );
-            })}
-            <Fragment slot="footer">
-                {context.preview && context.sources.map((source) => (
-                    <div data-page-turner-footer>
-                        <SnapshotNotice locale={locale} snapshot={source.data?.notice ?? null} showMissingTimestamp />
-                    </div>
-                ))}
-            </Fragment>
-        </PageTurner>
+    {(context.section === "feeds" || context.section === "projects") && (
+        <SourcePages
+            locale={locale}
+            section={context.section}
+            label={t(page.title)}
+            sources={context.sources}
+            components={context.section === "feeds" ? feedComponents : projectComponents}
+        />
     )}
 </BaseLayout>

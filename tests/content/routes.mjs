@@ -1,7 +1,7 @@
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
-import { collectionPageSize, githubTimelinePreviewSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeTimelinePreviewSize, youtubeVideoSortOptions } from "../../src/config/collections.ts";
+import { collectionPageSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeFeedTimelineSize, youtubeVideoSortOptions } from "../../src/config/collections.ts";
 import { youtubePolicy } from "../../src/config/youtube.ts";
 import { fetchYoutubeSnapshot } from "../../scripts/youtube/fetch.ts";
 import { fixtureFetch as youtubeFetch, fixtureKey, fixtureNow as youtubeNow, fixtureChannelId, fixtureVideoId } from "../youtube/fixture.mjs";
@@ -21,6 +21,7 @@ import { languages, locales, defaultLocale, localizedPath } from "../../src/conf
 import { site } from "../../src/config/site.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { routes } from "../../src/config/routes.ts";
+import { projectSources } from "../../src/services/projects/index.ts";
 import { feedSources } from "../../src/services/feeds/index.ts";
 
 function decodeHtml(value) {
@@ -227,14 +228,14 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.deepEqual(headings(main(feed), 1), [copy.ui["route.github"]]);
             assert.deepEqual(headings(main(overview), 2), Object.values(feedSources).map((source) => source.title));
             assert.deepEqual(headings(main(feed), 2), []);
-            const youtube = await page(routes.youtube.path, locale);
-            assert.deepEqual(headings(main(youtube), 1), [copy.ui[routes.youtube.title]]);
+            const youtube = await page(routes.youtubeProjects.path, locale);
+            assert.deepEqual(headings(main(youtube), 1), [copy.ui[routes.youtubeProjects.title]]);
             assert.match(main(youtube), /data-timeline-window/);
             assert.match(main(youtube), /data-navigation="true"/);
             assert.match(main(youtube), /data-carousel-previous/);
             assert.match(main(youtube), /data-carousel-next/);
             assert.doesNotMatch(main(youtube), /data-carousel-scrollbar/);
-            assert.match(main(youtube), /data-carousel-hover="true"/);
+            assert.match(main(youtube), /data-carousel-hover/);
             const sorting = youtube.match(/<select\b[^>]*data-youtube-sort[\s\S]*?<\/select>/)[0];
             assert.deepEqual([...sorting.matchAll(/<option\b[^>]*value="([^"]+)"/g)].map((match) => match[1]), youtubeVideoSortOptions);
             assert.match(sorting, /autocomplete="off"/);
@@ -249,28 +250,22 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.ok(youtube.includes(`aria-label="${copy.timeline.first.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`));
             assert.doesNotMatch(youtube, /PL_private|Hidden playlist|fixture_youtube_key/);
             assert.equal([...youtube.matchAll(/data-video-id=/g)].length, youtubeData.snapshot.videos.length);
-            const youtubePreview = overview.match(/<section\b[^>]*data-feed-source="youtube"[\s\S]*?<\/section>/)[0];
-            assert.ok(text(youtubePreview).includes(youtubeData.snapshot.channel.title));
-            assert.equal(text(youtubePreview).includes(fixtureChannelId), false);
-            assert.ok(youtubePreview.includes(`https://www.youtube.com/channel/${fixtureChannelId}`));
-            assert.deepEqual([...youtubePreview.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
+            const youtubeFeed = overview.match(/<section\b[^>]*data-source="youtube"[\s\S]*?<\/section>/)[0];
+            assert.ok(text(youtubeFeed).includes(youtubeData.snapshot.channel.title));
+            assert.equal(text(youtubeFeed).includes(fixtureChannelId), false);
+            assert.ok(youtubeFeed.includes(`https://www.youtube.com/channel/${fixtureChannelId}`));
+            assert.deepEqual([...youtubeFeed.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
                 [5, 4, 3, 2, 1, 0].map(fixtureVideoId));
-            assert.ok(youtubePreview.includes(`data-visible-items="${youtubeTimelinePreviewSize}"`));
-            assert.doesNotMatch(youtubePreview, /data-navigation/);
-            assert.doesNotMatch(youtubePreview, /data-youtube-sort/);
+            assert.ok(youtubeFeed.includes(`data-visible-items="${youtubeFeedTimelineSize}"`));
+            assert.doesNotMatch(youtubeFeed, /data-navigation/);
+            assert.doesNotMatch(youtubeFeed, /data-youtube-sort/);
             for (const key of ["subscribers", "created", "publicVideos", "views", "duration", "videoViews", "likes"]) {
-                assert.ok(text(youtubePreview).includes(copy.youtube[key]));
+                assert.ok(text(youtubeFeed).includes(copy.youtube[key]));
             }
-            assert.equal([...youtubePreview.matchAll(/class="youtube-description"/g)].length, 3);
-            assert.ok(text(youtubePreview).includes("Description 5"));
-            assert.ok(text(youtubePreview).includes("1:02:03"));
-            assert.doesNotMatch(youtubePreview, /fixture_youtube_key/);
-            for (const [key, source] of Object.entries(feedSources)) {
-                const link = [...overview.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
-                    .find((match) => match[1] === localizedPath(routes[key].path, locale));
-                assert.ok(link);
-                assert.equal(text(link[2]), `${formatMessage(copy.content.details, { source: source.title }, testLanguages[locale].formatLocale)} →`);
-            }
+            assert.equal([...youtubeFeed.matchAll(/class="youtube-description"/g)].length, 3);
+            assert.ok(text(youtubeFeed).includes("Description 5"));
+            assert.ok(text(youtubeFeed).includes("1:02:03"));
+            assert.doesNotMatch(youtubeFeed, /fixture_youtube_key/);
             const description = feed.match(/<p class="page-description">([\s\S]*?)<\/p>/)[1];
             assert.equal(text(description), copy.ui["description.activityPeriod"]
                 .replace("{from}", "2026 / 09 / 17")
@@ -294,17 +289,17 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.doesNotMatch(entry, /<a\b|2026-09-17/);
             }
             assert.equal([...feed.matchAll(/data-private-contributions/g)].length, 4);
-            assert.equal([...overview.matchAll(/data-private-contributions/g)].length, 2);
-            for (const [html, visibleItems] of [[overview, githubTimelinePreviewSize], [feed, githubTimelineCategorySize]]) {
+            assert.equal([...overview.matchAll(/data-private-contributions/g)].length, 4);
+            for (const html of [overview, feed]) {
                 assert.doesNotMatch(html, /private_project|hidden_issue|fixture_only/);
                 assert.doesNotMatch(html, /contribution-stats|contribution-calendar|github-summary|account-snapshot|data-timeline-toggle/);
-                assert.equal([...html.matchAll(/data-feed-source="github"/g)].length, 1);
+                assert.equal([...html.matchAll(/data-source="github"/g)].length, 1);
                 const notice = html.match(/<div class="snapshot-notice">([\s\S]*?)<\/div>/)[1];
                 assert.ok(text(notice).startsWith(`${copy.content.snapshot}:`));
-                assert.ok(html.includes(`data-timeline-window data-visible-items="${visibleItems}"`));
-                const windows = [...html.matchAll(/<div\b[^>]*data-timeline-window[^>]*>/g)];
-                for (const [window] of windows) {
-                    assert.equal(attributes(window)["data-height"], html === feed ? String(githubActivityCategoryLayout.timelineHeight) : undefined);
+                assert.ok(html.includes(`data-timeline-window data-visible-items="${githubTimelineCategorySize}"`));
+                for (const category of html.matchAll(/<section[^>]*data-activity-category="[^"]+"[^>]*>([\s\S]*?)<\/section>/g)) {
+                    const window = category[1].match(/<div\b[^>]*data-timeline-window[^>]*>/);
+                    if (window) assert.equal(attributes(window[0])["data-height"], String(githubActivityCategoryLayout.timelineHeight));
                 }
                 const newest = html.match(/<button\b[^>]*data-timeline-newest[^>]*>/)[0];
                 const oldest = html.match(/<button\b[^>]*data-timeline-oldest[^>]*>/)[0];
@@ -319,8 +314,8 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.ok(feed.indexOf('data-carousel-track') < feed.indexOf('data-carousel-controls'));
             assert.match(feed, /data-carousel-scrollbar/);
             assert.match(overview, /class="activity-list/);
-            const previewTimeline = overview.match(/<ol class="activity-list">([\s\S]*?)<\/ol>/)[1];
-            assert.deepEqual([...previewTimeline.matchAll(/<time datetime="([^"]+)"/g)].map((match) => match[1]), [
+            const activityTimeline = overview.match(/<ol class="activity-list[^"]*"[^>]*>([\s\S]*?)<\/ol>/)[1];
+            assert.deepEqual([...activityTimeline.matchAll(/<time datetime="([^"]+)"/g)].map((match) => match[1]), [
                 "2026-10-04T12:00:00.000Z",
                 "2026-10-03T12:00:00.000Z",
                 "2026-10-03",
@@ -332,6 +327,45 @@ test("isolated builds cover every configured language plus an additional locale,
                 "2026-09-30T12:00:00.000Z",
             ]);
             const projects = await page("projects", locale);
+            const youtubeFeedPage = await page(routes.youtube.path, locale);
+            const githubProjects = await page(routes.githubProjects.path, locale);
+            assert.deepEqual(headings(main(projects), 2), Object.values(projectSources).map((source) => source.title));
+            for (const [html, definitions] of [[overview, feedSources], [projects, projectSources]]) {
+                assert.match(html, /data-page-turner /);
+                assert.equal([...html.matchAll(/data-page-turner-heading/g)].length, Object.keys(definitions).length);
+                assert.match(html, /data-page-turner-previous/);
+                assert.match(html, /data-page-turner-next/);
+                const header = html.match(/<header class="page-turner-header"[^>]*>([\s\S]*?)<\/header>/)[1];
+                assert.match(header, /data-page-turner-heading/);
+                assert.match(header, /class="snapshot-notice"/);
+                assert.match(header, /data-page-turner-next/);
+                assert.doesNotMatch(header, /<a\b/);
+                const initialHeadings = [...header.matchAll(/<div\b[^>]*data-page-turner-heading[^>]*>/g)].map((match) => match[0]);
+                const initialPages = [...html.matchAll(/<section\b[^>]*data-source="[^"]+"[^>]*>/g)].map((match) => match[0]);
+                for (const elements of [initialHeadings, initialPages]) {
+                    assert.equal(elements.length, Object.keys(definitions).length);
+                    elements.forEach((element, index) => {
+                        assert.equal(/\bdata-current(?:[\s=>])/.test(element), index === 0);
+                        assert.equal(/\binert(?:[\s=>])/.test(element), index !== 0);
+                        assert.equal(attributes(element)["aria-hidden"], String(index !== 0));
+                    });
+                }
+                assert.ok(html.indexOf('class="page-turner-header"') < html.indexOf('class="page-turner-pages"'));
+                assert.doesNotMatch(html, /page-turner-footer/);
+                for (const source of Object.values(definitions)) {
+                    const href = localizedPath(routes[source.route].path, locale);
+                    assert.ok(! main(html).includes('href="' + href + '"'));
+                }
+            }
+            assert.match(projects, /data-youtube-sort/);
+            assert.match(projects, /data-repository-browser/);
+            assert.doesNotMatch(projects, /data-activity-category/);
+            assert.doesNotMatch(githubProjects, /data-youtube-browser|data-activity-category/);
+            for (const html of [overview, youtubeFeedPage]) {
+                assert.doesNotMatch(html, /data-youtube-browser|data-youtube-sort|data-youtube-filter/);
+                assert.ok(html.includes('id="youtube-feed-timeline"'));
+            }
+            assert.doesNotMatch(youtubeFeedPage, /data-activity-category|data-repository-browser/);
             const blogPage = await page("blog", locale);
             assert.deepEqual(headings(main(projects), 1), [copy.ui["route.projects"]]);
             assert.deepEqual(headings(main(blogPage), 1), [copy.ui["route.blog"]]);

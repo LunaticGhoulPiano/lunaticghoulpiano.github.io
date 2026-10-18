@@ -7,10 +7,7 @@ const activityCategories = Object.keys(activityDefinitions) as (keyof typeof act
 
 export function getGithubFeed() {
     const { activity, contributions } = getGithubData();
-    return {
-        ...githubActivity(activity, contributions),
-        hasActivity: activity !== null,
-    };
+    return githubActivity(activity, contributions);
 }
 
 type Category = Exclude<(typeof activityCategories)[number], "all"> | "star";

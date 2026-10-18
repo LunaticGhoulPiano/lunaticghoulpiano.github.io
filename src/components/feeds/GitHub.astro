@@ -1,76 +1,64 @@
 ---
 import type { Locale } from "../../config/site";
-import { githubTimelinePreviewSize, githubTimelineCategorySize, githubActivityCategoryLayout, githubCategorySlideInterval, githubCategorySlideDuration } from "../../config/collections";
+import { githubTimelineCategorySize, githubActivityCategoryLayout, githubCategorySlideInterval, githubCategorySlideDuration } from "../../config/collections";
 import { useMessages } from "../../i18n/ui";
-import type { FeedData } from "../../services/feeds/index";
+import type { getGithubFeed } from "../../services/feeds/github";
 import ActivityTimeline from "./ActivityTimeline.astro";
 import Carousel from "../common/Carousel.astro";
 import TimelineViewport from "../common/TimelineViewport.astro";
 
 interface Props {
     locale: Locale;
-    preview?: boolean;
-    data: FeedData;
+    data: ReturnType<typeof getGithubFeed>;
 }
 
-const { locale, preview = false, data } = Astro.props;
-if (! ("entries" in data)) throw new Error("GitHub activity requires GitHub feed data.");
-const { entries, categories, hasActivity } = data;
+const { locale, data } = Astro.props;
+const { categories } = data;
 const messages = useMessages(locale);
 const copy = messages.activity;
 ---
 
-    {preview ? (
-        entries.length > 0 ? (
-            <TimelineViewport id="github-preview-timeline" label={messages.content.activity} locale={locale} visibleItems={githubTimelinePreviewSize}>
-                <ActivityTimeline locale={locale} entries={entries} />
-            </TimelineViewport>
-        ) : (
-            <p class="empty-message">{hasActivity ? messages.content.noEvents : copy.unavailable}</p>
-        )
-    ) : (
-        <Carousel
-            id="activity-categories"
-            label={copy.categories}
-            locale={locale}
-            interval={githubCategorySlideInterval}
-            slideDuration={githubCategorySlideDuration}
-            loop
+<Carousel
+    id="activity-categories"
+    label={copy.categories}
+    locale={locale}
+    interval={githubCategorySlideInterval}
+    slideDuration={githubCategorySlideDuration}
+    loop
+>
+    {categories.map((category) => (
+        <section
+            class="activity-category"
+            data-activity-category={category.key}
+            aria-label={copy[category.key]}
+            style={{
+                "--activity-category-height": `${githubActivityCategoryLayout.height}px`,
+                "--activity-timeline-height": `${githubActivityCategoryLayout.timelineHeight}px`,
+                "--activity-item-height": `${githubActivityCategoryLayout.itemHeight}px`,
+                "--activity-repository-lines": githubActivityCategoryLayout.repositoryLines,
+            }}
         >
-            {categories.map((category) => (
-                <section
-                    class="activity-category"
-                    data-activity-category={category.key}
-                    aria-label={copy[category.key]}
-                    style={{
-                        "--activity-category-height": `${githubActivityCategoryLayout.height}px`,
-                        "--activity-timeline-height": `${githubActivityCategoryLayout.timelineHeight}px`,
-                        "--activity-item-height": `${githubActivityCategoryLayout.itemHeight}px`,
-                        "--activity-repository-lines": githubActivityCategoryLayout.repositoryLines,
-                    }}
+            <header class="activity-category-heading">
+                <h3 id={`category-${category.key}`}>{copy[category.key]}</h3>
+                {category.available && <span class="activity-count">{category.count}</span>}
+            </header>
+            {category.items.length > 0 ? (
+                <TimelineViewport
+                    id={`timeline-${category.key}`}
+                    label={copy[category.key]}
+                    locale={locale}
+                    visibleItems={githubTimelineCategorySize}
+                    height={githubActivityCategoryLayout.timelineHeight}
                 >
-                    <header class="activity-category-heading">
-                        <h3 id={`category-${category.key}`}>{copy[category.key]}</h3>
-                        {category.available && <span class="activity-count">{category.count}</span>}
-                    </header>
-                    {category.items.length > 0 ? (
-                        <TimelineViewport
-                            id={`timeline-${category.key}`}
-                            label={copy[category.key]}
-                            locale={locale}
-                            visibleItems={githubTimelineCategorySize}
-                            height={githubActivityCategoryLayout.timelineHeight}
-                        >
-                            <ActivityTimeline
-                                locale={locale}
-                                entries={category.items}
-                                compact
-                            />
-                        </TimelineViewport>
-                    ) : (
-                        <p class="activity-empty">{category.available ? copy.empty : copy.unavailable}</p>
-                    )}
-                </section>
-            ))}
-        </Carousel>
-    )}
+                    <ActivityTimeline
+                        locale={locale}
+                        entries={category.items}
+                        compact
+                    />
+                </TimelineViewport>
+            ) : (
+                <p class="activity-empty">{category.available ? copy.empty : copy.unavailable}</p>
+            )}
+        </section>
+    ))}
+</Carousel>

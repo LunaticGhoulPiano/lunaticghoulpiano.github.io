@@ -1,7 +1,7 @@
-import { getYoutubeData } from "../../data/youtube/store.mjs";
-import type { YoutubeSnapshot } from "../../data/youtube/schema.ts";
+import { getYoutubeData } from "./store.mjs";
+import type { YoutubeSnapshot } from "./schema.ts";
 
-export function getYoutubeFeed(snapshot: YoutubeSnapshot | null = getYoutubeData()) {
+export function getYoutubeContent(snapshot: YoutubeSnapshot | null = getYoutubeData()) {
     const videos = snapshot?.videos ?? [];
     const uploads = new Set(snapshot?.uploadedVideoIds ?? []);
     return {

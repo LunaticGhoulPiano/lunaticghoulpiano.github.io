@@ -8,7 +8,7 @@ import { youtubePolicy } from "../../src/config/youtube.ts";
 import { getYoutubeData } from "../../src/data/youtube/store.mjs";
 import { youtubeSnapshotSchema } from "../../src/data/youtube/schema.ts";
 import { displayDuration } from "../../src/utils/dates.ts";
-import { getYoutubeFeed } from "../../src/services/feeds/youtube.ts";
+import { getYoutubeContent } from "../../src/data/youtube/content.ts";
 import { readCredential } from "../../scripts/environment.mjs";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { fixtureFetch, fixtureKey, fixtureNow, fixtureVideoId } from "./fixture.mjs";
@@ -29,7 +29,7 @@ test("all uploads are paginated and batched, sorted by publication time, without
         assert.equal(call.parameters.videoDuration, undefined);
         assert.equal(call.parameters.eventType, undefined);
     }
-    const feed = getYoutubeFeed(snapshot);
+    const feed = getYoutubeContent(snapshot);
     assert.equal(feed.videos.length, snapshot.videos.length);
     assert.equal(feed.notice.lastSuccessfulFetchAt, fixtureNow.toISOString());
     assert.equal(feed.period, null);
@@ -103,7 +103,7 @@ test("an empty channel remains valid without video detail requests", async () =>
     assert.deepEqual(snapshot.videos, []);
     assert.equal(snapshot.channel.publicVideos, "0");
     assert.equal(calls.some((call) => call.resource === "videos"), false);
-    assert.equal(getYoutubeFeed(null).notice, null);
+    assert.equal(getYoutubeContent(null).notice, null);
 });
 
 test("invalid responses, repeated pagination, mismatched channels and unsafe images are rejected", async () => {
@@ -226,7 +226,7 @@ test("public owned playlists preserve positions and share video data without add
     assert.equal(new Set(requestedIds).size, requestedIds.length);
     assert.deepEqual(new Set(requestedIds), new Set([0, 1, 2, 100].map(fixtureVideoId)));
     assert.ok(calls.filter((call) => call.resource === "playlistItems").every((call) => ! /private|unlisted/.test(call.parameters.playlistId)));
-    const feed = getYoutubeFeed(snapshot);
+    const feed = getYoutubeContent(snapshot);
     assert.deepEqual(feed.videos.map((video) => video.id), [2, 1, 0].map(fixtureVideoId));
     assert.equal(feed.library.length, 4);
     assert.deepEqual(feed.playlists[2].items, []);

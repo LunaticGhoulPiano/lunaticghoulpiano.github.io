@@ -1,26 +1,28 @@
-import { routes, type RouteKey, type SectionRoute } from "../../config/routes.ts";
+import { routes, type RouteKey } from "../../config/routes.ts";
 import { languages, type Locale } from "../../config/locales.ts";
 import { useTranslations, type TranslationKey } from "../../i18n/ui.ts";
 import { formatMessage } from "../../i18n/format.ts";
 import { displayDate } from "../../utils/dates.ts";
 import { getGithubFeed } from "./github.ts";
-import { getYoutubeFeed } from "./youtube.ts";
-
-export type FeedSource = Exclude<SectionRoute<"feeds">, "feeds">;
+import { getYoutubeContent } from "../../data/youtube/content.ts";
+import { getSourceEntries } from "../sources.ts";
 
 export const feedSources = {
     github: {
         title: "GitHub",
+        route: "github",
         periodDescription: "description.activityPeriod",
         load: getGithubFeed,
     },
     youtube: {
         title: "YouTube",
+        route: "youtube",
         periodDescription: "description.activityPeriod",
-        load: () => getYoutubeFeed(),
+        load: () => getYoutubeContent(),
     },
-} as const satisfies Record<FeedSource, {
+} as const satisfies Record<string, {
     title: string;
+    route: RouteKey;
     periodDescription: TranslationKey;
     load: () => {
         period: {
@@ -31,24 +33,12 @@ export const feedSources = {
 }>;
 
 export function getFeedsPage(route: RouteKey, locale: Locale) {
-    const preview = route === "feeds";
-    const sources = (Object.keys(feedSources) as FeedSource[])
-        .filter((key) => preview || key === route)
-        .map((key) => {
-            const { load, ...source } = feedSources[key];
-            return {
-                ...source,
-                key,
-                route: key,
-                data: load(),
-            };
-        });
+    const sources = getSourceEntries(feedSources, route, "feeds");
     const t = useTranslations(locale);
-    const detail = preview ? undefined : sources[0];
+    const detail = route === "feeds" ? undefined : sources[0];
     const period = detail?.data?.period;
     return {
         section: "feeds" as const,
-        preview,
         sources,
         description: detail && period
             ? formatMessage(t(detail.periodDescription), {
@@ -59,4 +49,4 @@ export function getFeedsPage(route: RouteKey, locale: Locale) {
     };
 }
 
-export type FeedData = NonNullable<ReturnType<(typeof feedSources)[FeedSource]["load"]>>;
+export type FeedSource = keyof typeof feedSources;
