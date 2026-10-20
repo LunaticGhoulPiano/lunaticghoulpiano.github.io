@@ -22,6 +22,7 @@ export default {
         "route.feeds": "動態",
         "route.github": "GitHub 動態",
         "route.youtube": "YouTube 動態",
+        "route.mymusic5": "MyMusic5 動態",
         "description.profile": "個人介紹、背景與目前關注的事物。",
         "description.cv": "經歷、教育背景、專案與技能。",
         "description.interests": "興趣與想探索的事物。",
@@ -32,6 +33,7 @@ export default {
         "description.feeds": "公開活動與近況。",
         "description.github": "近期活動。",
         "description.youtube": "近期影片。",
+        "description.mymusic5": "近期樂譜。",
         "description.activityPeriod": "{from} 到 {to} 的近期活動。",
         "empty.blog": "尚未發布文章。",
         "profile.about": "關於我",
@@ -159,6 +161,7 @@ export default {
     },
     mymusic5: {
         sheets: "樂譜",
+        latestSheets: "最新的 {count} 份樂譜",
         totalSheets: "總樂譜數",
         unspecifiedDifficulty: "未標示",
         noSheets: "目前沒有公開樂譜。",

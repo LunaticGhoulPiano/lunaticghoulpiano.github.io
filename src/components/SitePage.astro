@@ -15,6 +15,7 @@ import Mymusic5Projects from "./projects/MyMusic5.astro";
 import PostList from "./blog/PostList.astro";
 import GitHub from "./feeds/GitHub.astro";
 import YouTube from "./feeds/YouTube.astro";
+import MyMusic5 from "./feeds/MyMusic5.astro";
 import SourcePages from "./common/SourcePages.astro";
 
 interface Props {
@@ -32,6 +33,7 @@ const description = context.section === "feeds" ? context.description : t(page.d
 const feedComponents = {
     github: GitHub,
     youtube: YouTube,
+    mymusic5: MyMusic5,
 } satisfies Record<FeedSource, unknown>;
 const projectComponents = {
     github: GithubProjects,

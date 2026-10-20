@@ -21,7 +21,7 @@ const title = formatMessage(copy.latestVideos, { count: youtubeFeedVideoLimit },
 ---
 
 {channel ? (
-    <div class="youtube-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
+    <div class="recent-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
         <header class="feed-category-heading">
             <h3>{title}</h3>
         </header>
@@ -32,13 +32,3 @@ const title = formatMessage(copy.latestVideos, { count: youtubeFeedVideoLimit },
         ) : <p class="empty-message">{copy.noVideos}</p>}
     </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}
-
-<style>
-    .youtube-feed {
-        padding-top: 1.5rem;
-    }
-
-    .youtube-feed :global(.timeline-window) {
-        margin-top: 0;
-    }
-</style>

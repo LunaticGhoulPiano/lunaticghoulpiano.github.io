@@ -86,6 +86,12 @@ export const routes = {
         title: "route.youtube",
         description: "description.youtube",
     },
+    mymusic5: {
+        section: "feeds",
+        path: "feeds/mymusic5",
+        title: "route.mymusic5",
+        description: "description.mymusic5",
+    },
 } as const satisfies Record<SiteSection, unknown> & Record<
     string,
     {

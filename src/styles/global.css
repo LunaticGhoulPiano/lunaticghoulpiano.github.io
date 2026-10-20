@@ -1045,6 +1045,14 @@ h3 {
     scroll-snap-align: start;
 }
 
+.recent-feed {
+    padding-top: 1.5rem;
+}
+
+.recent-feed .timeline-window {
+    margin-top: 0;
+}
+
 .feed-category-heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;

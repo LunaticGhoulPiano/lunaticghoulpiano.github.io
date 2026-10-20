@@ -6,13 +6,15 @@ import { locales, languages } from "../../src/config/locales.ts";
 import { messages } from "../../src/i18n/ui.ts";
 import { formatMessage } from "../../src/i18n/format.ts";
 
-test("YouTube overview and detail load the same channel data", () => {
+test("media feeds use the same data in overview and detail pages", () => {
     for (const locale of locales) {
-        const detail = getFeedsPage("youtube", locale);
-        const overview = getFeedsPage("feeds", locale).sources.find((source) => source.key === "youtube");
-        assert.deepEqual(detail.sources[0].data, overview.data);
-        assert.ok(detail.sources[0].data);
-        assert.equal(detail.description, messages[locale].ui[routes.youtube.description]);
+        for (const key of ["youtube", "mymusic5"]) {
+            const detail = getFeedsPage(key, locale);
+            const overview = getFeedsPage("feeds", locale).sources.find((source) => source.key === key);
+            assert.deepEqual(detail.sources[0].data, overview.data);
+            assert.ok(detail.sources[0].data);
+            assert.equal(detail.description, messages[locale].ui[routes[key].description]);
+        }
     }
 });
 

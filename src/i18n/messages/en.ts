@@ -22,6 +22,7 @@ export default {
         "route.feeds": "Feeds",
         "route.github": "GitHub Activity",
         "route.youtube": "YouTube Activity",
+        "route.mymusic5": "MyMusic5 Activity",
         "description.profile": "About, background, and current interests.",
         "description.cv": "Experience, education, projects, and skills.",
         "description.interests": "Interests and things to explore.",
@@ -32,6 +33,7 @@ export default {
         "description.feeds": "Public activity and updates.",
         "description.github": "Recent activity.",
         "description.youtube": "Recent videos.",
+        "description.mymusic5": "Recent sheet music.",
         "description.activityPeriod": "Recent activity from {from} to {to}.",
         "empty.blog": "No articles published yet.",
         "profile.about": "About",
@@ -163,6 +165,7 @@ export default {
     },
     mymusic5: {
         sheets: "Sheet music",
+        latestSheets: "Latest {count} Sheets",
         totalSheets: "Total scores",
         unspecifiedDifficulty: "Unspecified",
         noSheets: "No public sheet music yet.",

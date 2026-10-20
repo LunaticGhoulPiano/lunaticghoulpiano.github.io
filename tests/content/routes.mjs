@@ -1,10 +1,13 @@
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
-import { collectionPageSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeFeedTimelineSize, youtubeFeedVideoLimit, youtubeVideoSortOptions } from "../../src/config/collections.ts";
+import { collectionPageSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeFeedTimelineSize, youtubeFeedVideoLimit, youtubeVideoSortOptions, mymusic5FeedSheetLimit, mymusic5FeedTimelineSize } from "../../src/config/collections.ts";
 import { youtubePolicy } from "../../src/config/youtube.ts";
 import { fetchYoutubeSnapshot } from "../../scripts/youtube/fetch.ts";
 import { fixtureFetch as youtubeFetch, fixtureKey, fixtureNow as youtubeNow, fixtureChannelId, fixtureVideoId } from "../youtube/fixture.mjs";
+import { mymusic5Policy, mymusic5Url } from "../../src/config/mymusic5.ts";
+import { fetchMymusic5Snapshot } from "../../scripts/mymusic5/fetch.ts";
+import { fixtureFetch as mymusic5Fetch, fixtureNow as mymusic5Now } from "../mymusic5/fixture.mjs";
 import { formatMessage } from "../../src/i18n/format.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -152,6 +155,11 @@ test("isolated builds cover every configured language plus an additional locale,
         ];
         const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 16, playlists: youtubePlaylists }));
         await writeFile(join(generated, youtubePolicy.snapshotFilename), JSON.stringify(youtubeData.snapshot), "utf8");
+        const mymusic5Data = await fetchMymusic5Snapshot(mymusic5Now, mymusic5Fetch({ count: 16 }));
+        await writeFile(join(generated, mymusic5Policy.snapshotFilename), JSON.stringify({
+            ...mymusic5Data.snapshot,
+            sheets: mymusic5Data.snapshot.sheets.toReversed(),
+        }), "utf8");
 
         const mixedActivity = {
             ...github.snapshots.activity,
@@ -376,6 +384,32 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.doesNotMatch(main(html), /youtube-avatar|class="statistics"/);
             }
             assert.doesNotMatch(youtubeFeedPage, /data-activity-category|data-repository-browser/);
+            const mymusic5Projects = await page(routes.mymusic5Projects.path, locale);
+            const mymusic5FeedPage = await page(routes.mymusic5.path, locale);
+            const mymusic5Feed = overview.match(/<section\b[^>]*data-source="mymusic5"[\s\S]*?<\/section>/)[0];
+            const sheetRows = (html) => [...html.matchAll(/<li\b[^>]*data-sheet-id="[^"]+"[^>]*>[\s\S]*?<\/li>/g)].map((match) => match[0]);
+            const projectSheets = sheetRows(mymusic5Projects);
+            assert.deepEqual(projectSheets.map((row) => Number(attributes(row)["data-sheet-id"])),
+                mymusic5Data.snapshot.sheets.map((sheet) => sheet.sheetId));
+            assert.match(mymusic5Projects, /class="sheet-identity"/);
+            assert.match(mymusic5Projects, /class="statistics"/);
+            for (const html of [mymusic5Feed, main(mymusic5FeedPage)]) {
+                const title = formatMessage(copy.mymusic5.latestSheets, { count: mymusic5FeedSheetLimit }, testLanguages[locale].formatLocale);
+                assert.equal(headings(html, 3)[0], title);
+                assert.deepEqual(sheetRows(html), projectSheets.slice(0, 10));
+                assert.equal(sheetRows(html).length, 10);
+                assert.ok(html.includes('id="mymusic5-feed-timeline"'));
+                assert.ok(html.includes(`data-visible-items="${mymusic5FeedTimelineSize}"`));
+                assert.doesNotMatch(html, /sheet-author|sheet-identity|class="statistics"|data-youtube-sort|data-youtube-filter/);
+                assert.equal(text(html).includes(mymusic5Data.snapshot.author.name), false);
+                const firstSheet = mymusic5Data.snapshot.sheets[0];
+                assert.ok(html.includes(`href="${mymusic5Url(mymusic5Data.snapshot.author.artistUrl, firstSheet.sheetId)}"`));
+                assert.ok(html.includes(`src="${firstSheet.thumbnailUrl}"`));
+                assert.ok(html.includes(`datetime="${firstSheet.createdAt}"`));
+                assert.ok(html.includes(`datetime="${firstSheet.updatedAt}"`));
+                for (const key of ["uploaded", "updated", "likes"]) assert.ok(text(html).includes(copy.mymusic5[key]));
+                assert.ok(text(html).includes("USD"));
+            }
             const blogPage = await page("blog", locale);
             assert.deepEqual(headings(main(projects), 1), [copy.ui["route.projects"]]);
             assert.deepEqual(headings(main(blogPage), 1), [copy.ui["route.blog"]]);

@@ -1,7 +1,7 @@
 import type { RouteKey } from "../../config/routes.ts";
 import { getGithubData } from "../../data/github/store.ts";
 import { getYoutubeContent } from "../../data/youtube/content.ts";
-import { getMymusic5Data } from "../../data/mymusic5/store.mjs";
+import { getMymusic5Content } from "../../data/mymusic5/content.ts";
 import { getSourceEntries } from "../sources.ts";
 
 export const projectSources = {
@@ -24,14 +24,7 @@ export const projectSources = {
     mymusic5: {
         title: "MyMusic5",
         route: "mymusic5Projects",
-        load: () => {
-            const snapshot = getMymusic5Data();
-            return {
-                notice: snapshot && { lastSuccessfulFetchAt: snapshot.lastSuccessfulFetchAt },
-                author: snapshot?.author ?? null,
-                sheets: snapshot?.sheets ?? [],
-            };
-        },
+        load: () => getMymusic5Content(),
     },
 } as const;
 

@@ -5,12 +5,14 @@ import { getFeedsPage } from "../../src/services/feeds/index.ts";
 import { routes } from "../../src/config/routes.ts";
 import { locales } from "../../src/config/locales.ts";
 
-test("projects and feeds share YouTube content while GitHub projects remain repositories", () => {
+test("projects and feeds share YouTube and MyMusic5 content while GitHub projects remain repositories", () => {
     for (const locale of locales) {
         const projects = getProjectsPage("projects");
         const feeds = getFeedsPage("feeds", locale);
-        assert.deepEqual(projects.sources.find((source) => source.key === "youtube").data,
-            feeds.sources.find((source) => source.key === "youtube").data);
+        for (const key of ["youtube", "mymusic5"]) {
+            assert.deepEqual(projects.sources.find((source) => source.key === key).data,
+                feeds.sources.find((source) => source.key === key).data);
+        }
         assert.ok("repositories" in projects.sources.find((source) => source.key === "github").data);
         assert.ok("categories" in feeds.sources.find((source) => source.key === "github").data);
         assert.deepEqual(projects.sources.map((source) => source.route).sort(), Object.keys(routes)

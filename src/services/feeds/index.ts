@@ -5,6 +5,7 @@ import { formatMessage } from "../../i18n/format.ts";
 import { displayDate } from "../../utils/dates.ts";
 import { getGithubFeed } from "./github.ts";
 import { getYoutubeContent } from "../../data/youtube/content.ts";
+import { getMymusic5Content } from "../../data/mymusic5/content.ts";
 import { getSourceEntries } from "../sources.ts";
 
 export const feedSources = {
@@ -19,6 +20,12 @@ export const feedSources = {
         route: "youtube",
         periodDescription: "description.activityPeriod",
         load: () => getYoutubeContent(),
+    },
+    mymusic5: {
+        title: "MyMusic5",
+        route: "mymusic5",
+        periodDescription: "description.activityPeriod",
+        load: () => getMymusic5Content(),
     },
 } as const satisfies Record<string, {
     title: string;

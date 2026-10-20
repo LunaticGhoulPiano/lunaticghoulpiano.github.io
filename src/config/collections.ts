@@ -37,8 +37,12 @@ export const youtubeVideoLayout = {
 };
 
 // mymusic5
+export const mymusic5FeedSheetLimit = 10;
+export const mymusic5FeedTimelineSize = 3;
 export const mymusic5ProjectsLayout = {
     visibleItems: 3,
+};
+export const mymusic5SheetLayout = {
     itemHeight: 224,
     mobileItemHeight: 280,
     titleLines: 2,
