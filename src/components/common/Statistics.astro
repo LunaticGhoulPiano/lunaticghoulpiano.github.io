@@ -1,0 +1,47 @@
+---
+interface Props {
+    items: {
+        label: string;
+        value: string;
+        datetime?: string;
+    }[];
+}
+
+const { items } = Astro.props;
+---
+
+<dl class="statistics" style={{ "--statistics-columns": items.length }}>
+    {items.map(({ label, value, datetime }) => (
+        <div>
+            <dt>{label}</dt>
+            <dd>{datetime ? <time datetime={datetime}>{value}</time> : value}</dd>
+        </div>
+    ))}
+</dl>
+
+<style>
+    .statistics {
+        display: grid;
+        grid-template-columns: repeat(var(--statistics-columns), minmax(0, 1fr));
+        gap: 1rem;
+        margin-block: 1.5rem;
+    }
+
+    .statistics dt {
+        color: var(--muted);
+        font-size: 0.75rem;
+    }
+
+    .statistics dd {
+        margin: 0.4rem 0 0;
+        font-size: 0.9375rem;
+        font-variant-numeric: tabular-nums;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 46rem) {
+        .statistics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>

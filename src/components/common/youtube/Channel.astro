@@ -4,6 +4,7 @@ import { languages } from "../../../config/locales";
 import { useMessages } from "../../../i18n/ui";
 import type { YoutubeSnapshot } from "../../../data/youtube/schema";
 import { displayDate } from "../../../utils/dates";
+import Statistics from "../Statistics.astro";
 
 interface Props {
     locale: Locale;
@@ -22,12 +23,12 @@ const count = (value: string | null) => value === null ? "—" : number.format(B
         <a class="youtube-name" href={`https://www.youtube.com/channel/${channel.id}`}>{channel.title}</a>
     </div>
 </div>
-<dl class="youtube-statistics">
-    <div><dt>{copy.subscribers}</dt><dd>{count(channel.subscribers)}</dd></div>
-    <div><dt>{copy.created}</dt><dd><time datetime={channel.createdAt}>{displayDate(channel.createdAt)}</time></dd></div>
-    <div><dt>{copy.publicVideos}</dt><dd>{count(channel.publicVideos)}</dd></div>
-    <div><dt>{copy.views}</dt><dd>{count(channel.views)}</dd></div>
-</dl>
+<Statistics items={[
+    { label: copy.subscribers, value: count(channel.subscribers) },
+    { label: copy.created, value: displayDate(channel.createdAt), datetime: channel.createdAt },
+    { label: copy.publicVideos, value: count(channel.publicVideos) },
+    { label: copy.views, value: count(channel.views) },
+]} />
 
 <style>
     .youtube-channel {
@@ -53,28 +54,4 @@ const count = (value: string | null) => value === null ? "—" : number.format(B
         font-weight: 600;
     }
 
-    .youtube-statistics {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1rem;
-        margin-block: 1.5rem;
-    }
-
-    .youtube-statistics dt {
-        color: var(--muted);
-        font-size: 0.75rem;
-    }
-
-    .youtube-statistics dd {
-        margin: 0.4rem 0 0;
-        font-size: 0.9375rem;
-        font-variant-numeric: tabular-nums;
-        overflow-wrap: anywhere;
-    }
-
-    @media (max-width: 46rem) {
-        .youtube-statistics {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
 </style>

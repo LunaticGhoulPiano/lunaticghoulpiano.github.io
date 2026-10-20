@@ -33,3 +33,12 @@ export const youtubeVideoLayout = {
     titleLines: 2,
     descriptionLines: 3,
 };
+
+// mymusic5
+export const mymusic5ProjectsLayout = {
+    visibleItems: 3,
+    itemHeight: 224,
+    mobileItemHeight: 280,
+    titleLines: 2,
+    descriptionLines: 2,
+};

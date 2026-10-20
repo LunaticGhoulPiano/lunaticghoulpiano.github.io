@@ -1,0 +1,262 @@
+---
+import type { Locale } from "../../config/locales";
+import { languages } from "../../config/locales";
+import { mymusic5ProjectsLayout } from "../../config/collections";
+import { mymusic5Url } from "../../config/mymusic5";
+import { useMessages } from "../../i18n/ui";
+import { displayDate } from "../../utils/dates";
+import { formatSequenceNumber } from "../../utils/numbering";
+import type { projectSources } from "../../services/projects/index";
+import TimelineViewport from "../common/TimelineViewport.astro";
+import Statistics from "../common/Statistics.astro";
+
+interface Props {
+    locale: Locale;
+    data: ReturnType<typeof projectSources.mymusic5.load>;
+}
+
+const { locale, data } = Astro.props;
+const { author, sheets, notice } = data;
+const messages = useMessages(locale);
+const copy = messages.mymusic5;
+const formatLocale = languages[locale].formatLocale;
+const number = new Intl.NumberFormat(formatLocale);
+const levels: Record<number, string> = { 0: copy.beginner, 1: copy.easy, 2: copy.normal, 3: copy.hard, 4: copy.expert };
+const difficultyCounts = new Map<number | null, number>(Object.keys(levels).map((level) => [Number(level), 0]));
+for (const { level } of sheets) difficultyCounts.set(level, (difficultyCounts.get(level) ?? 0) + 1);
+const statistics = [
+    { label: copy.totalSheets, value: number.format(sheets.length) },
+    ...Array.from(difficultyCounts)
+        .sort(([a], [b]) => a === null ? 1 : b === null ? -1 : a - b)
+        .map(([level, count]) => ({
+            label: level === null ? copy.unspecifiedDifficulty : levels[level] ?? String(level),
+            value: number.format(count),
+        })),
+];
+const instruments: Record<string, string> = { "piano-88keys": copy.piano, kalimba: copy.kalimba, "bass-guitar": copy.bass, drum: copy.drums };
+const sheetTypes: Record<string, string> = { "1staff": copy.oneStaff, "2staves": copy.twoStaves, tab: copy.tablature };
+const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
+    : new Intl.NumberFormat(formatLocale, { style: "currency", currency: sheet.currency, currencyDisplay: "code" }).format(sheet.price);
+---
+
+{notice ? (
+    <div class="mymusic5-catalog" style={{
+        "--sheet-wide-height": `${mymusic5ProjectsLayout.itemHeight}px`,
+        "--sheet-mobile-height": `${mymusic5ProjectsLayout.mobileItemHeight}px`,
+        "--sheet-visible-items": mymusic5ProjectsLayout.visibleItems,
+        "--sheet-title-lines": mymusic5ProjectsLayout.titleLines,
+        "--sheet-description-lines": mymusic5ProjectsLayout.descriptionLines,
+    }}>
+        <div class="sheet-author">
+            {author && (
+                <div class="sheet-identity">
+                    {author.profileUrl && <img src={author.profileUrl} alt="" width="64" height="64" />}
+                    <a href={mymusic5Url(author.artistUrl)}>{author.name}</a>
+                </div>
+            )}
+        </div>
+        <Statistics items={statistics} />
+        {author && sheets.length > 0 ? (
+            <TimelineViewport
+                id="mymusic5-sheets"
+                label={copy.sheets}
+                locale={locale}
+                visibleItems={mymusic5ProjectsLayout.visibleItems}
+                height="calc(var(--sheet-item-height) * var(--sheet-visible-items))"
+                chronological={false}
+            >
+                <ol class="sheet-list">
+                    {sheets.map((sheet, index) => {
+                        const url = mymusic5Url(author.artistUrl, sheet.sheetId);
+                        const title = sheet.metaSong || sheet.title;
+                        const attributes = [
+                            ...sheet.instruments.map((instrument) => instruments[instrument] ?? instrument),
+                            sheet.level === null ? null : levels[sheet.level] ?? String(sheet.level),
+                            sheet.instrumentation === "solo" ? copy.solo : sheet.instrumentation === "unspecified" ? null : sheet.instrumentation,
+                            sheet.sheetType && (sheetTypes[sheet.sheetType] ?? sheet.sheetType),
+                            sheet.includeChord ? copy.chords : null,
+                            sheet.includeLyrics ? copy.lyrics : null,
+                        ].filter(Boolean);
+                        return (
+                            <li data-sheet-id={sheet.sheetId}>
+                                <span class="sheet-number" aria-hidden="true">{formatSequenceNumber(index + 1, sheets.length)}</span>
+                                <a class="sheet-cover" href={url} aria-label={title} tabindex="-1">
+                                    {sheet.thumbnailUrl && <img src={sheet.thumbnailUrl} alt="" width="96" height="139" loading="lazy" decoding="async" />}
+                                </a>
+                                <div class="sheet-content">
+                                    <h3><a href={url}>{title} ↗</a></h3>
+                                    {sheet.metaMusician && <p class="sheet-musician">{sheet.metaMusician}</p>}
+                                    <p class="sheet-attributes">{attributes.join(" · ")}</p>
+                                    {sheet.description && <p class="sheet-description">{sheet.description}</p>}
+                                    <div class="sheet-dates">
+                                        <span>{copy.uploaded} <time datetime={sheet.createdAt}>{displayDate(sheet.createdAt)}</time></span>
+                                        <span>{copy.updated} <time datetime={sheet.updatedAt}>{displayDate(sheet.updatedAt)}</time></span>
+                                    </div>
+                                </div>
+                                <div class="sheet-aside">
+                                    <p class="sheet-price">{price(sheet)}</p>
+                                    <p class="sheet-likes">{copy.likes} {number.format(sheet.likes)}</p>
+                                    {sheet.youtubeId && <a class="sheet-video" href={`https://www.youtube.com/watch?v=${sheet.youtubeId}`}>YouTube ↗</a>}
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ol>
+            </TimelineViewport>
+        ) : <p class="empty-message">{copy.noSheets}</p>}
+    </div>
+) : <p class="empty-message">{messages.content.unavailable}</p>}
+
+<style>
+    .mymusic5-catalog {
+        --sheet-item-height: var(--sheet-wide-height);
+    }
+
+    .sheet-author, .sheet-identity {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+    }
+
+    .sheet-author {
+        flex-wrap: wrap;
+        margin-block: 1.25rem;
+    }
+
+    .sheet-identity img {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 50%;
+        flex: none;
+    }
+
+    .sheet-identity a {
+        font-size: 1.25rem;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .sheet-number, .sheet-attributes, .sheet-description, .sheet-dates, .sheet-likes {
+        color: var(--muted);
+        font-size: 0.8125rem;
+    }
+
+    .sheet-list {
+        list-style: none;
+        margin: 0;
+        padding: 0 1rem 0 0;
+    }
+
+    .sheet-list li {
+        display: grid;
+        grid-template-columns: 2ch 6rem minmax(0, 1fr) 7rem;
+        align-items: center;
+        gap: 1.25rem;
+        height: var(--sheet-item-height);
+        padding-block: 1rem;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .sheet-number {
+        font-family: var(--mono);
+    }
+
+    .sheet-cover img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 9rem;
+        object-fit: contain;
+        border-radius: 0.75rem 0 0.75rem 0;
+    }
+
+    .sheet-content {
+        min-width: 0;
+    }
+
+    .sheet-content h3, .sheet-description {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: var(--sheet-title-lines);
+        overflow: hidden;
+        overflow-wrap: anywhere;
+    }
+
+    .sheet-content h3 {
+        font-size: 1rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .sheet-musician {
+        font-size: 0.875rem;
+        margin: 0.25rem 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sheet-attributes {
+        margin: 0.4rem 0;
+    }
+
+    .sheet-description {
+        -webkit-line-clamp: var(--sheet-description-lines);
+        margin: 0.25rem 0;
+    }
+
+    .sheet-dates {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.1rem 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .sheet-aside {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .sheet-price {
+        font-size: 0.9375rem;
+        margin: 0;
+    }
+
+    .sheet-likes {
+        margin: 0.4rem 0;
+    }
+
+    .sheet-video {
+        font-size: 0.8125rem;
+    }
+
+    @media (max-width: 46rem) {
+        .mymusic5-catalog {
+            --sheet-item-height: var(--sheet-mobile-height);
+        }
+
+        .sheet-list li {
+            grid-template-columns: 4.5rem minmax(0, 1fr);
+            gap: 0.5rem 0.9rem;
+        }
+
+        .sheet-number {
+            display: none;
+        }
+
+        .sheet-aside {
+            grid-column: 2;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.25rem 0.75rem;
+            text-align: left;
+        }
+
+        .sheet-aside p {
+            margin: 0;
+        }
+    }
+</style>

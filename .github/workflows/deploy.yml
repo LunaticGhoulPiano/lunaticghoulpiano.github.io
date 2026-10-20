@@ -30,6 +30,7 @@ jobs:
               uses: actions/checkout@v7
               with:
                   persist-credentials: false
+                  submodules: recursive
 
             - name: Check GitHub profile credential
               env:
@@ -84,6 +85,10 @@ jobs:
               env:
                   WEBPAGE_YOUTUBE_PROFILE_READONLY: ${{ secrets.WEBPAGE_YOUTUBE_PROFILE_READONLY }}
               run: pnpm refresh:youtube
+
+            - name: Refresh MyMusic5 public sheet data
+              continue-on-error: true
+              run: pnpm refresh:mymusic5
 
             - name: Refresh GitHub data, check, and build
               env:

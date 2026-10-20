@@ -50,6 +50,12 @@ export const routes = {
         title: "route.youtubeProjects",
         description: "description.youtubeProjects",
     },
+    mymusic5Projects: {
+        section: "projects",
+        path: "projects/mymusic5",
+        title: "route.mymusic5Projects",
+        description: "description.mymusic5Projects",
+    },
     blog: {
         section: "blog",
         path: "blog",

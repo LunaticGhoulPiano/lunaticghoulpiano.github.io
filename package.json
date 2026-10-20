@@ -10,7 +10,8 @@
         "preview": "node scripts/astro/run.mjs preview",
         "test": "node --test \"tests/**/!(fixture).mjs\"",
         "refresh:github": "node scripts/github/update.mjs",
-        "refresh:youtube": "node scripts/youtube/update.mjs"
+        "refresh:youtube": "node scripts/youtube/update.mjs",
+        "refresh:mymusic5": "node scripts/mymusic5/update.mjs"
     },
     "keywords": [],
     "author": "",
@@ -18,7 +19,8 @@
     "packageManager": "pnpm@12.9.0",
     "type": "module",
     "dependencies": {
-        "astro": "7.3.5"
+        "astro": "7.3.5",
+        "mymusic5-api": "link:vendor/mymusic5-api"
     },
     "devDependencies": {
         "@astrojs/check": "0.9.10",

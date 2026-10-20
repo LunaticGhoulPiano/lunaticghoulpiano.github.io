@@ -169,6 +169,9 @@ importers:
       astro:
         specifier: 7.3.5
         version: 7.3.5(yaml@2.9.1)
+      mymusic5-api:
+        specifier: link:vendor/mymusic5-api
+        version: link:vendor/mymusic5-api
     devDependencies:
       '@astrojs/check':
         specifier: 0.9.10

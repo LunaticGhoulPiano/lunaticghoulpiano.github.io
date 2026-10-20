@@ -1,0 +1,4 @@
+[submodule "vendor/mymusic5-api"]
+path = vendor/mymusic5-api
+url = https://github.com/LunaticGhoulPiano/MyMusic5API.git
+branch = master

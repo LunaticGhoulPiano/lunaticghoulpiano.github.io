@@ -11,6 +11,7 @@ import ProfileLayout from "../layouts/ProfileLayout.astro";
 import type { ProjectSource } from "../services/projects/index";
 import GithubProjects from "./projects/GitHub.astro";
 import YoutubeProjects from "./projects/YouTube.astro";
+import Mymusic5Projects from "./projects/MyMusic5.astro";
 import PostList from "./blog/PostList.astro";
 import GitHub from "./feeds/GitHub.astro";
 import YouTube from "./feeds/YouTube.astro";
@@ -35,6 +36,7 @@ const feedComponents = {
 const projectComponents = {
     github: GithubProjects,
     youtube: YoutubeProjects,
+    mymusic5: Mymusic5Projects,
 } satisfies Record<ProjectSource, unknown>;
 ---
 

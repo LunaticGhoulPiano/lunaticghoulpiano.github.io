@@ -4,11 +4,12 @@ import { resolve } from "node:path";
 import { projectRoot } from "../src/config/runtime.mjs";
 import * as github from "./github/update.mjs";
 import * as youtube from "./youtube/update.mjs";
+import * as mymusic5 from "./mymusic5/update.mjs";
 import { validationEnvironment } from "./github/environment.mjs";
 import { astroArguments } from "./astro/run.mjs";
 
 async function startDevelopment() {
-    const timers = await Promise.all(Object.entries({ GitHub: github, YouTube: youtube }).map(async ([name, source]) => {
+    const timers = await Promise.all(Object.entries({ GitHub: github, YouTube: youtube, MyMusic5: mymusic5 }).map(async ([name, source]) => {
         let pending;
         const refresh = () => {
             if (pending) return pending;
