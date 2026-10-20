@@ -2,6 +2,7 @@
 export const collectionPageSize = 10;
 export const pageTurnInterval = 8_000;
 export const pageTurnDuration = 650;
+export const feedHeadingHeight = 65;
 
 // github
 export const githubTimelineCategorySize = 4;
@@ -16,6 +17,7 @@ export const githubCategorySlideInterval = 5_000;
 export const githubCategorySlideDuration = 450;
 
 // youtube
+export const youtubeFeedVideoLimit = 10;
 export const youtubeFeedTimelineSize = 3;
 export const youtubeVideoSortOptions = ["newest", "oldest", "mostViewed", "mostLiked"] as const;
 export const youtubePlaylistNavigation = {

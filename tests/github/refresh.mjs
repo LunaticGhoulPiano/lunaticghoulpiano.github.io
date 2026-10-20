@@ -12,7 +12,8 @@ import { GithubClient } from "../../scripts/github/client.ts";
 import { fetchGithubSnapshots } from "../../scripts/github/fetch.ts";
 import { datasets, mergeSnapshots, refreshReadiness, refreshReport } from "../../scripts/github/refresh.ts";
 import { runGithubRefresh, needsGithubRefresh, refreshInterval } from "../../scripts/github/update.mjs";
-import { selectGithubSnapshot, restoredSnapshotDirectory } from "../../scripts/github/artifact.mjs";
+import { selectSnapshots, restoredSnapshotDirectory } from "../../scripts/snapshots/artifact.mjs";
+import { snapshotToolPolicy } from "../../scripts/snapshots/config.ts";
 import { githubReadToken, validationEnvironment } from "../../scripts/github/environment.mjs";
 import { site } from "../../src/config/site.ts";
 import { fixtureFetch, fixtureLogin, fixtureNow } from "./fixture.mjs";
@@ -387,7 +388,7 @@ test("artifact selection rejects other branches, forks, expired artifacts and un
     const defaultBranch = "fixture_default";
     const artifact = (id, overrides = {}) => ({
         id,
-        name: githubToolPolicy.artifactName,
+        name: snapshotToolPolicy.artifactName,
         expired: false,
         created_at: `2026-10-${String(id).padStart(2, "0")}T00:00:00Z`,
         workflow_run: {
@@ -422,7 +423,7 @@ test("artifact selection rejects other branches, forks, expired artifacts and un
     ];
     const inspected = [];
     const outputs = {};
-    await selectGithubSnapshot({
+    await selectSnapshots({
         github: {
             rest: {
                 actions: {
@@ -436,7 +437,7 @@ test("artifact selection rejects other branches, forks, expired artifacts and un
                         return {
                             data: {
                                 id: run_id,
-                                path: run_id === 6 ? ".github/workflows/unrelated.yml" : githubToolPolicy.workflow,
+                                path: run_id === 6 ? ".github/workflows/unrelated.yml" : snapshotToolPolicy.workflow,
                                 event: "schedule",
                                 conclusion: "failure",
                             },
@@ -467,8 +468,8 @@ test("artifact selection rejects other branches, forks, expired artifacts and un
     });
     assert.deepEqual(inspected, [6, 2]);
     assert.deepEqual(outputs, {
-        artifact_name: githubToolPolicy.artifactName,
-        snapshot_file: join(snapshotDirectory, githubPolicy.snapshotFilename),
+        artifact_name: snapshotToolPolicy.artifactName,
+        snapshot_files: snapshotToolPolicy.filenames.map((filename) => join(snapshotDirectory, filename)).join("\n"),
         restore_directory: restoredSnapshotDirectory,
         artifact_id: "2",
         run_id: "2",
@@ -492,7 +493,10 @@ test("native workflow scheduling agrees with refresh policy and consumes shared 
     const workflow = await readFile(new URL("../../.github/workflows/deploy.yml", import.meta.url), "utf8");
     assert.ok(workflow.includes(`*/${githubToolPolicy.refreshHours} * * *`));
     assert.ok(workflow.includes("github.event.repository.default_branch"));
-    assert.ok(workflow.includes("steps.previous_snapshots.outputs.snapshot_file"));
+    assert.ok(workflow.includes("steps.previous_snapshots.outputs.snapshot_files"));
+    assert.ok(workflow.includes("SNAPSHOT_RESTORE_DIR:"));
+    assert.ok(workflow.includes("pnpm refresh:media"));
+    assert.doesNotMatch(workflow, /continue-on-error/);
     assert.doesNotMatch(workflow, /github_(profile|repositories|contributions|activity)\.json|git (add|commit|push)/);
 });
 

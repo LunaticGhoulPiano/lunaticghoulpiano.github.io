@@ -1038,22 +1038,23 @@ h3 {
 
 .activity-category {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) calc(var(--activity-timeline-height) + 2 * (var(--scroll-control-size) + var(--timeline-control-gap)));
+    grid-template-rows: var(--feed-heading-height) calc(var(--activity-timeline-height) + 2 * (var(--scroll-control-size) + var(--timeline-control-gap)));
     height: var(--activity-category-height);
     min-width: 0;
     padding-top: 1rem;
     scroll-snap-align: start;
 }
 
-.activity-category-heading {
+.feed-category-heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.5rem;
     min-height: 44px;
+    height: var(--feed-heading-height);
 }
 
-.activity-category-heading h3 {
+.feed-category-heading h3 {
     font-size: 1.125rem;
 }
 

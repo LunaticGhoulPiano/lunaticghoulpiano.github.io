@@ -151,6 +151,7 @@ export default {
         publicVideos: "公開影片數",
         views: "累計觀看數",
         videos: "公開影片",
+        latestVideos: "最新的 {count} 部影片",
         noVideos: "目前尚無公開影片。",
         duration: "片長",
         videoViews: "觀看數",

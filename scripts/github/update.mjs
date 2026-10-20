@@ -7,7 +7,7 @@ import { GithubClient } from "./client.ts";
 import { fetchGithubSnapshots } from "./fetch.ts";
 import { getGithubData } from "../../src/data/github/store.ts";
 import { projectRoot, snapshotDirectory } from "../../src/config/runtime.mjs";
-import { restoredSnapshotDirectory } from "./artifact.mjs";
+import { restoredSnapshotDirectory } from "../snapshots/artifact.mjs";
 import { createTemporaryDirectory, removeTemporaryDirectory } from "../temp_dir.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { datasets, mergeSnapshots, refreshReport, snapshotUsable } from "./refresh.ts";

@@ -1,7 +1,7 @@
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
-import { collectionPageSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeFeedTimelineSize, youtubeVideoSortOptions } from "../../src/config/collections.ts";
+import { collectionPageSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeFeedTimelineSize, youtubeFeedVideoLimit, youtubeVideoSortOptions } from "../../src/config/collections.ts";
 import { youtubePolicy } from "../../src/config/youtube.ts";
 import { fetchYoutubeSnapshot } from "../../scripts/youtube/fetch.ts";
 import { fixtureFetch as youtubeFetch, fixtureKey, fixtureNow as youtubeNow, fixtureChannelId, fixtureVideoId } from "../youtube/fixture.mjs";
@@ -150,7 +150,7 @@ test("isolated builds cover every configured language plus an additional locale,
             { id: "PL_empty", title: "Empty playlist", items: [] },
             { id: "PL_private", title: "Hidden playlist", privacy: "private", items: [101] },
         ];
-        const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 6, playlists: youtubePlaylists }));
+        const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 16, playlists: youtubePlaylists }));
         await writeFile(join(generated, youtubePolicy.snapshotFilename), JSON.stringify(youtubeData.snapshot), "utf8");
 
         const mixedActivity = {
@@ -251,19 +251,26 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.doesNotMatch(youtube, /PL_private|Hidden playlist|fixture_youtube_key/);
             assert.equal([...youtube.matchAll(/data-video-id=/g)].length, youtubeData.snapshot.videos.length);
             const youtubeFeed = overview.match(/<section\b[^>]*data-source="youtube"[\s\S]*?<\/section>/)[0];
-            assert.ok(text(youtubeFeed).includes(youtubeData.snapshot.channel.title));
+            const youtubeFeedTitle = formatMessage(copy.youtube.latestVideos, { count: youtubeFeedVideoLimit }, testLanguages[locale].formatLocale);
+            assert.deepEqual(headings(youtubeFeed, 3), [youtubeFeedTitle]);
+            assert.equal(text(youtubeFeed).includes(youtubeData.snapshot.channel.title), false);
             assert.equal(text(youtubeFeed).includes(fixtureChannelId), false);
-            assert.ok(youtubeFeed.includes(`https://www.youtube.com/channel/${fixtureChannelId}`));
+            assert.equal(youtubeFeed.includes(`https://www.youtube.com/channel/${fixtureChannelId}`), false);
+            assert.doesNotMatch(youtubeFeed, /youtube-avatar|class="statistics"/);
             assert.deepEqual([...youtubeFeed.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
-                [5, 4, 3, 2, 1, 0].map(fixtureVideoId));
+                [15, 14, 13, 12, 11, 10, 9, 8, 7, 6].map(fixtureVideoId));
             assert.ok(youtubeFeed.includes(`data-visible-items="${youtubeFeedTimelineSize}"`));
             assert.doesNotMatch(youtubeFeed, /data-navigation/);
             assert.doesNotMatch(youtubeFeed, /data-youtube-sort/);
-            for (const key of ["subscribers", "created", "publicVideos", "views", "duration", "videoViews", "likes"]) {
+            for (const key of ["subscribers", "created", "publicVideos", "views"]) {
+                assert.equal(text(youtubeFeed).includes(copy.youtube[key]), false);
+                assert.ok(text(main(youtube)).includes(copy.youtube[key]));
+            }
+            for (const key of ["duration", "videoViews", "likes"]) {
                 assert.ok(text(youtubeFeed).includes(copy.youtube[key]));
             }
-            assert.equal([...youtubeFeed.matchAll(/class="youtube-description"/g)].length, 3);
-            assert.ok(text(youtubeFeed).includes("Description 5"));
+            assert.equal([...youtubeFeed.matchAll(/class="youtube-description"/g)].length, 5);
+            assert.ok(text(youtubeFeed).includes("Description 15"));
             assert.ok(text(youtubeFeed).includes("1:02:03"));
             assert.doesNotMatch(youtubeFeed, /fixture_youtube_key/);
             const description = feed.match(/<p class="page-description">([\s\S]*?)<\/p>/)[1];
@@ -364,6 +371,9 @@ test("isolated builds cover every configured language plus an additional locale,
             for (const html of [overview, youtubeFeedPage]) {
                 assert.doesNotMatch(html, /data-youtube-browser|data-youtube-sort|data-youtube-filter/);
                 assert.ok(html.includes('id="youtube-feed-timeline"'));
+                assert.deepEqual([...html.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
+                    [15, 14, 13, 12, 11, 10, 9, 8, 7, 6].map(fixtureVideoId));
+                assert.doesNotMatch(main(html), /youtube-avatar|class="statistics"/);
             }
             assert.doesNotMatch(youtubeFeedPage, /data-activity-category|data-repository-browser/);
             const blogPage = await page("blog", locale);

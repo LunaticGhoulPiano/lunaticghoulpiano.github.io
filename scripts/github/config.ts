@@ -51,10 +51,6 @@ export const githubToolPolicy = {
     graphqlPoints: 100,
     periodDays: 30,
     refreshHours: 6,
-    artifactCandidates: 10,
-    artifactName: "github_profile_snapshots",
-    workflow: ".github/workflows/deploy.yml",
-    workflowEvents: ["push", "schedule", "workflow_dispatch"],
 } as const;
 
 export const requestBudgets = {

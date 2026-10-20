@@ -64,9 +64,9 @@ jobs:
               with:
                   script: |
                       const { pathToFileURL } = await import("node:url");
-                      const moduleUrl = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/github/artifact.mjs`);
-                      const { selectGithubSnapshot } = await import(moduleUrl.href);
-                      await selectGithubSnapshot({
+                      const moduleUrl = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/snapshots/artifact.mjs`);
+                      const { selectSnapshots } = await import(moduleUrl.href);
+                      await selectSnapshots({
                           github,
                           context,
                           core,
@@ -81,14 +81,11 @@ jobs:
                   github-token: ${{ github.token }}
                   path: ${{ steps.previous_snapshots.outputs.restore_directory }}
 
-            - name: Refresh YouTube preview data
+            - name: Refresh YouTube and MyMusic5 snapshots with artifact fallback
               env:
                   WEBPAGE_YOUTUBE_PROFILE_READONLY: ${{ secrets.WEBPAGE_YOUTUBE_PROFILE_READONLY }}
-              run: pnpm refresh:youtube
-
-            - name: Refresh MyMusic5 public sheet data
-              continue-on-error: true
-              run: pnpm refresh:mymusic5
+                  SNAPSHOT_RESTORE_DIR: ${{ steps.previous_snapshots.outputs.restore_directory }}
+              run: pnpm refresh:media
 
             - name: Refresh GitHub data, check, and build
               env:
@@ -100,7 +97,7 @@ jobs:
               uses: actions/upload-artifact@v7
               with:
                   name: ${{ steps.previous_snapshots.outputs.artifact_name }}
-                  path: ${{ steps.previous_snapshots.outputs.snapshot_file }}
+                  path: ${{ steps.previous_snapshots.outputs.snapshot_files }}
                   if-no-files-found: error
                   retention-days: 30
 

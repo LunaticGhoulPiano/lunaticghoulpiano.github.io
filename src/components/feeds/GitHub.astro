@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "../../config/site";
-import { githubTimelineCategorySize, githubActivityCategoryLayout, githubCategorySlideInterval, githubCategorySlideDuration } from "../../config/collections";
+import { feedHeadingHeight, githubTimelineCategorySize, githubActivityCategoryLayout, githubCategorySlideInterval, githubCategorySlideDuration } from "../../config/collections";
 import { useMessages } from "../../i18n/ui";
 import type { getGithubFeed } from "../../services/feeds/github";
 import ActivityTimeline from "./ActivityTimeline.astro";
@@ -32,13 +32,14 @@ const copy = messages.activity;
             data-activity-category={category.key}
             aria-label={copy[category.key]}
             style={{
+                "--feed-heading-height": `${feedHeadingHeight}px`,
                 "--activity-category-height": `${githubActivityCategoryLayout.height}px`,
                 "--activity-timeline-height": `${githubActivityCategoryLayout.timelineHeight}px`,
                 "--activity-item-height": `${githubActivityCategoryLayout.itemHeight}px`,
                 "--activity-repository-lines": githubActivityCategoryLayout.repositoryLines,
             }}
         >
-            <header class="activity-category-heading">
+            <header class="feed-category-heading">
                 <h3 id={`category-${category.key}`}>{copy[category.key]}</h3>
                 {category.available && <span class="activity-count">{category.count}</span>}
             </header>

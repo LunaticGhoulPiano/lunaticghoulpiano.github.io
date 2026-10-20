@@ -9,6 +9,7 @@
         "build": "node scripts/astro/run.mjs build",
         "preview": "node scripts/astro/run.mjs preview",
         "test": "node --test \"tests/**/!(fixture).mjs\"",
+        "refresh:media": "node scripts/snapshots/update.mjs",
         "refresh:github": "node scripts/github/update.mjs",
         "refresh:youtube": "node scripts/youtube/update.mjs",
         "refresh:mymusic5": "node scripts/mymusic5/update.mjs"

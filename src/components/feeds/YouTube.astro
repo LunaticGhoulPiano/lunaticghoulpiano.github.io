@@ -1,11 +1,11 @@
 ---
-import type { Locale } from "../../config/locales";
+import { languages, type Locale } from "../../config/locales";
 import { useMessages } from "../../i18n/ui";
+import { formatMessage } from "../../i18n/format";
 import type { getYoutubeContent } from "../../data/youtube/content";
-import Channel from "../common/youtube/Channel.astro";
 import Videos from "../common/youtube/Videos.astro";
 import TimelineViewport from "../common/TimelineViewport.astro";
-import { youtubeFeedTimelineSize } from "../../config/collections";
+import { feedHeadingHeight, youtubeFeedTimelineSize, youtubeFeedVideoLimit } from "../../config/collections";
 
 interface Props {
     locale: Locale;
@@ -15,16 +15,30 @@ interface Props {
 const { locale, data } = Astro.props;
 const messages = useMessages(locale);
 const copy = messages.youtube;
-const { channel, videos } = data;
+const { channel } = data;
+const videos = data.videos.slice(0, youtubeFeedVideoLimit);
+const title = formatMessage(copy.latestVideos, { count: youtubeFeedVideoLimit }, languages[locale].formatLocale);
 ---
 
 {channel ? (
-    <>
-        <Channel locale={locale} channel={channel} />
+    <div class="youtube-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
+        <header class="feed-category-heading">
+            <h3>{title}</h3>
+        </header>
         {videos.length > 0 ? (
-            <TimelineViewport id="youtube-feed-timeline" label={copy.videos} locale={locale} visibleItems={youtubeFeedTimelineSize}>
+            <TimelineViewport id="youtube-feed-timeline" label={title} locale={locale} visibleItems={youtubeFeedTimelineSize}>
                 <Videos locale={locale} videos={videos} />
             </TimelineViewport>
         ) : <p class="empty-message">{copy.noVideos}</p>}
-    </>
+    </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}
+
+<style>
+    .youtube-feed {
+        padding-top: 1.5rem;
+    }
+
+    .youtube-feed :global(.timeline-window) {
+        margin-top: 0;
+    }
+</style>
