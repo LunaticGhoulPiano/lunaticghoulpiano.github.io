@@ -1,10 +1,11 @@
 import { site } from "../config/site";
-import { getPageEntries } from "../routing";
+import { getPageEntries, getRoutePath } from "../routing";
 import { getPublicPosts } from "../services/blog/index";
 
 export async function GET() {
     const posts = await getPublicPosts();
-    const paths = getPageEntries(posts).map((entry) => `/${entry.params.path}/`);
+    const paths = new Set(getPageEntries(posts).map(({ params, props }) =>
+        props.kind === "page" ? getRoutePath(props.route, props.locale) : `/${params.path}/`));
     const escape = (value: string) =>
         value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
     return new Response(

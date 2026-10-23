@@ -224,9 +224,17 @@ test("isolated builds cover every configured language plus an additional locale,
         for (const locale of testLocales) {
             const copy = testMessages[locale];
             const landing = await page("", locale);
-            assert.match(landing, /http-equiv="refresh"/);
-            assert.ok(landing.includes(`url=${localizedPath("profile", locale)}`));
             const profile = await page("profile", locale);
+            assert.doesNotMatch(landing, /http-equiv="refresh"|Redirecting from|location\.(?:replace|assign)\(/);
+            assert.equal(landing, profile, "Locale entry pages must render the complete Profile page directly.");
+            assert.match(landing, /<link\b[^>]*rel="stylesheet"/);
+            assert.match(landing, /data-theme-toggle/);
+            assert.deepEqual(links(landing, "canonical").map((link) => link.href),
+                [new URL(localizedPath("profile", locale), site.url).href]);
+            const landingSwitcher = landing.match(/<nav class="language-switcher"[^>]*>([\s\S]*?)<\/nav>/)[1];
+            for (const language of testLocales.filter((language) => language !== locale)) {
+                assert.ok(landingSwitcher.includes(`href="${localizedPath("profile", language)}"`));
+            }
             assert.deepEqual(headings(main(profile), 1), [site.name]);
             assert.equal(text(profile.match(/<p class="name-alias">([\s\S]*?)<\/p>/)[1]), site.secondaryName);
             assert.doesNotMatch(profile, /home-intro/);
@@ -462,6 +470,7 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.doesNotMatch(switcher, /<a\b/);
             assert.ok(sitemap.includes(`<loc>${new URL(localizedPath(standalonePath, locale), site.url).href}</loc>`));
             assert.equal(sitemap.includes(`<loc>${new URL(localizedPath("", locale), site.url).href}</loc>`), false);
+            assert.equal(sitemap.split(`<loc>${new URL(localizedPath("profile", locale), site.url).href}</loc>`).length - 1, 1);
 
             const tag = await page("blog/tags/validation", locale);
             for (const html of [tag, blogPage]) {

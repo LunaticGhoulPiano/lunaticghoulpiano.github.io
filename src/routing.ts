@@ -18,13 +18,18 @@ export function tagPath(tag: string, locale: Locale) {
 function pageEntry<T>(path: string, props: T) {
     return {
         params: {
-            path: path.slice(1, -1),
+            path: path.slice(1, -1) || undefined,
         },
         props,
     };
 }
 
 export function getPageEntries(posts: readonly Post[]) {
+    const landingPages = locales.map((locale) => pageEntry(localizedPath("", locale), {
+        kind: "page" as const,
+        route: "profile" as const,
+        locale,
+    }));
     const pages = locales.flatMap((locale) => (Object.keys(routes) as RouteKey[]).map((route) =>
         pageEntry(getRoutePath(route, locale), {
             kind: "page" as const,
@@ -47,6 +52,7 @@ export function getPageEntries(posts: readonly Post[]) {
         });
     }
     return [
+        ...landingPages,
         ...pages,
         ...articles,
         ...[...tags].map(([path, props]) => pageEntry(path, {
