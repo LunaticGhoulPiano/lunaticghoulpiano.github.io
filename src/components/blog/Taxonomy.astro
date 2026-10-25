@@ -1,0 +1,36 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ContentList from "../common/ContentList.astro";
+import type { Locale } from "../../config/site";
+import { getRoutePath, tagPath, categoryPath } from "../../routing";
+import { getTaxonomyContext } from "../../services/blog/index";
+import { tagName } from "../../data/tags";
+import { useMessages } from "../../i18n/ui";
+
+interface Props {
+    taxonomy: "tag" | "category";
+    value: string;
+    locale: Locale;
+}
+
+const { taxonomy, value, locale } = Astro.props;
+const copy = useMessages(locale).content;
+const { items, languagePaths } = await getTaxonomyContext(taxonomy, value, locale);
+const isTag = taxonomy === "tag";
+const route = isTag ? "blogTags" : "blogCategories";
+const title = isTag ? tagName(value, locale) : value;
+---
+
+<BaseLayout
+    title={title}
+    locale={locale}
+    route={route}
+    pagePath={(isTag ? tagPath : categoryPath)(value, locale)}
+    languagePaths={languagePaths}
+>
+    <header class="page-heading">
+        <a class="text-link" href={getRoutePath(route, locale)}>← {isTag ? copy.allTags : copy.allCategories}</a>
+        <h1>{title}</h1>
+    </header>
+    <ContentList locale={locale} items={items} />
+</BaseLayout>

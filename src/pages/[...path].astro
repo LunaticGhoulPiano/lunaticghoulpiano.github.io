@@ -1,18 +1,24 @@
 ---
 import SitePage from "../components/SitePage.astro";
 import Post from "../components/blog/Post.astro";
-import Tag from "../components/blog/Tag.astro";
+import Taxonomy from "../components/blog/Taxonomy.astro";
 import { getPageEntries } from "../routing";
-import { getPublicPosts } from "../services/blog/index";
+import { getContent, getContentContext } from "../data/contents";
+import components from "virtual:content-components";
 
 export async function getStaticPaths() {
-    return getPageEntries(await getPublicPosts());
+    return getPageEntries(await getContent());
 }
 
 type Props = ReturnType<typeof getPageEntries>[number]["props"];
 const props = Astro.props;
+const item = props.kind === "content" ? (await getContent()).find((item) => item.id === props.id) : undefined;
+if (props.kind === "content" && ! item) throw new Error(`Missing content: ${props.id}`);
+const Component = item?.data.entry.type === "astro" ? (await components[item.data.source!]()).default : undefined;
+const context = item ? await getContentContext(item) : undefined;
 ---
 
 {props.kind === "page" && <SitePage route={props.route} locale={props.locale} />}
-{props.kind === "post" && <Post post={props.post} />}
-{props.kind === "tag" && <Tag tag={props.tag} locale={props.locale} />}
+{item?.data.entry.type === "markdown" && <Post post={item} />}
+{Component && item && <Component item={item} locale={item.data.locale} {...context} />}
+{props.kind === "taxonomy" && <Taxonomy taxonomy={props.taxonomy} value={props.value} locale={props.locale} />}

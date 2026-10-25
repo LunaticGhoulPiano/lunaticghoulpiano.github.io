@@ -68,6 +68,12 @@ export const routes = {
         title: "route.blogTags",
         description: "description.blogTags",
     },
+    blogCategories: {
+        section: "blog",
+        path: "blog/categories",
+        title: "route.blogCategories",
+        description: "description.blogCategories",
+    },
     feeds: {
         section: "feeds",
         path: "feeds",

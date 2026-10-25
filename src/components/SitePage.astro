@@ -1,7 +1,8 @@
 ---
 import { site, type Locale } from "../config/site";
 import { routes, type RouteKey } from "../config/routes";
-import { getRoutePath, tagPath } from "../routing";
+import { getRoutePath, tagPath, categoryPath } from "../routing";
+import { getPlacedContent } from "../data/contents";
 import { useMessages, useTranslations } from "../i18n/ui";
 import { getPageContext } from "../services/index";
 import type { FeedSource } from "../services/feeds/index";
@@ -12,7 +13,7 @@ import type { ProjectSource } from "../services/projects/index";
 import GithubProjects from "./projects/GitHub.astro";
 import YoutubeProjects from "./projects/YouTube.astro";
 import Mymusic5Projects from "./projects/MyMusic5.astro";
-import PostList from "./blog/PostList.astro";
+import ContentList from "./common/ContentList.astro";
 import GitHub from "./feeds/GitHub.astro";
 import YouTube from "./feeds/YouTube.astro";
 import MyMusic5 from "./feeds/MyMusic5.astro";
@@ -29,6 +30,7 @@ const copy = useMessages(locale).design;
 const content = useMessages(locale).content;
 const page = routes[route];
 const context = await getPageContext(route, locale);
+const placedItems = route === "projects" || route === "studying" ? await getPlacedContent(route, locale) : [];
 const description = context.section === "feeds" ? context.description : t(page.description);
 const feedComponents = {
     github: GitHub,
@@ -50,21 +52,25 @@ const projectComponents = {
     </header>
     {context.section === "profile" && (
         <ProfileLayout locale={locale} route={route} navigation={context.navigation}>
-            <dl class="profile-fields">
-                {context.fields.map((heading) => (
-                    <div>
-                        <dt>{t(heading)}</dt>
-                        <dd>{copy.unpublished}</dd>
-                    </div>
-                ))}
-            </dl>
+            {placedItems.length > 0 ? <ContentList locale={locale} items={placedItems} /> : (
+                <dl class="profile-fields">
+                    {context.fields.map((heading) => (
+                        <div>
+                            <dt>{t(heading)}</dt>
+                            <dd>{copy.unpublished}</dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
         </ProfileLayout>
     )}
     {context.section === "blog" && route === "blog" && (
         <>
             <a class="text-link" href={getRoutePath("blogTags", locale)}>{content.tags} →</a>
+            {" · "}
+            <a class="text-link" href={getRoutePath("blogCategories", locale)}>{content.categories} →</a>
             {context.posts.length > 0 ? (
-                <PostList locale={locale} posts={context.posts} />
+                <ContentList locale={locale} items={context.posts} />
             ) : (
                 <p class="empty-message">{t("empty.blog")}</p>
             )}
@@ -93,12 +99,27 @@ const projectComponents = {
         )
     )}
     {(context.section === "feeds" || context.section === "projects") && (
-        <SourcePages
-            locale={locale}
-            section={context.section}
-            label={t(page.title)}
-            sources={context.sources}
-            components={context.section === "feeds" ? feedComponents : projectComponents}
-        />
+        <>
+            {placedItems.length > 0 && <ContentList locale={locale} items={placedItems} />}
+            <SourcePages
+                locale={locale}
+                section={context.section}
+                label={t(page.title)}
+                sources={context.sources}
+                components={context.section === "feeds" ? feedComponents : projectComponents}
+            />
+        </>
+    )}
+    {context.section === "blog" && route === "blogCategories" && (
+        context.categories.length > 0 ? (
+            <ul class="tag-index">
+                {context.categories.map(({ category, count }) => (
+                    <li>
+                        <a href={categoryPath(category, locale)}>{category}</a>
+                        <span>{count}</span>
+                    </li>
+                ))}
+            </ul>
+        ) : <p class="empty-message">{content.noCategories}</p>
     )}
 </BaseLayout>

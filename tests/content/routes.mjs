@@ -97,32 +97,13 @@ async function addFixtureLocale(root) {
     };
 }
 
-function markdown(locale, pathSlug, translationKey, draft = false) {
-    return `---
-title: Fixture ${pathSlug}
-slug: ${locale}/${pathSlug}
-pathSlug: ${pathSlug}
-locale: ${locale}
-translationKey: ${translationKey}
-description: Isolated route validation content.
-date: "2026-10-01"
-type: article
-tags: [validation]
-draft: ${draft}
----
-
-## Validation heading
-
-This test content must never appear in the real website build.
-`;
-}
 
 test("isolated builds cover every configured language plus an additional locale, translations, drafts and duplicate rejection", async (context) => {
     const fixtureRoot = await createTemporaryDirectory("content_validation_");
     try {
-        const fixtureDirectories = new Set(["blog", "projects", "studying"]
-            .map((name) => resolve(projectRoot, "src/content", name)));
+        const fixtureDirectories = new Set();
         fixtureDirectories.add(resolve(projectRoot, "src/data/generated"));
+        fixtureDirectories.add(resolve(projectRoot, "src/contents"));
         await cp(resolve(projectRoot, "src"), join(fixtureRoot, "src"), {
             recursive: true,
             filter: (source) => ! fixtureDirectories.has(source),
@@ -131,6 +112,7 @@ test("isolated builds cover every configured language plus an additional locale,
             recursive: true,
         });
         await cp(resolve(projectRoot, "scripts/runtime.mjs"), join(fixtureRoot, "scripts/runtime.mjs"));
+        await cp(resolve(projectRoot, "scripts/content"), join(fixtureRoot, "scripts/content"), { recursive: true });
         const extra = await addFixtureLocale(fixtureRoot);
         const testLocales = [...locales, extra.locale];
         const testLanguages = {
@@ -189,24 +171,50 @@ test("isolated builds cover every configured language plus an additional locale,
             }),
             "utf8",
         );
-        const blog = join(fixtureRoot, "src/content/blog");
-        await mkdir(blog, {
-            recursive: true,
+        async function item(directory, config, files = {}) {
+            const target = join(fixtureRoot, "src", "contents", directory);
+            await mkdir(target, { recursive: true });
+            await writeFile(join(target, "configs.json"), JSON.stringify(config));
+            for (const [name, body] of Object.entries(files)) await writeFile(join(target, name), body);
+        }
+        const localized = (title, entry, extra = {}) => ({
+            title, description: "Isolated route validation content.", date: "2026-10-01",
+            updated: "2026-10-02", draft: false, entry, ...extra,
         });
         const pairedSlugs = new Map();
         const standaloneSlugs = new Map();
+        const pairedLocales = {};
+        const docsLocales = {};
+        const gameLocales = {};
         for (const [index, locale] of testLocales.entries()) {
             const paired = `fixture-published-${index}`;
             const standalone = `fixture-alone-${index}`;
             pairedSlugs.set(locale, paired);
             standaloneSlugs.set(locale, standalone);
-            await writeFile(join(blog, `published_${index}.md`), markdown(locale, paired, "fixture-paired"), "utf8");
-            await writeFile(join(blog, `standalone_${index}.md`), markdown(locale, standalone, standalone), "utf8");
-            await writeFile(join(blog, `draft_${index}.md`), markdown(locale, `fixture-secret-draft-${index}`, "fixture-draft", true), "utf8");
+            pairedLocales[locale] = localized(`Fixture ${paired}`, { type: "markdown", file: "./body.md", path: `/blog/${paired}/` });
+            docsLocales[locale] = localized("Fixture documentation", { type: "link", url: `https://docs.example.test/${locale}/` });
+            gameLocales[locale] = localized("Fixture game", { type: "link", url: `/games/fixture/?language=${locale}` });
+            await item(standalone, {
+                id: standalone, kind: "article", category: "development", tags: ["validation"], placements: ["blog"],
+                locales: { [locale]: localized(`Fixture ${standalone}`, { type: "markdown", file: "./body.md", path: `/blog/${standalone}/` }) },
+            }, { "body.md": "## Validation heading\n\nIsolated test content." });
+            await item(`fixture-secret-draft-${index}`, {
+                id: `fixture-secret-draft-${index}`, kind: "article", category: "development", placements: ["blog"],
+                locales: { [locale]: localized("fixture-secret-draft", { type: "astro", file: "./Draft.astro", path: `/blog/fixture-secret-draft-${index}/` }, { draft: true }) },
+            }, { "Draft.astro": "<h1>fixture-secret-draft</h1>" });
         }
+        await item("fixture-paired", {
+            id: "fixture-paired", kind: "article", category: "development", tags: ["validation"], placements: ["blog"],
+            related: ["fixture-docs", "fixture-game"],
+            links: [{ label: "Source", url: "https://example.test/source" }],
+            locales: pairedLocales,
+        }, { "body.md": "## Validation heading\n\nThis test content must never appear in the real website build." });
+        await item("fixture-docs", { id: "fixture-docs", kind: "documentation", category: "development", locales: docsLocales });
+        await item("fixture-game", { id: "fixture-game", kind: "game", category: "games", locales: gameLocales });
 
         function build(snapshotDirectory) {
-            return spawnSync(process.execPath, astroArguments("build", "--root", fixtureRoot), {
+            const arguments_ = astroArguments("build", "--root", fixtureRoot);
+            return spawnSync(process.execPath, arguments_, {
                 cwd: projectRoot,
                 encoding: "utf8",
                 timeout: 60_000,
@@ -449,7 +457,17 @@ test("isolated builds cover every configured language plus an additional locale,
 
             const paired = await page(`blog/${pairedSlugs.get(locale)}`, locale);
             assert.match(paired, /id="validation-heading"/);
-            assert.ok(text(main(paired)).includes(copy.content.allPosts));
+            assert.ok(text(main(paired)).includes(copy.content.backToList));
+            assert.ok(text(main(paired)).includes(copy.content.relatedContent));
+            assert.ok(text(main(paired)).includes(copy.content.links));
+            assert.ok(paired.includes(`href="https://docs.example.test/${locale}/"`));
+            assert.ok(paired.includes(`href="/games/fixture/?language=${locale}"`));
+
+            assert.match(paired, /href="https:\/\/example.test\/source"/);
+            assert.ok(text(main(blogPage)).includes("development"));
+            assert.match(main(blogPage), /datetime="2026-10-02"/);
+            assert.doesNotMatch(main(blogPage), /datetime="2026-10-01"/);
+            assert.doesNotMatch(sitemap, /fixture-docs|fixture-game|docs\.example\.test/);
             const alternates = links(paired, "alternate");
             assert.equal(alternates.length, testLocales.length + 1);
             for (const language of testLocales) {
@@ -484,7 +502,7 @@ test("isolated builds cover every configured language plus an additional locale,
             recursive: true,
         });
         assert.equal(
-            files.some((file) => file.includes("fixture-secret-draft")),
+            files.some((file) => /fixture-secret-draft|fixture-docs|fixture-game/.test(file)),
             false,
         );
         for (const file of files.filter((file) => /\.(html|xml|js)$/.test(file))) {
@@ -503,14 +521,12 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.match(await page("feeds/github", locale), /staged_owner\/staged_project/);
         }
 
-        await writeFile(
-            join(blog, "duplicate.md"),
-            markdown(defaultLocale, pairedSlugs.get(defaultLocale), "fixture-paired"),
-            "utf8",
-        );
+        const firstConfiguration = await readFile(join(fixtureRoot, "src/contents/fixture-docs/configs.json"), "utf8");
+        await item("fixture-duplicate", JSON.parse(firstConfiguration));
         const duplicate = build();
         assert.notEqual(duplicate.status, 0, "Duplicate IDs must stop the build.");
         assert.match(duplicate.stdout + duplicate.stderr, /duplicate/i);
+
     }
     finally {
         await removeTemporaryDirectory(fixtureRoot);
