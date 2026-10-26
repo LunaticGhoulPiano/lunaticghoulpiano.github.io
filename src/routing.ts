@@ -36,7 +36,7 @@ export function getPageEntries(items: readonly ContentRecord[]) {
         ...(Object.keys(routes) as RouteKey[]).map((route) =>
             pageEntry(getRoutePath(route, locale), { kind: "page" as const, route, locale })),
     ]);
-    const entries = published.filter((item) => ["markdown", "astro"].includes(item.data.entry.type))
+    const entries = published.filter((item) => item.data.entry.type === "markdown")
         .map((item) => pageEntry(contentPath(item), { kind: "content" as const, id: item.id }));
     const taxonomyPages = new Map<string, { kind: "taxonomy"; taxonomy: Taxonomy; value: string; locale: Locale }>();
     for (const item of published) {

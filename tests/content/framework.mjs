@@ -10,13 +10,23 @@ import { projectRoot } from "../../src/config/runtime.mjs";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { validationEnvironment } from "../../scripts/github/environment.mjs";
 import { configuration, writeItem, copySiteFixture, buildSiteFixture } from "./fixture.mjs";
-import { defaultLocale, localizedPath } from "../../src/config/locales.ts";
+import { defaultLocale, locales, localizedPath } from "../../src/config/locales.ts";
+
+async function styles(html, output) {
+    const inline = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map((match) => match[1]);
+    const links = [...html.matchAll(/<link\b[^>]*>/g)].map((match) => match[0])
+        .filter((tag) => /\brel="stylesheet"/.test(tag))
+        .map((tag) => tag.match(/\bhref="([^"]+)"/)[1]);
+    return [...inline, ...await Promise.all(links.map((path) => readFile(join(output, path), "utf8")))].join("\n");
+}
 
 test("one item directory publishes Markdown, an interactive Astro page, a direct link and a mounted site", async () => {
     await withTemporaryDirectory(async (root) => {
         await copySiteFixture(root);
         const routeFile = join(root, "src/config/routes.ts");
         await writeFile(routeFile, (await readFile(routeFile, "utf8")).replace("cv: {", "cv: {\n        content: true,"));
+        const mainStyles = join(root, "src/styles/global.css");
+        await writeFile(mainStyles, (await readFile(mainStyles, "utf8")) + "\nbody { --fixture-main-style: 1; }\n");
 
         const article = configuration("fixture-article", { type: "markdown", file: "./body.md", path: "/notes/fixture-article/" }, {
             related: ["fixture-demo", "fixture-site", "fixture-external"],
@@ -26,9 +36,11 @@ test("one item directory publishes Markdown, an interactive Astro page, a direct
             "body.md": "## Fixture heading\n\n![Local image](./image.svg)",
             "image.svg": '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="red"/></svg>',
         });
-        await writeItem(root, configuration("fixture-demo", { type: "astro", file: "./Demo.astro", path: "/games/fixture-demo/" }, {
+        const demoConfig = configuration("fixture-demo", { type: "astro", file: "./Demo.astro", path: "/games/fixture-demo/" }, {
             kind: "game", placements: ["projects", "studying"], tags: ["framework"],
-        }), {
+        });
+        for (const locale of locales) demoConfig.locales[locale] = { ...demoConfig.locales[defaultLocale] };
+        await writeItem(root, demoConfig, {
             "Demo.astro": `---
 import "./style.css";
 const { item, locale } = Astro.props;
@@ -45,7 +57,17 @@ const { item, locale } = Astro.props;
     </body>
 </html>`,
             "counter.ts": 'export function connect() { document.querySelector("#fixture-counter")?.addEventListener("click", (event) => { const button = event.currentTarget as HTMLButtonElement; button.textContent = String(Number(button.textContent) + 1); }); }',
-            "style.css": "#fixture-counter { color: rgb(10, 20, 30); }",
+            "style.css": "body { --fixture-demo-style: 1; background: rgb(10, 20, 30); } #fixture-counter { color: rgb(10, 20, 30); }",
+        });
+        await writeItem(root, configuration("fixture-other", { type: "astro", file: "./Other.astro", path: "/games/fixture-other/" }), {
+            "Other.astro": `<!doctype html>
+<html lang="en">
+    <head><title>Other fixture page</title></head>
+    <body><h1>Independent fixture styles</h1></body>
+</html>
+<style>
+    body { --fixture-other-style: 1; background: rgb(30, 20, 10); }
+</style>`,
         });
         await writeItem(root, configuration("fixture-external", { type: "link", url: "https://example.test/independent/" }, {
             kind: "documentation", placements: ["projects"],
@@ -61,6 +83,21 @@ const { item, locale } = Astro.props;
         assert.equal(build.status, 0, build.stdout + build.stderr);
         const output = join(root, "dist");
         const page = (path) => readFile(join(output, localizedPath(path, defaultLocale), "index.html"), "utf8");
+        for (const path of ["/", "/blog/", "/projects/", "/feeds/", "/notes/fixture-article/", "/blog/tags/framework/"]) {
+            const css = await styles(await page(path), output);
+            assert.match(css, /--fixture-main-style/);
+            assert.doesNotMatch(css, /--fixture-demo-style|--fixture-other-style/);
+        }
+        for (const locale of locales) {
+            const html = await readFile(join(output, localizedPath("/games/fixture-demo/", locale), "index.html"), "utf8");
+            const css = await styles(html, output);
+            assert.match(css, /--fixture-demo-style/);
+            assert.doesNotMatch(css, /--fixture-main-style|--fixture-other-style/);
+            assert.ok(html.includes(`lang="${locale}"`));
+        }
+        const otherStyles = await styles(await page("/games/fixture-other/"), output);
+        assert.match(otherStyles, /--fixture-other-style/);
+        assert.doesNotMatch(otherStyles, /--fixture-main-style|--fixture-demo-style/);
         const articleHtml = await page("/notes/fixture-article/");
         assert.match(articleHtml, /id="fixture-heading"/);
         assert.ok(articleHtml.includes("Local image"), articleHtml.match(/class="prose"[\s\S]*?<\/div>/)?.[0]);
@@ -83,6 +120,7 @@ const { item, locale } = Astro.props;
         assert.ok((await page("/blog/tags/framework/")).includes('href="/games/fixture-demo/"'));
         const sitemap = await readFile(join(output, "sitemap.xml"), "utf8");
         assert.match(sitemap, /\/docs\/fixture-site\//);
+        for (const locale of locales) assert.ok(sitemap.includes(localizedPath("/games/fixture-demo/", locale)));
         assert.doesNotMatch(sitemap, /example\.test\/independent/);
 
         const listener = createServer();

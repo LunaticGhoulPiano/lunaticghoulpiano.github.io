@@ -4,7 +4,6 @@ import Post from "../components/blog/Post.astro";
 import Taxonomy from "../components/blog/Taxonomy.astro";
 import { getPageEntries } from "../routing";
 import { getContent, getContentContext } from "../data/contents";
-import components from "virtual:content-components";
 
 export async function getStaticPaths() {
     return getPageEntries(await getContent());
@@ -15,11 +14,9 @@ const props = Astro.props;
 const items = props.kind === "content" ? await getContent() : [];
 const item = items.find((item) => props.kind === "content" && item.id === props.id);
 if (props.kind === "content" && ! item) throw new Error(`Missing content: ${props.id}`);
-const Component = item?.data.entry.type === "astro" ? (await components[item.data.source!]()).default : undefined;
 const context = item ? getContentContext(item, items) : undefined;
 ---
 
 {props.kind === "page" && <SitePage route={props.route} locale={props.locale} />}
 {item?.data.entry.type === "markdown" && context && <Post post={item} context={context} />}
-{Component && item && <Component item={item} locale={item.data.locale} {...context} />}
 {props.kind === "taxonomy" && <Taxonomy taxonomy={props.taxonomy} value={props.value} locale={props.locale} />}

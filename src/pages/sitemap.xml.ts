@@ -7,7 +7,7 @@ export async function GET() {
     const paths = new Set(getPageEntries(posts).map(({ params, props }) =>
         props.kind === "page" ? getRoutePath(props.route, props.locale) : `/${params.path}/`));
     for (const item of posts) {
-        if (item.data.entry.type === "site") paths.add(item.data.href);
+        if (item.data.entry.type === "site" || item.data.entry.type === "astro") paths.add(item.data.href);
     }
     const escape = (value: string) =>
         value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
