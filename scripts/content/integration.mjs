@@ -4,6 +4,7 @@ import { createReadStream } from "node:fs";
 import { access, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { readContent, invalidateContent, isWithin } from "./loader.mjs";
 import { prepareSite, copySite, siteFile } from "./sites.mjs";
+import { completeSearchIndex } from "./search.mjs";
 
 const statusId = "virtual:content-status";
 const mime = {
@@ -99,6 +100,7 @@ const context = getContentContext(item, items);
                             throw new Error(`Site mount would overwrite generated output: ${item.data.href}`);
                         await copySite((await prepareSite(root, item)).directory, destination);
                     }
+                    await completeSearchIndex(output);
                 }
                 finally {
                     invalidateContent(root);

@@ -1,0 +1,32 @@
+---
+import { languages, type Locale } from "../../config/locales";
+import { searchSorts, searchPolicy } from "../../config/search";
+import { useMessages } from "../../i18n/ui";
+import Pagination from "./Pagination.astro";
+
+interface Props {
+    locale: Locale;
+}
+const { locale } = Astro.props;
+const copy = useMessages(locale);
+---
+
+<section data-search-results data-paginated-list data-locale={locale} data-index-url={searchPolicy.indexPath} data-format-locale={languages[locale].formatLocale} data-copy={JSON.stringify(copy)}>
+    <div class="search-summary">
+        <p data-search-query></p>
+        <p role="status" aria-live="polite" data-search-count>{copy.search.loading}</p>
+    </div>
+    <div class="search-result-controls">
+        <label>{copy.search.section}<select name="section" data-search-section><option value="">{copy.search.allSections}</option></select></label>
+        <label>{copy.search.source}<select name="source" data-search-source><option value="">{copy.search.allSources}</option></select></label>
+        <label>{copy.search.from}<input type="date" name="from" data-search-date /></label>
+        <label>{copy.search.to}<input type="date" name="to" data-search-date /></label>
+        <label>{copy.search.sortBy}<select name="sort" data-search-sort>
+            {searchSorts.map((sort) => <option value={sort}>{copy.search[sort]}</option>)}
+        </select></label>
+    </div>
+    <ol class="post-list" data-search-list></ol>
+    <p class="empty-message" data-search-empty hidden>{copy.search.empty}</p>
+    <noscript><p>{copy.search.javascript}</p></noscript>
+    <Pagination locale={locale} />
+</section>

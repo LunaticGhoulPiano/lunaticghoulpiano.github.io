@@ -1,7 +1,7 @@
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { routes, getTaxonomyRoutes } from "../../src/config/routes.ts";
+import { routes } from "../../src/config/routes.ts";
 import { locales, localizedPath } from "../../src/config/locales.ts";
 import { itemConfigSchema } from "../../src/data/contents_schema.ts";
 
@@ -38,8 +38,7 @@ export function validateEntries(records) {
             const firstSegment = entry.path.split("/")[1];
             if (locales.includes(firstSegment))
                 throw new Error(`Entry paths must not contain a language prefix: ${entry.path}`);
-            if (systemPaths.has(href) || locales.some((language) => getTaxonomyRoutes().some(({ route }) =>
-                href.startsWith(localizedPath(routes[route].path, language)))))
+            if (systemPaths.has(href))
                 throw new Error(`Reserved content route: ${href}`);
             if (publicPaths.has(href))
                 throw new Error(`Duplicate content route: ${href}`);

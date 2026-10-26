@@ -1,4 +1,5 @@
 import { youtubeVideoSortOptions } from "../config/collections.ts";
+import { createListSearch } from "./list_search.ts";
 
 export function initializeYoutubePlaylists() {
     document.querySelectorAll<HTMLElement>("[data-youtube-browser]").forEach((root) => {
@@ -13,6 +14,7 @@ export function initializeYoutubePlaylists() {
         const timeline = root.querySelector<HTMLElement>("[data-timeline-window]")!;
         const viewport = timeline.querySelector<HTMLElement>("[data-timeline-scroll]")!;
         const duplicates: HTMLElement[] = [];
+        const search = createListSearch(root, [...rows.values()], render);
         let ids = [...rows.values()].filter((row) => ! row.hidden).map((row) => row.dataset.videoId!);
         let playlist = false;
         const metrics = new Map([...rows].map(([id, row]) => [id, {
@@ -38,7 +40,8 @@ export function initializeYoutubePlaylists() {
             for (const duplicate of duplicates.splice(0)) duplicate.remove();
             for (const row of rows.values()) row.hidden = true;
             const compare = comparisons[sort.value as keyof typeof comparisons] ?? comparisons[youtubeVideoSortOptions[0]];
-            const sorted = [...ids].sort((left, right) => compare(metrics.get(left)!, metrics.get(right)!));
+            const sorted = ids.filter((id) => search.matches(rows.get(id)!))
+                .sort((left, right) => compare(metrics.get(left)!, metrics.get(right)!));
             const used = new Set<string>();
             for (const id of sorted) {
                 const original = rows.get(id)!;
@@ -46,10 +49,11 @@ export function initializeYoutubePlaylists() {
                 if (row !== original) duplicates.push(row);
                 used.add(id);
                 row.hidden = false;
+                search.highlight(row);
                 list.append(row);
             }
-            empty.textContent = playlist ? empty.dataset.playlistLabel! : empty.dataset.allLabel!;
-            empty.hidden = ids.length > 0;
+            empty.textContent = search.active ? empty.dataset.searchLabel! : playlist ? empty.dataset.playlistLabel! : empty.dataset.allLabel!;
+            empty.hidden = sorted.length > 0;
             viewport.scrollTop = 0;
             timeline.dispatchEvent(new Event("timeline:change"));
         }

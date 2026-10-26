@@ -1,13 +1,37 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatMessage, countFormatter } from "../src/i18n/format.ts";
+import { formatMessage, formatMetadata, countFormatter } from "../src/i18n/format.ts";
 import { messages } from "../src/i18n/ui.ts";
 import { languages, locales, defaultLocale, localizedPath } from "../src/config/locales.ts";
+import { getRouteTitle } from "../src/routing.ts";
+import { routes } from "../src/config/routes.ts";
+
+test("section titles follow route configuration rather than an assumed translation key", (context) => {
+    routes.fixtureSection = { title: "common.overview" };
+    context.after(() => delete routes.fixtureSection);
+    for (const locale of locales) {
+        assert.equal(getRouteTitle("fixtureSection", messages[locale].ui), messages[locale].ui["common.overview"]);
+        assert.equal(getRouteTitle("projects", messages[locale].ui), messages[locale].ui[routes.projects.title]);
+        assert.equal(getRouteTitle("new-section", messages[locale].ui), "new-section");
+        assert.equal(getRouteTitle("constructor", messages[locale].ui), "constructor");
+    }
+});
 
 function messageParameters(message) {
     const variants = typeof message === "string" ? [message] : Object.values(message);
     return [...new Set(variants.flatMap((value) => [...value.matchAll(/\{(\w+)\}/g)].map((match) => match[1])))].sort();
 }
+
+test("metadata groups share separators without depending on field names or duplicating values", () => {
+    assert.equal(formatMetadata([["Projects", "Feeds"], ["YouTube", "MyMusic5"], ["Published 2026-03-21"]]),
+        "Projects & Feeds · YouTube & MyMusic5 · Published 2026-03-21");
+    assert.equal(formatMetadata([["Playground", "ADSB"], ["NAS", "CYCU", "NAS"], ["鋼琴", "ピアノ"], ["tag-a", "tag-b"]]),
+        "Playground & ADSB · NAS & CYCU · 鋼琴 & ピアノ · tag-a & tag-b");
+    assert.equal(formatMetadata([[], [""], ["Local content"], ["Published"]]), "Local content · Published");
+    assert.equal(formatMetadata([["Projects"], ["YouTube"]]), "Projects · YouTube");
+    assert.equal(formatMetadata([["same"], ["same"]]), "same · same");
+    assert.equal(formatMetadata([]), "");
+});
 
 test("every translation preserves parameters and supplies the plural categories of its language", () => {
     for (const locale of locales) {

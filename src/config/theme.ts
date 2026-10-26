@@ -7,6 +7,8 @@ export const themes = {
         line: "#dcded5",
         subtle: "#eeeee7",
         field: "#fcfcf8",
+        "highlight-background": "#174b8a",
+        "highlight-text": "#ffffff",
     },
     dark: {
         background: "#1d1e1b",
@@ -16,6 +18,8 @@ export const themes = {
         line: "#3b3e35",
         subtle: "#272a23",
         field: "#22251f",
+        "highlight-background": "#ffe066",
+        "highlight-text": "#171b20",
     },
 } as const;
 
@@ -25,6 +29,8 @@ const printTheme = {
     muted: "#444",
     accent: "#222",
     line: "#ccc",
+    "highlight-background": "#fff",
+    "highlight-text": "#111",
 };
 
 function variables(colors: Record<string, string>) {

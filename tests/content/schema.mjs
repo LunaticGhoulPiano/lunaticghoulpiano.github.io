@@ -85,7 +85,7 @@ test("duplicate IDs, reserved routes, mounts, references and public references t
         second.id = `${defaultLocale}/second`;
         second.data.itemId = "second";
         assert.throws(() => validateEntries([base, second]), /Duplicate content route/);
-        for (const path of ["/projects/", "/blog/tags/example/", "/blog/categories/example/"]) {
+        for (const path of ["/projects/", "/search/", "/blog/"]) {
             second.data.entry.path = path;
             second.data.href = localizedPath(path, defaultLocale);
             assert.throws(() => validateEntries([second]), /Reserved/);
@@ -183,22 +183,28 @@ test("content scans are shared per root and invalidated after changes, including
     });
 });
 
-test("taxonomy route changes propagate to links, generated pages and reserved routes", async () => {
-    const original = routes.tags.path;
-    routes.tags.path = "topics";
+test("taxonomy filters follow the search route without generating or reserving standalone pages", async () => {
+    const original = routes.search.path;
+    routes.search.path = "lookup";
     try {
         await withTemporaryDirectory(async (root) => {
             await writeItem(root, configuration("sample", undefined, { tags: ["framework"] }));
             const items = await discoverContent(root);
-            const path = localizedPath("topics/framework", defaultLocale);
-            assert.equal(taxonomyPath("tag", "framework", defaultLocale), path);
+            const path = localizedPath("lookup", defaultLocale);
+            assert.equal(taxonomyPath("tag", "framework", defaultLocale), path + "?tag=framework");
             assert.ok(getPageEntries(items).some((page) => page.params.path === path.slice(1, -1)));
-            items[0].data.entry.path = "/topics/other/";
-            items[0].data.href = localizedPath("topics/other", defaultLocale);
+            assert.equal(getPageEntries(items).some((page) => page.props.kind === "taxonomy"), false);
+            items[0].data.entry.path = "/lookup/";
+            items[0].data.href = path;
             assert.throws(() => validateEntries(items), /Reserved/);
+            for (const free of ["/tags/example/", "/categories/example/"]) {
+                items[0].data.entry.path = free;
+                items[0].data.href = localizedPath(free, defaultLocale);
+                assert.doesNotThrow(() => validateEntries(items));
+            }
         });
     }
     finally {
-        routes.tags.path = original;
+        routes.search.path = original;
     }
 });

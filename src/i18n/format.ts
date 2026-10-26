@@ -4,6 +4,10 @@ export function countFormatter(locale: string) {
         : number.format(typeof value === "string" ? BigInt(value) : value);
 }
 
+export function formatMetadata(groups: readonly (readonly string[])[]) {
+    return groups.map((values) => [...new Set(values)].filter(Boolean).join(" & ")).filter(Boolean).join(" · ");
+}
+
 export type PluralMessage = Partial<Record<Intl.LDMLPluralRule, string>> & {
     other: string;
 };

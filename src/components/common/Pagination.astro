@@ -22,11 +22,13 @@ const copy = useMessages(locale).pagination;
     data-status-label={copy.status}
     hidden
 >
-    <button type="button" data-page-control="first" aria-label={copy.first}>&lt;&lt;</button>
+    <button type="button" data-page-control="first-page" hidden></button>
+    <span data-page-gap="before" aria-hidden="true" hidden>...</span>
     <button type="button" data-page-control="previous" hidden></button>
     <button type="button" data-page-control="current" aria-current="page">1</button>
     <button type="button" data-page-control="next" hidden></button>
-    <button type="button" data-page-control="last" aria-label={copy.last}>&gt;&gt;</button>
+    <span data-page-gap="after" aria-hidden="true" hidden>...</span>
+    <button type="button" data-page-control="last-page" hidden></button>
     <span class="sr-only" role="status" aria-live="polite" data-page-status></span>
 </nav>
 

@@ -17,6 +17,8 @@ interface ContentSelection {
     locale?: string;
     placement?: string;
     taxonomy?: { kind: Taxonomy; value: string };
+    category?: string;
+    tags?: readonly string[];
 }
 
 export function selectContent<T extends ClassifiedItem>(items: readonly T[], selection: ContentSelection = {}) {
@@ -24,6 +26,8 @@ export function selectContent<T extends ClassifiedItem>(items: readonly T[], sel
         ! data.draft
         && (! selection.locale || data.locale === selection.locale)
         && (! selection.placement || data.placements.includes(selection.placement))
+        && (! selection.category || data.category === selection.category)
+        && (! selection.tags || selection.tags.every((tag) => data.tags.includes(tag)))
         && (! selection.taxonomy || taxonomyValues(data, selection.taxonomy.kind).includes(selection.taxonomy.value)));
 }
 
@@ -37,7 +41,7 @@ export function taxonomyName(taxonomy: Taxonomy, value: string, locale: Locale) 
 
 export function taxonomyValues(data: { tags: readonly string[]; category: string }, taxonomy: Taxonomy): readonly string[] {
     const value = data[taxonomies[taxonomy].field];
-    return typeof value === "string" ? [value] : value;
+    return typeof value === "string" ? (value ? [value] : []) : value;
 }
 
 interface TaxonomyQuery {

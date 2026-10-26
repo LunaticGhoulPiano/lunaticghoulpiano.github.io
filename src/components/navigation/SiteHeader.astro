@@ -14,6 +14,7 @@ interface Props {
 
 const { locale, route, languagePaths } = Astro.props;
 const copy = useMessages(locale).design;
+const search = useMessages(locale).search;
 ---
 
 <header class="site-header" id="top">
@@ -26,6 +27,10 @@ const copy = useMessages(locale).design;
             </svg>
             <span>{site.brand}</span>
         </a>
+        <form class="global-search search-field" role="search" method="get" action={getRoutePath("search", locale)} data-global-search data-locale={locale}>
+            <label class="sr-only" for="global-search">{search.label}</label>
+            <input id="global-search" name="q" type="search" placeholder={search.placeholder} autocomplete="off" />
+        </form>
         <div class="header-tools">
             {route && <LanguageSwitcher locale={locale} languagePaths={languagePaths} />}
             <button
@@ -46,7 +51,7 @@ const copy = useMessages(locale).design;
             </button>
         </div>
         <details class="mobile-menu">
-            <summary>{copy.menu}<span class="menu-symbol" aria-hidden="true">+</span></summary>
+            <summary>{copy.siteIndex}<span class="menu-symbol" aria-hidden="true">+</span></summary>
             <SiteNavigation locale={locale} route={route} />
         </details>
     </div>

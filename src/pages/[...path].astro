@@ -1,10 +1,8 @@
 ---
 import SitePage from "../components/SitePage.astro";
 import Post from "../components/blog/Post.astro";
-import Taxonomy from "../components/common/Taxonomy.astro";
 import { getPageEntries } from "../routing";
 import { getContent, getContentContext } from "../data/contents";
-import { getTaxonomyContext } from "../services/index";
 
 export async function getStaticPaths() {
     return getPageEntries(await getContent());
@@ -20,4 +18,3 @@ const context = item ? getContentContext(item, items) : undefined;
 
 {props.kind === "page" && <SitePage route={props.route} locale={props.locale} />}
 {item?.data.entry.type === "markdown" && context && <Post post={item} context={context} />}
-{props.kind === "taxonomy" && <Taxonomy context={getTaxonomyContext(props.route, props.value, props.locale, items)} />}

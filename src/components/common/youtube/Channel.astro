@@ -18,10 +18,11 @@ const count = countFormatter(languages[locale].formatLocale);
 ---
 
 <div class="youtube-channel">
-    {channel.avatar && <img class="youtube-avatar" src={channel.avatar} alt="" width="64" height="64" />}
     <div class="youtube-identity">
+        {channel.avatar && <img class="youtube-avatar" src={channel.avatar} alt="" width="64" height="64" />}
         <a class="youtube-name" href={`https://www.youtube.com/channel/${channel.id}`}>{channel.title}</a>
     </div>
+    <slot />
 </div>
 <Statistics items={[
     { label: copy.subscribers, value: count(channel.subscribers) },
@@ -31,10 +32,15 @@ const count = countFormatter(languages[locale].formatLocale);
 ]} />
 
 <style>
-    .youtube-channel {
+    .youtube-channel, .youtube-identity {
         display: flex;
         align-items: center;
         gap: 1rem;
+        min-width: 0;
+    }
+
+    .youtube-channel {
+        flex-wrap: wrap;
         margin-top: 1rem;
     }
 
@@ -46,12 +52,13 @@ const count = countFormatter(languages[locale].formatLocale);
     }
 
     .youtube-identity {
-        min-width: 0;
+        flex: 1 1 auto;
     }
 
     .youtube-name {
         font-size: 1.25rem;
         font-weight: 600;
+        overflow-wrap: anywhere;
     }
 
 </style>

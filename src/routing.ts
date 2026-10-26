@@ -1,10 +1,14 @@
-import { routes, getTaxonomyRoutes, type RouteKey } from "./config/routes.ts";
+import { routes, type RouteKey } from "./config/routes.ts";
 import { localizedPath, locales, type Locale } from "./config/locales.ts";
 import type { ContentRecord } from "./data/contents_schema.ts";
 import type { SiteSection } from "./config/navigation.ts";
 import type { Taxonomy } from "./config/content.ts";
-import { selectContent, getTaxonomyIndex } from "./data/taxonomy.ts";
-import { tagSegment } from "./utils/tag_segment.mjs";
+import { selectContent } from "./data/taxonomy.ts";
+import type { TranslationKey } from "./i18n/ui.ts";
+
+export function getRouteTitle(route: string, titles: Record<TranslationKey, string>): string {
+    return Object.hasOwn(routes, route) ? titles[routes[route as RouteKey].title] : route;
+}
 
 export function getRoutePath(route: RouteKey, locale: Locale): string {
     return localizedPath(routes[route].path, locale);
@@ -22,16 +26,10 @@ export function categoryPath(category: string, locale: Locale, placement?: strin
     return taxonomyPath("category", category, locale, placement);
 }
 
-export function taxonomyIndexPath(kind: Taxonomy, locale: Locale, placement?: string) {
-    const mounts = getTaxonomyRoutes().filter((mount) => mount.kind === kind);
-    const mount = mounts.find((mount) => mount.placement === placement) ?? mounts.find((mount) => ! mount.placement);
-    if (! mount) throw new Error(`Missing taxonomy route: ${kind} (${placement ?? "all"})`);
-    return getRoutePath(mount.route, locale);
-}
-
 export function taxonomyPath(taxonomy: Taxonomy, value: string, locale: Locale, placement?: string) {
-    const segment = taxonomy === "tag" ? tagSegment(value) : value;
-    return `${taxonomyIndexPath(taxonomy, locale, placement)}${segment}/`;
+    const parameters = new URLSearchParams({ [taxonomy]: value });
+    if (placement) parameters.set("section", placement);
+    return `${getRoutePath("search", locale)}?${parameters}`;
 }
 
 function pageEntry<T>(path: string, props: T) {
@@ -47,10 +45,7 @@ export function getPageEntries(items: readonly ContentRecord[]) {
     ]);
     const entries = published.filter((item) => item.data.entry.type === "markdown")
         .map((item) => pageEntry(contentPath(item), { kind: "content" as const, id: item.id }));
-    const taxonomyPages = getTaxonomyRoutes().flatMap(({ route, kind, placement }) => locales.flatMap((locale) =>
-        getTaxonomyIndex(published, { kind, locale, placement }).map(({ value }) =>
-            pageEntry(taxonomyPath(kind, value, locale, placement), { kind: "taxonomy" as const, route, value, locale }))));
-    return [...pages, ...entries, ...taxonomyPages];
+    return [...pages, ...entries];
 }
 
 export function getSectionRoutes(section: SiteSection) {

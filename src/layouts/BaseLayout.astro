@@ -7,6 +7,9 @@ import { useTranslations } from "../i18n/ui";
 import SiteHeader from "../components/navigation/SiteHeader.astro";
 import SiteFooter from "../components/common/SiteFooter.astro";
 import SiteNavigation from "../components/navigation/SiteNavigation.astro";
+import Discovery from "../components/common/Discovery.astro";
+import { discoveryIndex } from "../data/search";
+import { getSearchDocuments } from "../services/search";
 import themeScript from "../scripts/theme.js?raw";
 import "../styles/global.css";
 
@@ -22,10 +25,12 @@ interface Props {
     noindex?: boolean;
     pagePath?: string;
     languagePaths?: Partial<Record<Locale, string>>;
+    filters?: { category?: string; tags?: string[] };
 }
 
-const { title, locale, description, route, noindex = false, pagePath, languagePaths, article } = Astro.props;
+const { title, locale, description, route, noindex = false, pagePath, languagePaths, article, filters } = Astro.props;
 const t = useTranslations(locale);
+const discovery = discoveryIndex(await getSearchDocuments(), locale);
 const pageTitle = route === "profile" ? site.name : `${title} | ${site.name}`;
 const canonical =
     pagePath || route
@@ -82,10 +87,15 @@ const translations =
             <aside class="site-rail">
                 <SiteNavigation locale={locale} route={route} />
             </aside>
+            <Discovery locale={locale} index={discovery} filters={filters} />
             <main class="main-content" id="main-content" tabindex="-1">
                 <slot />
             </main>
         </div>
         <SiteFooter locale={locale} />
+        <script>
+            import { initializeSearch } from "../scripts/search";
+            initializeSearch();
+        </script>
     </body>
 </html>

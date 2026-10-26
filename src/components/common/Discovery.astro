@@ -1,0 +1,57 @@
+---
+import type { Locale } from "../../config/locales";
+import { getRoutePath } from "../../routing";
+import { useMessages } from "../../i18n/ui";
+import type { discoveryIndex } from "../../data/search";
+
+interface Props {
+    locale: Locale;
+    index: ReturnType<typeof discoveryIndex>;
+    filters?: { category?: string; tags?: string[] };
+}
+
+const { locale, index, filters = {} } = Astro.props;
+const { search: copy, content } = useMessages(locale);
+const groups = [
+    { kind: "category", label: copy.categories, placeholder: content.searchCategories, empty: content.noCategoryResults, entries: index.categories },
+    { kind: "tag", label: copy.tags, placeholder: content.searchTags, empty: content.noTagResults, entries: index.tags },
+] as const;
+---
+
+<aside class="discovery-rail" data-discovery data-locale={locale} data-default-filters={JSON.stringify(filters)} data-copy={JSON.stringify(copy)}>
+    <form method="get" action={getRoutePath("search", locale)} data-discovery-form>
+        {groups.map(({ kind, label, placeholder, empty, entries }) => (
+            <details class="discovery-group" open data-filter-group={kind}>
+                <summary>
+                    <span>{label}</span>
+                    <span class="filter-summary" data-category-summary={kind === "category" ? "" : undefined} data-tags-summary={kind === "tag" ? "" : undefined}>
+                        {kind === "category" ? copy.allCategories : ""}
+                    </span>
+                </summary>
+                <div class="discovery-body">
+                    <label class="search-field discovery-search">
+                        <span class="sr-only">{placeholder}</span>
+                        <input type="search" placeholder={placeholder} data-filter-search autocomplete="off" />
+                    </label>
+                    <fieldset class="discovery-options">
+                        <legend class="sr-only">{label}</legend>
+                        {kind === "category" && (
+                            <label class="discovery-option"><input type="radio" name="category" value="" checked={! filters.category} /><span>{copy.allCategories}</span></label>
+                        )}
+                        {entries.map(({ value, title, count }) => (
+                            <label class="discovery-option" data-filter-option data-filter-label={title}>
+                                <input type={kind === "category" ? "radio" : "checkbox"} name={kind} value={value} checked={kind === "category" ? value === filters.category : filters.tags?.includes(value)} />
+                                <span data-filter-title>{title}</span><span class="taxonomy-count">{count}</span>
+                            </label>
+                        ))}
+                    </fieldset>
+                    <p class="discovery-empty" data-filter-empty hidden>{empty}</p>
+                    {kind === "tag" && (
+                        <div class="discovery-links"><button type="button" class="text-link" data-clear-tags>{copy.clearTags}</button></div>
+                    )}
+                </div>
+            </details>
+        ))}
+        <noscript><button type="submit">{copy.apply}</button></noscript>
+    </form>
+</aside>

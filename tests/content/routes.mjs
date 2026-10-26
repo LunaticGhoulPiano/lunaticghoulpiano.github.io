@@ -23,6 +23,7 @@ import { messages } from "../../src/i18n/ui.ts";
 import { routes } from "../../src/config/routes.ts";
 import { projectSources } from "../../src/services/projects/index.ts";
 import { feedSources } from "../../src/services/feeds/index.ts";
+import { createSearchIndex, readSearchState } from "../../src/data/search.ts";
 
 function decodeHtml(value) {
     const entities = {
@@ -123,7 +124,10 @@ test("isolated builds cover every configured language plus an additional locale,
         ];
         const youtubeData = await fetchYoutubeSnapshot(fixtureKey, youtubeNow, youtubeFetch({ count: 16, playlists: youtubePlaylists }));
         await writeFile(join(generated, youtubePolicy.snapshotFilename), JSON.stringify(youtubeData.snapshot), "utf8");
-        const mymusic5Data = await fetchMymusic5Snapshot(mymusic5Now, mymusic5Fetch({ count: 16 }));
+        const mymusic5Data = await fetchMymusic5Snapshot(mymusic5Now, mymusic5Fetch({
+            count: 16,
+            transformSheet: (sheet) => ({ ...sheet, level: sheet.sheetId === 16 ? 4 : sheet.level }),
+        }));
         await writeFile(join(generated, mymusic5Policy.snapshotFilename), JSON.stringify({
             ...mymusic5Data.snapshot,
             sheets: mymusic5Data.snapshot.sheets.toReversed(),
@@ -190,6 +194,35 @@ test("isolated builds cover every configured language plus an additional locale,
         const first = build();
         assert.equal(first.status, 0, first.stdout + first.stderr);
         const output = join(fixtureRoot, "dist");
+        const searchDocuments = JSON.parse(await readFile(join(output, "search-index.json"), "utf8"));
+        const searchResults = createSearchIndex(searchDocuments)(readSearchState(new URLSearchParams()), defaultLocale);
+        const indexed = searchResults.map(({ document }) => document);
+        for (const [prefix, sources] of [["content:", []], ["github:", ["GitHub"]], ["youtube:", ["YouTube"]], ["mymusic5:", ["MyMusic5"]]]) {
+            const records = indexed.filter((item) => item.id.startsWith(prefix));
+            assert.ok(records.length > 0);
+            for (const { data } of records) {
+                assert.deepEqual(data.sources, sources);
+                assert.equal(Object.hasOwn(data, "source"), false);
+            }
+        }
+        assert.equal(indexed.filter((item) => item.id.startsWith("youtube:video:")).length, youtubeData.snapshot.videos.length);
+        assert.equal(indexed.filter((item) => item.id.startsWith("mymusic5:sheet:")).length, mymusic5Data.snapshot.sheets.length);
+        const expertSearch = createSearchIndex(searchDocuments);
+        const expertQuery = readSearchState(new URLSearchParams({ q: "Expert", source: "external:MyMusic5" }));
+        assert.deepEqual(expertSearch(expertQuery, defaultLocale).map(({ document }) => document.id), ["mymusic5:sheet:16"]);
+        const expert = indexed.find((item) => item.id === "mymusic5:sheet:16");
+        for (const locale of testLocales) assert.ok(expert.data.body.includes(testMessages[locale].mymusic5.expert));
+        assert.equal(indexed.filter((item) => item.id.startsWith("github:repository:")).length, github.snapshots.repositories.data.length);
+        assert.equal(indexed.filter((item) => item.id.startsWith("youtube:video:") && item.data.placements.includes("feeds")).length, youtubeFeedVideoLimit);
+        assert.equal(indexed.filter((item) => item.id.startsWith("mymusic5:sheet:") && item.data.placements.includes("feeds")).length, mymusic5FeedSheetLimit);
+        for (const video of youtubeData.snapshot.videos) {
+            assert.equal(indexed.find((item) => item.id === `youtube:video:${video.id}`).data.date, video.publishedAt);
+        }
+        for (const sheet of mymusic5Data.snapshot.sheets) {
+            const item = indexed.find((item) => item.id === `mymusic5:sheet:${sheet.sheetId}`);
+            assert.equal(item.data.date, sheet.createdAt);
+            assert.equal(item.data.updated, sheet.updatedAt);
+        }
         const page = (path, locale) => readFile(join(output, localizedPath(path, locale).slice(1), "index.html"), "utf8");
         const sitemap = await readFile(join(output, "sitemap.xml"), "utf8");
         for (const locale of testLocales) {
@@ -237,6 +270,13 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.ok(youtube.includes(`aria-label="${copy.timeline.first.replaceAll("&", "&amp;").replaceAll('"', "&quot;")}"`));
             assert.doesNotMatch(youtube, /PL_private|Hidden playlist|fixture_youtube_key/);
             assert.equal([...youtube.matchAll(/data-video-id=/g)].length, youtubeData.snapshot.videos.length);
+            const videoSearch = attributes(youtube.match(/<input\b[^>]*id="youtube-search"[^>]*>/)[0]);
+            assert.equal(videoSearch.placeholder, copy.youtube.searchPlaceholder);
+            assert.equal(videoSearch["aria-controls"], "youtube-timeline");
+            const videoSearchRows = [...youtube.matchAll(/<li\b[^>]*data-video-id="[^"]+"[^>]*>/g)].map((match) => attributes(match[0]));
+            for (const video of youtubeData.snapshot.videos) {
+                assert.equal(videoSearchRows.find((row) => row["data-video-id"] === video.id)["data-search"], `${video.title} ${video.description}`);
+            }
             const youtubeFeed = overview.match(/<section\b[^>]*data-source="youtube"[\s\S]*?<\/section>/)[0];
             const youtubeFeedTitle = formatMessage(copy.youtube.latestVideos, { count: youtubeFeedVideoLimit }, testLanguages[locale].formatLocale);
             assert.deepEqual(headings(youtubeFeed, 3), [youtubeFeedTitle]);
@@ -356,7 +396,7 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.doesNotMatch(projects, /data-activity-category/);
             assert.doesNotMatch(githubProjects, /data-youtube-browser|data-activity-category/);
             for (const html of [overview, youtubeFeedPage]) {
-                assert.doesNotMatch(html, /data-youtube-browser|data-youtube-sort|data-youtube-filter/);
+                assert.doesNotMatch(html, /data-youtube-browser|data-youtube-sort|data-youtube-filter|data-list-search/);
                 assert.ok(html.includes('id="youtube-feed-timeline"'));
                 assert.deepEqual([...html.matchAll(/data-video-id="([^"]+)"/g)].map((match) => match[1]),
                     [15, 14, 13, 12, 11, 10, 9, 8, 7, 6].map(fixtureVideoId));
@@ -372,14 +412,22 @@ test("isolated builds cover every configured language plus an additional locale,
                 mymusic5Data.snapshot.sheets.map((sheet) => sheet.sheetId));
             assert.match(mymusic5Projects, /class="sheet-identity"/);
             assert.match(mymusic5Projects, /class="statistics"/);
+            const sheetSearch = attributes(mymusic5Projects.match(/<input\b[^>]*id="mymusic5-search"[^>]*>/)[0]);
+            assert.equal(sheetSearch.placeholder, copy.mymusic5.searchPlaceholder);
+            assert.equal(sheetSearch["aria-controls"], "mymusic5-sheets");
+            const searchableSheet = attributes(projectSheets[0])["data-search"];
+            const expertSheet = mymusic5Data.snapshot.sheets[0];
+            for (const value of [expertSheet.title, expertSheet.metaSong, expertSheet.metaMusician, expertSheet.metaMaker, expertSheet.description, copy.mymusic5.expert, "expert"]) {
+                assert.ok(searchableSheet.includes(value), value);
+            }
             for (const html of [mymusic5Feed, main(mymusic5FeedPage)]) {
                 const title = formatMessage(copy.mymusic5.latestSheets, { count: mymusic5FeedSheetLimit }, testLanguages[locale].formatLocale);
                 assert.equal(headings(html, 3)[0], title);
-                assert.deepEqual(sheetRows(html), projectSheets.slice(0, 10));
+                assert.deepEqual(sheetRows(html), projectSheets.slice(0, 10).map((row) => row.replace(/ data-search="[^"]*"/g, "")));
                 assert.equal(sheetRows(html).length, 10);
                 assert.ok(html.includes('id="mymusic5-feed-timeline"'));
                 assert.ok(html.includes(`data-visible-items="${mymusic5FeedTimelineSize}"`));
-                assert.doesNotMatch(html, /sheet-author|sheet-identity|class="statistics"|data-youtube-sort|data-youtube-filter/);
+                assert.doesNotMatch(html, /sheet-author|sheet-identity|class="statistics"|data-youtube-sort|data-youtube-filter|data-list-search|data-search=/);
                 assert.equal(text(html).includes(mymusic5Data.snapshot.author.name), false);
                 const firstSheet = mymusic5Data.snapshot.sheets[0];
                 assert.ok(html.includes(`href="${mymusic5Url(mymusic5Data.snapshot.author.artistUrl, firstSheet.sheetId)}"`));
@@ -400,7 +448,7 @@ test("isolated builds cover every configured language plus an additional locale,
                 const active = [...navigation.matchAll(/<a\b[^>]*>/g)]
                     .map((match) => attributes(match[0]))
                     .filter((link) => link.class?.split(/\s+/).includes("is-active"));
-                assert.deepEqual(active.map((link) => link.href), [localizedPath(routes[section].path, locale)]);
+                assert.deepEqual(active.map((link) => link.href), section ? [localizedPath(routes[section].path, locale)] : []);
                 assert.equal(html.includes('class="profile-layout"'), section === "profile");
                 assert.doesNotMatch(html, /page-location/);
                 assert.equal(attributes(html.match(/<html\b[^>]*>/)[0]).lang, testLanguages[locale].htmlLang);
@@ -453,13 +501,11 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.equal(sitemap.includes(`<loc>${new URL(localizedPath("", locale), site.url).href}</loc>`), false);
             assert.equal(sitemap.split(`<loc>${new URL(localizedPath("profile", locale), site.url).href}</loc>`).length - 1, 1);
 
-            const tag = await page("blog/tags/validation", locale);
-            for (const html of [tag, blogPage]) {
-                assert.deepEqual(headings(main(html), 2).sort(), [
-                    `Fixture ${pairedSlugs.get(locale)}`,
-                    `Fixture ${standaloneSlugs.get(locale)}`,
-                ].sort());
-            }
+            assert.deepEqual(headings(main(blogPage), 2).sort(), [
+                `Fixture ${pairedSlugs.get(locale)}`,
+                `Fixture ${standaloneSlugs.get(locale)}`,
+            ].sort());
+            assert.ok(blogPage.includes(`href="${localizedPath("search", locale)}?tag=validation&amp;section=blog"`));
         }
         const files = await readdir(output, {
             recursive: true,

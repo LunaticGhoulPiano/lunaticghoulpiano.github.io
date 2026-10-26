@@ -7,6 +7,7 @@ import Videos from "../common/youtube/Videos.astro";
 import TimelineViewport from "../common/TimelineViewport.astro";
 import { youtubeProjectsLayout, youtubePlaylistNavigation, youtubeVideoSortOptions } from "../../config/collections";
 import Carousel from "../common/Carousel.astro";
+import SearchField from "../common/SearchField.astro";
 
 interface Props {
     locale: Locale;
@@ -22,9 +23,13 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
 ---
 
 {channel ? (
-    <>
-        <Channel locale={locale} channel={channel} />
-        <div class="youtube-browser" data-youtube-browser data-carousel-hover style={{
+    <div data-youtube-browser data-carousel-hover>
+        <Channel locale={locale} channel={channel}>
+            <div class="profile-search" data-list-search-controls hidden>
+                <SearchField id="youtube-search" label={copy.search} placeholder={copy.searchPlaceholder} aria-controls="youtube-timeline" data-list-search />
+            </div>
+        </Channel>
+        <div class="youtube-browser" style={{
             "--youtube-wide-item-height": `${youtubeProjectsLayout.itemHeight}px`,
             "--youtube-mobile-item-height": `${youtubeProjectsLayout.mobileItemHeight}px`,
             "--youtube-page-size": youtubeProjectsLayout.visibleItems,
@@ -68,11 +73,11 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
                 height="calc(var(--youtube-item-height) * var(--youtube-page-size))"
                 chronological={false}
             >
-                <Videos locale={locale} videos={rows} visibleIds={uploads} />
-                <p class="empty-message" data-youtube-empty data-all-label={copy.noVideos} data-playlist-label={copy.emptyPlaylist} role="status" hidden={videos.length > 0}>{copy.noVideos}</p>
+                <Videos locale={locale} videos={rows} visibleIds={uploads} searchable />
+                <p class="empty-message" data-youtube-empty data-all-label={copy.noVideos} data-playlist-label={copy.emptyPlaylist} data-search-label={copy.noResults} role="status" hidden={videos.length > 0}>{copy.noVideos}</p>
             </TimelineViewport>
         </div>
-    </>
+    </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}
 
 <style>

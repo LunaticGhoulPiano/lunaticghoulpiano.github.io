@@ -15,6 +15,21 @@
     display: none !important;
 }
 
+mark[data-search-highlight] {
+    background: var(--highlight-background);
+    color: var(--highlight-text);
+    border-radius: 0.15em;
+    padding: 0;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+@media print {
+    mark[data-search-highlight] {
+        text-decoration: underline;
+    }
+}
+
 html {
     scroll-padding-top: 2rem;
 }
@@ -93,7 +108,8 @@ h3 {
 
 .header-inner {
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     justify-content: space-between;
     align-items: center;
     gap: 2rem;
@@ -178,6 +194,127 @@ h3 {
     gap: clamp(2.5rem, 5vw, 5.5rem);
     flex: 1;
     padding-block: 3.25rem 5rem;
+}
+
+.global-search {
+    width: min(100%, 30rem);
+    justify-self: center;
+    margin: 0;
+}
+
+.discovery-rail {
+    min-width: 0;
+    font-size: 0.875rem;
+}
+
+.discovery-group {
+    border-bottom: 1px solid var(--line);
+    padding-block: 0.6rem 1rem;
+}
+
+.discovery-group summary {
+    min-height: 44px;
+    overflow-wrap: anywhere;
+}
+
+.filter-summary {
+    display: block;
+    padding-inline-start: 1rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.discovery-body {
+    padding-block: 0.5rem;
+}
+
+.discovery-body fieldset {
+    padding: 0;
+    margin: 0 0 0.75rem;
+    border: 0;
+    min-width: 0;
+    max-height: 18rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+}
+
+.discovery-option {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: 36px;
+    padding-block: 0.3rem;
+    cursor: pointer;
+}
+
+.discovery-option > span:first-of-type {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.discovery-option input {
+    flex-shrink: 0;
+    accent-color: var(--accent);
+}
+
+.taxonomy-count {
+    margin-inline-start: auto;
+    color: var(--muted);
+    flex-shrink: 0;
+}
+
+.discovery-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    justify-content: space-between;
+}
+
+.discovery-links button {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.discovery-search {
+    margin-bottom: 0.75rem;
+}
+
+.search-summary, .search-result-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.search-summary {
+    justify-content: space-between;
+    overflow-wrap: anywhere;
+}
+
+.search-result-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    min-width: 0;
+}
+
+.search-result-controls input, .search-result-controls select {
+    font: inherit;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 40px;
+    border: 1px solid var(--line);
+    background: var(--field);
+    color: var(--text);
+    padding: 0.35rem;
+}
+
+[data-search-results] .post-list li {
+    overflow-wrap: anywhere;
 }
 
 .site-rail {
@@ -403,6 +540,18 @@ h3 {
     padding-inline: 1rem;
     background: var(--field);
     border: 1px solid var(--line);
+}
+
+.profile-search {
+    flex: 0 1 22rem;
+    min-width: 0;
+    margin-inline-start: auto;
+}
+
+@media (max-width: 46rem) {
+    .profile-search {
+        flex-basis: 100%;
+    }
 }
 
 .search-field svg {
@@ -651,11 +800,6 @@ h3 {
         width: calc(100% - 3rem);
     }
 
-    .site-frame {
-        grid-template-columns: 145px minmax(0, 1fr);
-        gap: 2.5rem;
-    }
-
 }
 
 @media (max-width: 46rem) {
@@ -664,15 +808,7 @@ h3 {
     }
 
     .header-inner {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 0.65rem 1rem;
-        padding-block: 1.25rem 0.6rem;
         min-height: auto;
-    }
-
-    .brand {
-        grid-column: 1 / -1;
     }
 
     .header-tools {
@@ -685,31 +821,6 @@ h3 {
         width: 40px;
         height: 44px;
         border: 0;
-    }
-
-    .site-rail {
-        display: none;
-    }
-
-    .site-frame {
-        display: block;
-        padding-block: 2rem 3rem;
-    }
-
-    .mobile-menu {
-        display: block;
-        grid-column: 1;
-        grid-row: 2;
-    }
-
-    .mobile-menu summary {
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        min-height: 44px;
-        font-size: 0.875rem;
-        width: fit-content;
-        list-style: none;
     }
 
     .mobile-menu summary::-webkit-details-marker {
@@ -726,13 +837,8 @@ h3 {
     }
 
     .mobile-menu .site-nav {
-        position: absolute;
         z-index: 10;
         inset: 100% 0 auto;
-        padding: 1.5rem;
-        background: var(--field);
-        border: 1px solid var(--line);
-        box-shadow: 0 12px 20px #0000000d;
     }
 
     .content-section {
@@ -822,7 +928,7 @@ h3 {
     line-height: 1.8;
 }
 
-.post-list, .tag-index {
+.post-list {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -856,27 +962,10 @@ h3 {
     font-size: 0.875rem;
 }
 
-.tag-list a, .tag-index a {
+.tag-list a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
-}
-
-.tag-index li {
-    display: flex;
-    align-items: baseline;
-    gap: 1rem;
-    padding-block: 0.75rem;
-    border-bottom: 1px solid var(--line);
-}
-
-.tag-index a {
-    min-width: 0;
-    overflow-wrap: anywhere;
-}
-
-.tag-index li > span {
-    flex-shrink: 0;
 }
 
 .article-toc {
@@ -971,6 +1060,8 @@ h3 {
 
 .pagination {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
     gap: 0.5rem;
     margin-block: 1.75rem;
@@ -1212,4 +1303,105 @@ h3 {
     .carousel-track {
         --carousel-columns: 1;
     }
+}
+
+@media (min-width: 94rem) {
+    .container {
+        width: min(100% - 5rem, 94rem);
+    }
+
+    .site-frame {
+        grid-template-columns: 180px minmax(0, 1fr) 224px;
+        column-gap: 2rem;
+        align-items: start;
+    }
+
+    .site-rail { grid-column: 1; grid-row: 1; }
+    .main-content { grid-column: 2; grid-row: 1; }
+    .discovery-rail { grid-column: 3; grid-row: 1; }
+}
+
+@media (max-width: 93.999rem) {
+    .site-frame {
+        row-gap: 2rem;
+    }
+
+    .site-rail { grid-column: 1; grid-row: 1 / span 2; }
+    .discovery-rail { grid-column: 2; grid-row: 1; }
+    .main-content { grid-column: 2; grid-row: 2; }
+
+    .discovery-rail form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .discovery-rail:not([data-ready]) .discovery-body {
+        display: none;
+    }
+}
+
+@media (max-width: 70rem) {
+    .header-inner {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.5rem 0.75rem;
+        padding-block: 1.25rem;
+    }
+
+    .brand { grid-column: 1; grid-row: 1; min-width: 0; }
+    .brand span { overflow-wrap: anywhere; }
+    .header-tools { display: contents; }
+    .language-switcher { grid-column: 1; grid-row: 2; align-self: start; }
+    .theme-toggle { grid-column: 2; grid-row: 1; justify-self: end; }
+    .global-search { grid-column: 1 / -1; grid-row: 3; width: 100%; }
+
+    .mobile-menu {
+        display: block;
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: end;
+    }
+
+    .mobile-menu[open] {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+    }
+
+    .mobile-menu summary {
+        display: flex;
+        justify-content: end;
+        align-items: center;
+        gap: 0.7rem;
+        min-height: 44px;
+        width: auto;
+        list-style: none;
+        font-size: 0.875rem;
+    }
+
+    .mobile-menu .site-nav {
+        position: static;
+        padding: 1rem 0;
+        border: 0;
+        box-shadow: none;
+        background: none;
+    }
+
+    .site-frame {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        padding-block: 1rem 3rem;
+    }
+
+    .site-rail { display: none; }
+    .main-content, .discovery-rail { width: 100%; }
+    .discovery-rail form { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .discovery-option { min-height: 44px; }
+    .filter-summary { display: inline; }
+}
+
+@media print {
+    .discovery-rail, .global-search, .search-result-controls { display: none; }
+    .site-frame { display: block; }
 }

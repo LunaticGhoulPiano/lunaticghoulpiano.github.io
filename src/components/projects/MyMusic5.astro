@@ -7,6 +7,7 @@ import { useMessages } from "../../i18n/ui";
 import type { projectSources } from "../../services/projects/index";
 import Sheets from "../common/mymusic5/Sheets.astro";
 import Statistics from "../common/Statistics.astro";
+import SearchField from "../common/SearchField.astro";
 
 interface Props {
     locale: Locale;
@@ -20,6 +21,7 @@ const copy = messages.mymusic5;
 const formatLocale = languages[locale].formatLocale;
 const number = new Intl.NumberFormat(formatLocale);
 const levels = mymusic5DifficultyLabels(copy);
+const searchable = Boolean(author && sheets.length > 0);
 const difficultyCounts = new Map<number | null, number>(Object.keys(levels).map((level) => [Number(level), 0]));
 for (const { level } of sheets) difficultyCounts.set(level, (difficultyCounts.get(level) ?? 0) + 1);
 const statistics = [
@@ -34,12 +36,17 @@ const statistics = [
 ---
 
 {notice ? (
-    <div class="mymusic5-catalog">
+    <div class="mymusic5-catalog" data-sheet-browser={searchable || undefined}>
         <div class="sheet-author">
             {author && (
                 <div class="sheet-identity">
                     {author.profileUrl && <img src={author.profileUrl} alt="" width="64" height="64" />}
                     <a href={mymusic5Url(author.artistUrl)}>{author.name}</a>
+                </div>
+            )}
+            {searchable && (
+                <div class="profile-search" data-list-search-controls hidden>
+                    <SearchField id="mymusic5-search" label={copy.search} placeholder={copy.searchPlaceholder} aria-controls="mymusic5-sheets" data-list-search />
                 </div>
             )}
         </div>
@@ -52,7 +59,10 @@ const statistics = [
                 artistUrl={author.artistUrl}
                 sheets={sheets}
                 visibleItems={mymusic5ProjectsLayout.visibleItems}
-            />
+                searchable
+            >
+                <p class="empty-message" data-sheet-empty role="status" hidden>{copy.noResults}</p>
+            </Sheets>
         ) : <p class="empty-message">{copy.noSheets}</p>}
     </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}
@@ -77,9 +87,18 @@ const statistics = [
         flex: none;
     }
 
+    .sheet-identity {
+        flex: 1 1 auto;
+    }
+
     .sheet-identity a {
         font-size: 1.25rem;
         font-weight: 600;
         overflow-wrap: anywhere;
     }
 </style>
+
+<script>
+    import { initializeSheetSearch } from "../../scripts/mymusic5";
+    initializeSheetSearch();
+</script>

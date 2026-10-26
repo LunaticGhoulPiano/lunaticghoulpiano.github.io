@@ -84,7 +84,7 @@ const { item, locale } = Astro.props;
         assert.equal(build.status, 0, build.stdout + build.stderr);
         const output = join(root, "dist");
         const page = (path) => readFile(join(output, localizedPath(path, defaultLocale), "index.html"), "utf8");
-        for (const path of ["/", "/blog/", "/projects/", "/feeds/", "/notes/fixture-article/", "/blog/tags/framework/"]) {
+        for (const path of ["/", "/blog/", "/projects/", "/feeds/", "/notes/fixture-article/", "/search/"]) {
             const css = await styles(await page(path), output);
             assert.match(css, /--fixture-main-style/);
             assert.doesNotMatch(css, /--fixture-demo-style|--fixture-other-style/);
@@ -118,7 +118,7 @@ const { item, locale } = Astro.props;
         assert.ok(projects.includes('href="https://example.test/independent/"'));
         assert.ok((await page("/profile/recent-studying/")).includes('href="/notes/fixture-article/"'));
         assert.ok((await page("/profile/cv/")).includes('href="/notes/fixture-article/"'));
-        assert.ok((await page("/blog/tags/framework/")).includes('href="/games/fixture-demo/"'));
+        assert.match(articleHtml, /href="\/search\/\?tag=framework&amp;section=blog"/);
         const sitemap = await readFile(join(output, "sitemap.xml"), "utf8");
         assert.match(sitemap, /\/docs\/fixture-site\//);
         for (const locale of locales) assert.ok(sitemap.includes(localizedPath("/games/fixture-demo/", locale)));
@@ -159,14 +159,14 @@ const { item, locale } = Astro.props;
             await until("/notes/fixture-article/", (status, body) => status === 200 && body.includes("Updated Markdown fixture"));
             for (const tag of ["C++", "鋼琴", "ピアノ"]) {
                 await until(tagPath(tag, defaultLocale), (status, body) => status === 200
-                    && body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1].trim() === tag);
+                    && body.includes(`name="tag" value="${tag}"`));
             }
             article.tags.push("العربية");
             await writeItem(root, article, {});
             await until(tagPath("العربية", defaultLocale), (status, body) => status === 200 && body.includes("العربية"));
             article.tags = article.tags.filter((tag) => tag !== "ピアノ");
             await writeItem(root, article, {});
-            await until(tagPath("ピアノ", defaultLocale), (status) => status === 404);
+            await until(tagPath("ピアノ", defaultLocale), (status, body) => status === 200 && ! body.includes('name="tag" value="ピアノ"'));
             const added = configuration("fixture-added", { type: "astro", file: "./Added.astro", path: "/games/fixture-added/" });
             const addedDirectory = join(root, "src/contents/fixture-added");
             await mkdir(addedDirectory, { recursive: true });

@@ -6,6 +6,7 @@ import { repositoryColor } from "../../config/theme";
 import { formatSequenceNumber } from "../../utils/numbering";
 import type { Repository } from "../../data/github/schema";
 import Pagination from "../common/Pagination.astro";
+import SearchField from "../common/SearchField.astro";
 
 interface Props {
     locale: Locale;
@@ -20,15 +21,8 @@ const copy = useMessages(locale).design;
 
 <div class="repository-browser" data-repository-browser data-paginated-list data-format-locale={languages[locale].formatLocale}>
     {filterable && (
-        <div class="repository-controls" data-repository-controls hidden>
-            <div class="search-field">
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="1.5" />
-                    <path d="m15 15 5 5" stroke="currentColor" stroke-width="1.5" />
-                </svg>
-                <label class="sr-only" for={`${id}-search`}>{copy.search}</label>
-                <input id={`${id}-search`} type="search" placeholder={copy.searchPlaceholder} autocomplete="off" data-repository-search />
-            </div>
+        <div class="repository-controls" data-list-search-controls hidden>
+            <SearchField id={`${id}-search`} label={copy.search} placeholder={copy.searchPlaceholder} data-list-search />
             <div class="repository-filter-bar">
                 <div class="filter-options" role="group" aria-label={copy.repositoryType}>
                     {(["all", "original", "fork"] as const).map((type) => (
@@ -50,7 +44,7 @@ const copy = useMessages(locale).design;
                 data-page-item
                 data-repository
                 data-type={repository.fork ? "fork" : "original"}
-                data-search={`${repository.name} ${repository.description ?? ""} ${repository.language ?? ""}`.toLowerCase()}
+                data-search={`${repository.name} ${repository.description ?? ""} ${repository.language ?? ""}`}
             >
                 <span class="row-index" data-repository-index aria-hidden="true">{formatSequenceNumber(index + 1, repositories.length)}</span>
                 <div class="repository-content">
@@ -91,27 +85,27 @@ const copy = useMessages(locale).design;
     import { formatMessage } from "../../i18n/format";
     import { paginationFor } from "../../scripts/pagination";
     import { formatSequenceNumber } from "../../utils/numbering";
+    import { createListSearch } from "../../scripts/list_search";
 
     document.querySelectorAll<HTMLElement>("[data-repository-browser]").forEach((browser) => {
-        const controls = browser.querySelector<HTMLElement>("[data-repository-controls]");
-        const search = browser.querySelector<HTMLInputElement>("[data-repository-search]");
+        const input = browser.querySelector<HTMLInputElement>("[data-list-search]");
         const count = browser.querySelector<HTMLElement>("[data-repository-count]");
         const empty = browser.querySelector<HTMLElement>("[data-no-results]");
         const buttons = [...browser.querySelectorAll<HTMLButtonElement>("[data-repository-filter]")];
         const rows = [...browser.querySelectorAll<HTMLElement>("[data-repository]")];
-        if (! controls || ! search || ! count || ! empty) return;
+        if (! input || ! count || ! empty) return;
         const pagination = paginationFor(browser);
         const countMessage = JSON.parse(count.dataset.label!);
 
         let selected = "all";
         const filter = () => {
-            const terms = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
             const matching = rows.filter((row) =>
                 (selected === "all" || row.dataset.type === selected)
-                && terms.every((term) => row.dataset.search?.includes(term)),
+                && search.matches(row),
             );
             matching.forEach((row, index) => {
                 row.querySelector<HTMLElement>("[data-repository-index]")!.textContent = formatSequenceNumber(index + 1, matching.length);
+                search.highlight(row);
             });
             pagination.setItems(matching);
             count.textContent = formatMessage(countMessage, {
@@ -126,8 +120,8 @@ const copy = useMessages(locale).design;
             );
         };
 
-        controls.hidden = false;
-        search.addEventListener("input", filter);
+        const search = createListSearch(browser, rows, filter);
+        filter();
         buttons.forEach((button) =>
             button.addEventListener("click", () => {
                 selected = button.dataset.repositoryFilter ?? "all";
@@ -135,10 +129,9 @@ const copy = useMessages(locale).design;
             }),
         );
         browser.querySelector("[data-clear-filters]")?.addEventListener("click", () => {
-            search.value = "";
             selected = "all";
-            filter();
-            search.focus();
+            search.reset();
+            input.focus();
         });
     });
 </script>

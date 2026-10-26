@@ -12,9 +12,10 @@ interface Props {
     locale: Locale;
     videos: YoutubeSnapshot["videos"];
     visibleIds?: Set<string>;
+    searchable?: boolean;
 }
 
-const { locale, videos, visibleIds } = Astro.props;
+const { locale, videos, visibleIds, searchable = false } = Astro.props;
 const copy = useMessages(locale).youtube;
 const count = countFormatter(languages[locale].formatLocale);
 ---
@@ -24,7 +25,7 @@ const count = countFormatter(languages[locale].formatLocale);
     "--youtube-description-lines": youtubeVideoLayout.descriptionLines,
 }}>
     {videos.map((video) => (
-        <li data-video-id={video.id} data-video-views={video.views} data-video-likes={video.likes} hidden={visibleIds && ! visibleIds.has(video.id)}>
+        <li data-video-id={video.id} data-video-views={video.views} data-video-likes={video.likes} data-search={searchable ? `${video.title} ${video.description}` : undefined} hidden={visibleIds && ! visibleIds.has(video.id)}>
             <time datetime={video.publishedAt}>{video.publishedAt.slice(0, 10)}</time>
             <div>
                 <div class="youtube-video">

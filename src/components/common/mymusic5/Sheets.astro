@@ -2,7 +2,8 @@
 import { languages, type Locale } from "../../../config/locales";
 import { youtubeVideoUrl } from "../../../config/youtube";
 import { mymusic5SheetLayout } from "../../../config/collections";
-import { mymusic5Url, mymusic5DifficultyLabels } from "../../../config/mymusic5";
+import { mymusic5Url } from "../../../config/mymusic5";
+import { mymusic5SheetAttributes, mymusic5SearchText } from "../../../data/mymusic5/content";
 import type { Mymusic5Snapshot } from "../../../data/mymusic5/schema";
 import { useMessages } from "../../../i18n/ui";
 import { displayDate } from "../../../utils/dates";
@@ -17,15 +18,13 @@ interface Props {
     sheets: Mymusic5Snapshot["sheets"];
     visibleItems: number;
     chronological?: boolean;
+    searchable?: boolean;
 }
 
-const { id, label, locale, artistUrl, sheets, visibleItems, chronological = false } = Astro.props;
+const { id, label, locale, artistUrl, sheets, visibleItems, chronological = false, searchable = false } = Astro.props;
 const copy = useMessages(locale).mymusic5;
 const formatLocale = languages[locale].formatLocale;
 const number = new Intl.NumberFormat(formatLocale);
-const levels = mymusic5DifficultyLabels(copy);
-const instruments: Record<string, string> = { "piano-88keys": copy.piano, kalimba: copy.kalimba, "bass-guitar": copy.bass, drum: copy.drums };
-const sheetTypes: Record<string, string> = { "1staff": copy.oneStaff, "2staves": copy.twoStaves, tab: copy.tablature };
 const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
     : new Intl.NumberFormat(formatLocale, { style: "currency", currency: sheet.currency, currencyDisplay: "code" }).format(sheet.price);
 ---
@@ -49,16 +48,9 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
             {sheets.map((sheet, index) => {
                 const url = mymusic5Url(artistUrl, sheet.sheetId);
                 const title = sheet.metaSong || sheet.title;
-                const attributes = [
-                    ...sheet.instruments.map((instrument) => instruments[instrument] ?? instrument),
-                    sheet.level === null ? null : levels[sheet.level] ?? String(sheet.level),
-                    sheet.instrumentation === "solo" ? copy.solo : sheet.instrumentation === "unspecified" ? null : sheet.instrumentation,
-                    sheet.sheetType && (sheetTypes[sheet.sheetType] ?? sheet.sheetType),
-                    sheet.includeChord ? copy.chords : null,
-                    sheet.includeLyrics ? copy.lyrics : null,
-                ].filter(Boolean);
+                const attributes = mymusic5SheetAttributes(sheet, locale);
                 return (
-                    <li data-sheet-id={sheet.sheetId}>
+                    <li data-sheet-id={sheet.sheetId} data-search={searchable ? mymusic5SearchText(sheet) : undefined}>
                         <span class="sheet-number" aria-hidden="true">{formatSequenceNumber(index + 1, sheets.length)}</span>
                         <a class="sheet-cover" href={url} aria-label={title} tabindex="-1">
                             {sheet.thumbnailUrl && <img src={sheet.thumbnailUrl} alt="" width="96" height="139" loading="lazy" decoding="async" />}
@@ -82,6 +74,7 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
                 );
             })}
         </ol>
+        <slot />
     </TimelineViewport>
 </div>
 
