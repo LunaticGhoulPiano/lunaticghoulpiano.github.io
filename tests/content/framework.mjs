@@ -1,30 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cp, mkdir, readFile, readdir, writeFile, unlink } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { setTimeout } from "node:timers/promises";
 import { createServer } from "node:net";
 import { astroArguments } from "../../scripts/astro/run.mjs";
 import { projectRoot } from "../../src/config/runtime.mjs";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { validationEnvironment } from "../../scripts/github/environment.mjs";
-import { configuration, writeItem } from "./fixture.mjs";
+import { configuration, writeItem, copySiteFixture, buildSiteFixture } from "./fixture.mjs";
 import { defaultLocale, localizedPath } from "../../src/config/locales.ts";
 
-test("one item directory publishes Markdown, an interactive Astro page, a direct link and a mounted static site", async () => {
+test("one item directory publishes Markdown, an interactive Astro page, a direct link and a mounted site", async () => {
     await withTemporaryDirectory(async (root) => {
-        for (const directory of ["src", "scripts/astro", "scripts/content"]) {
-            await cp(join(projectRoot, directory), join(root, directory), {
-                recursive: true,
-                filter: (source) => ! [join(projectRoot, "src/data/generated"), join(projectRoot, "src/contents")].includes(source),
-            });
-        }
-        await cp(join(projectRoot, "scripts/runtime.mjs"), join(root, "scripts/runtime.mjs"));
-        await writeFile(join(root, "package.json"), '{"type":"module","private":true}');
+        await copySiteFixture(root);
+        const routeFile = join(root, "src/config/routes.ts");
+        await writeFile(routeFile, (await readFile(routeFile, "utf8")).replace("cv: {", "cv: {\n        content: true,"));
+
         const article = configuration("fixture-article", { type: "markdown", file: "./body.md", path: "/notes/fixture-article/" }, {
-            related: ["fixture-demo", "fixture-static", "fixture-external"],
-            tags: ["framework"], placements: ["blog", "studying"],
+            related: ["fixture-demo", "fixture-site", "fixture-external"],
+            tags: ["framework"], placements: ["blog", "studying", "cv"],
         });
         await writeItem(root, article, {
             "body.md": "## Fixture heading\n\n![Local image](./image.svg)",
@@ -54,16 +50,14 @@ const { item, locale } = Astro.props;
         await writeItem(root, configuration("fixture-external", { type: "link", url: "https://example.test/independent/" }, {
             kind: "documentation", placements: ["projects"],
         }), {});
-        await writeItem(root, configuration("fixture-static", { type: "site", engine: "static", root: "./built", path: "/docs/fixture-static/" }, {
+        await writeItem(root, configuration("fixture-site", { type: "site", root: "./built", path: "/docs/fixture-site/" }, {
             kind: "documentation", placements: ["projects"], tags: ["framework"],
         }), {
             "built/index.html": '<!doctype html><title>Standalone fixture</title><script src="./app.js"></script><a href="./guide/">Guide</a>',
             "built/app.js": 'document.documentElement.dataset.fixture = "mounted";',
             "built/guide/index.html": "<h1>Independent guide</h1>",
         });
-        const build = spawnSync(process.execPath, astroArguments("build", "--root", root), {
-            cwd: projectRoot, encoding: "utf8", timeout: 60_000, env: validationEnvironment(),
-        });
+        const build = buildSiteFixture(root);
         assert.equal(build.status, 0, build.stdout + build.stderr);
         const output = join(root, "dist");
         const page = (path) => readFile(join(output, localizedPath(path, defaultLocale), "index.html"), "utf8");
@@ -79,15 +73,16 @@ const { item, locale } = Astro.props;
         const bundles = [demo, ...await Promise.all(scripts.filter((file) => file.endsWith(".js")).map((file) =>
             readFile(join(output, "_astro", file), "utf8")))];
         assert.ok(bundles.some((code) => code.includes("fixture-counter") && code.includes("click")));
-        assert.match(await page("/docs/fixture-static/guide/"), /Independent guide/);
-        assert.match(await readFile(join(output, "docs/fixture-static/app.js"), "utf8"), /mounted/);
+        assert.match(await page("/docs/fixture-site/guide/"), /Independent guide/);
+        assert.match(await readFile(join(output, "docs/fixture-site/app.js"), "utf8"), /mounted/);
         const projects = await page("/projects/");
         assert.ok(projects.includes('href="/games/fixture-demo/"'));
         assert.ok(projects.includes('href="https://example.test/independent/"'));
         assert.ok((await page("/profile/recent-studying/")).includes('href="/notes/fixture-article/"'));
+        assert.ok((await page("/profile/cv/")).includes('href="/notes/fixture-article/"'));
         assert.ok((await page("/blog/tags/framework/")).includes('href="/games/fixture-demo/"'));
         const sitemap = await readFile(join(output, "sitemap.xml"), "utf8");
-        assert.match(sitemap, /\/docs\/fixture-static\//);
+        assert.match(sitemap, /\/docs\/fixture-site\//);
         assert.doesNotMatch(sitemap, /example\.test\/independent/);
 
         const listener = createServer();
@@ -120,7 +115,7 @@ const { item, locale } = Astro.props;
         }
         try {
             await until("/games/fixture-demo/", (status, body) => status === 200 && body.includes("fixture-counter"));
-            await until("/docs/fixture-static/guide/", (status, body) => status === 200 && body.includes("Independent guide"));
+            await until("/docs/fixture-site/guide/", (status, body) => status === 200 && body.includes("Independent guide"));
             await writeFile(join(root, "src/contents/fixture-article/body.md"), "## Updated Markdown fixture");
             await until("/notes/fixture-article/", (status, body) => status === 200 && body.includes("Updated Markdown fixture"));
             const added = configuration("fixture-added", { type: "astro", file: "./Added.astro", path: "/games/fixture-added/" });

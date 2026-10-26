@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readSnapshotFile } from "../snapshot_file.mjs";
 import { join } from "node:path";
 import { snapshotDirectory } from "../../config/runtime.mjs";
 import { githubPolicy } from "../../config/github.ts";
@@ -8,11 +8,8 @@ export function readSnapshotBundle(
     directory = process.env.GITHUB_SNAPSHOT_DIR ?? snapshotDirectory,
 ) {
     const filename = join(directory, githubPolicy.snapshotFilename);
-    try {
-        return JSON.parse(readFileSync(filename, "utf8"));
-    }
-    catch (error) {
-        console.warn(`[GitHub] Cannot read snapshot bundle at ${filename}: ${error instanceof SyntaxError ? "invalid JSON" : error.code ?? "read failure"}.`);
-        return null;
-    }
+    return readSnapshotFile(filename, {
+        parse: (value) => value,
+        onError: (error) => console.warn(`[GitHub] Cannot read snapshot bundle at ${filename}: ${error instanceof SyntaxError ? "invalid JSON" : error.code ?? "read failure"}.`),
+    });
 }

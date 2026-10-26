@@ -2,7 +2,7 @@
 import { contentRules } from "../../config/content";
 import { render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getContentContext, type ContentEntry } from "../../data/contents";
+import type { getContentContext, ContentEntry } from "../../data/contents";
 import { contentPath, categoryPath, tagPath, getRoutePath } from "../../routing";
 import { tagName } from "../../data/tags";
 import { useMessages } from "../../i18n/ui";
@@ -10,13 +10,13 @@ import { formatSequenceNumber } from "../../utils/numbering";
 
 interface Props {
     post: ContentEntry;
+    context: ReturnType<typeof getContentContext>;
 }
 
-const { post } = Astro.props;
+const { post, context } = Astro.props;
 const { locale } = post.data;
 const copy = useMessages(locale).content;
-const { related, languagePaths } = await getContentContext(post);
-const route = post.data.placements[0] ?? "blog";
+const { related, languagePaths, route } = context;
 const { Content, headings } = await render(post);
 const toc = headings.filter((heading) => (contentRules.tocDepths as readonly number[]).includes(heading.depth));
 ---

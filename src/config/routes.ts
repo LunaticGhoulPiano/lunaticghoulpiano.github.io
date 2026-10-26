@@ -21,6 +21,7 @@ export const routes = {
         description: "description.interests",
     },
     studying: {
+        content: true,
         section: "profile",
         path: "profile/recent-studying",
         title: "route.studying",
@@ -33,6 +34,7 @@ export const routes = {
         description: "description.contact",
     },
     projects: {
+        content: true,
         section: "projects",
         path: "projects",
         title: "route.projects",
@@ -57,6 +59,7 @@ export const routes = {
         description: "description.mymusic5Projects",
     },
     blog: {
+        content: true,
         section: "blog",
         path: "blog",
         title: "route.blog",
@@ -105,10 +108,19 @@ export const routes = {
         path: string;
         title: TranslationKey;
         description: TranslationKey;
+        content?: boolean;
     }
 >;
 
 export type RouteKey = keyof typeof routes;
+
+export type ContentRoute = {
+    [Route in RouteKey]: (typeof routes)[Route] extends { content: true } ? Route : never;
+}[RouteKey];
+
+export function hasContent(route: RouteKey): route is ContentRoute {
+    return "content" in routes[route] && routes[route].content === true;
+}
 
 export type SectionRoute<Section extends SiteSection> = {
     [Route in RouteKey]: (typeof routes)[Route]["section"] extends Section ? Route : never;

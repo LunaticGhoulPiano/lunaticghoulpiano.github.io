@@ -1,10 +1,8 @@
 import { z } from "astro/zod";
-import { dateSchema } from "../../utils/dates.ts";
+import { dateSchema, timestampSchema } from "../../utils/dates.ts";
 import { eventCategories, githubPolicy } from "../../config/github.ts";
 
-export const timestamp = z.iso.datetime({
-    offset: true,
-}).transform((value) => new Date(value).toISOString());
+export const timestamp = timestampSchema;
 export const count = z.number().int().nonnegative();
 export const githubUrl = z.url().refine((value) => {
     const url = new URL(value);

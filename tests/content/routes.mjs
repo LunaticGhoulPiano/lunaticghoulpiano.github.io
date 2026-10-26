@@ -1,4 +1,4 @@
-import { astroArguments } from "../../scripts/astro/run.mjs";
+import { writeItem, copySiteFixture, buildSiteFixture } from "./fixture.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { socialLinks } from "../../src/config/social.ts";
 import { collectionPageSize, githubTimelineCategorySize, githubActivityCategoryLayout, youtubeFeedTimelineSize, youtubeFeedVideoLimit, youtubeVideoSortOptions, mymusic5FeedSheetLimit, mymusic5FeedTimelineSize } from "../../src/config/collections.ts";
@@ -11,12 +11,9 @@ import { fixtureFetch as mymusic5Fetch, fixtureNow as mymusic5Now } from "../mym
 import { formatMessage } from "../../src/i18n/format.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cp, mkdir, readFile, writeFile, readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { projectRoot } from "../../src/config/runtime.mjs";
+import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
 import { createTemporaryDirectory, removeTemporaryDirectory } from "../../scripts/temp_dir.mjs";
-import { spawnSync } from "node:child_process";
-import { validationEnvironment } from "../../scripts/github/environment.mjs";
 import { GithubClient } from "../../scripts/github/client.ts";
 import { fetchGithubSnapshots } from "../../scripts/github/fetch.ts";
 import { fixtureFetch, fixtureLogin, fixtureNow } from "../github/fixture.mjs";
@@ -101,18 +98,7 @@ async function addFixtureLocale(root) {
 test("isolated builds cover every configured language plus an additional locale, translations, drafts and duplicate rejection", async (context) => {
     const fixtureRoot = await createTemporaryDirectory("content_validation_");
     try {
-        const fixtureDirectories = new Set();
-        fixtureDirectories.add(resolve(projectRoot, "src/data/generated"));
-        fixtureDirectories.add(resolve(projectRoot, "src/contents"));
-        await cp(resolve(projectRoot, "src"), join(fixtureRoot, "src"), {
-            recursive: true,
-            filter: (source) => ! fixtureDirectories.has(source),
-        });
-        await cp(resolve(projectRoot, "scripts/astro"), join(fixtureRoot, "scripts/astro"), {
-            recursive: true,
-        });
-        await cp(resolve(projectRoot, "scripts/runtime.mjs"), join(fixtureRoot, "scripts/runtime.mjs"));
-        await cp(resolve(projectRoot, "scripts/content"), join(fixtureRoot, "scripts/content"), { recursive: true });
+        await copySiteFixture(fixtureRoot);
         const extra = await addFixtureLocale(fixtureRoot);
         const testLocales = [...locales, extra.locale];
         const testLanguages = {
@@ -163,20 +149,7 @@ test("isolated builds cover every configured language plus an additional locale,
             ...github.snapshots,
             activity: mixedActivity,
         }), "utf8");
-        await writeFile(
-            join(fixtureRoot, "package.json"),
-            JSON.stringify({
-                private: true,
-                type: "module",
-            }),
-            "utf8",
-        );
-        async function item(directory, config, files = {}) {
-            const target = join(fixtureRoot, "src", "contents", directory);
-            await mkdir(target, { recursive: true });
-            await writeFile(join(target, "configs.json"), JSON.stringify(config));
-            for (const [name, body] of Object.entries(files)) await writeFile(join(target, name), body);
-        }
+        const item = (directory, config, files = {}) => writeItem(fixtureRoot, config, files, directory);
         const localized = (title, entry, extra = {}) => ({
             title, description: "Isolated route validation content.", date: "2026-10-01",
             updated: "2026-10-02", draft: false, entry, ...extra,
@@ -212,17 +185,7 @@ test("isolated builds cover every configured language plus an additional locale,
         await item("fixture-docs", { id: "fixture-docs", kind: "documentation", category: "development", locales: docsLocales });
         await item("fixture-game", { id: "fixture-game", kind: "game", category: "games", locales: gameLocales });
 
-        function build(snapshotDirectory) {
-            const arguments_ = astroArguments("build", "--root", fixtureRoot);
-            return spawnSync(process.execPath, arguments_, {
-                cwd: projectRoot,
-                encoding: "utf8",
-                timeout: 60_000,
-                env: {
-                    ...validationEnvironment(snapshotDirectory),
-                },
-            });
-        }
+        const build = (snapshotDirectory) => buildSiteFixture(fixtureRoot, snapshotDirectory);
 
         const first = build();
         assert.equal(first.status, 0, first.stdout + first.stderr);

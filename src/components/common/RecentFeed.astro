@@ -1,0 +1,24 @@
+---
+import type { Locale } from "../../config/locales";
+import { feedHeadingHeight } from "../../config/collections";
+import { useMessages } from "../../i18n/ui";
+
+interface Props {
+    locale: Locale;
+    title: string;
+    available: boolean;
+    empty: boolean;
+    emptyMessage: string;
+}
+
+const { locale, title, available, empty, emptyMessage } = Astro.props;
+---
+
+{available ? (
+    <div class="recent-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
+        <header class="feed-category-heading">
+            <h3>{title}</h3>
+        </header>
+        {empty ? <p class="empty-message">{emptyMessage}</p> : <slot />}
+    </div>
+) : <p class="empty-message">{useMessages(locale).content.unavailable}</p>}

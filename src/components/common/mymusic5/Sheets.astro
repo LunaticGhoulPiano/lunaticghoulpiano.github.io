@@ -1,7 +1,8 @@
 ---
 import { languages, type Locale } from "../../../config/locales";
+import { youtubeVideoUrl } from "../../../config/youtube";
 import { mymusic5SheetLayout } from "../../../config/collections";
-import { mymusic5Url } from "../../../config/mymusic5";
+import { mymusic5Url, mymusic5DifficultyLabels } from "../../../config/mymusic5";
 import type { Mymusic5Snapshot } from "../../../data/mymusic5/schema";
 import { useMessages } from "../../../i18n/ui";
 import { displayDate } from "../../../utils/dates";
@@ -22,7 +23,7 @@ const { id, label, locale, artistUrl, sheets, visibleItems, chronological = fals
 const copy = useMessages(locale).mymusic5;
 const formatLocale = languages[locale].formatLocale;
 const number = new Intl.NumberFormat(formatLocale);
-const levels: Record<number, string> = { 0: copy.beginner, 1: copy.easy, 2: copy.normal, 3: copy.hard, 4: copy.expert };
+const levels = mymusic5DifficultyLabels(copy);
 const instruments: Record<string, string> = { "piano-88keys": copy.piano, kalimba: copy.kalimba, "bass-guitar": copy.bass, drum: copy.drums };
 const sheetTypes: Record<string, string> = { "1staff": copy.oneStaff, "2staves": copy.twoStaves, tab: copy.tablature };
 const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
@@ -75,7 +76,7 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
                         <div class="sheet-aside">
                             <p class="sheet-price">{price(sheet)}</p>
                             <p class="sheet-likes">{copy.likes} {number.format(sheet.likes)}</p>
-                            {sheet.youtubeId && <a class="sheet-video" href={`https://www.youtube.com/watch?v=${sheet.youtubeId}`}>YouTube ↗</a>}
+                            {sheet.youtubeId && <a class="sheet-video" href={youtubeVideoUrl(sheet.youtubeId)}>YouTube ↗</a>}
                         </div>
                     </li>
                 );

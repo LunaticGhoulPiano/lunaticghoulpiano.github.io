@@ -1,9 +1,17 @@
 import { z } from "astro/zod";
-import { youtubeChannel, youtubePolicy } from "../../src/config/youtube.ts";
+import { youtubeChannel, youtubePolicy, compareYoutubeVideos } from "../../src/config/youtube.ts";
 import { channelId, videoId, playlistId, youtubeCount, youtubeDuration, youtubeImage, youtubeTimestamp, youtubeSnapshotSchema, type YoutubeSnapshot } from "../../src/data/youtube/schema.ts";
 import { youtubeToolPolicy } from "./config.ts";
 
 const thumbnails = z.record(z.string(), z.object({ url: youtubeImage }));
+const privacyStatus = z.object({ privacyStatus: z.enum(["public", "private", "unlisted"]) });
+const mediaSnippet = z.object({
+    channelId,
+    title: z.string().min(1),
+    description: z.string().default(""),
+    publishedAt: youtubeTimestamp,
+    thumbnails,
+});
 const channelResponse = z.object({
     id: channelId,
     snippet: z.object({
@@ -21,14 +29,8 @@ const channelResponse = z.object({
 });
 const videoResponse = z.object({
     id: videoId,
-    status: z.object({ privacyStatus: z.enum(["public", "private", "unlisted"]) }),
-    snippet: z.object({
-        channelId,
-        title: z.string().min(1),
-        description: z.string().default(""),
-        publishedAt: youtubeTimestamp,
-        thumbnails,
-    }),
+    status: privacyStatus,
+    snippet: mediaSnippet,
     contentDetails: z.object({ duration: youtubeDuration }),
     statistics: z.object({
         viewCount: youtubeCount.optional(),
@@ -38,14 +40,8 @@ const videoResponse = z.object({
 const uploadResponse = z.object({ contentDetails: z.object({ videoId }) });
 const playlistResponse = z.object({
     id: playlistId,
-    snippet: z.object({
-        channelId,
-        title: z.string().min(1),
-        description: z.string().default(""),
-        publishedAt: youtubeTimestamp,
-        thumbnails,
-    }),
-    status: z.object({ privacyStatus: z.enum(["public", "private", "unlisted"]) }),
+    snippet: mediaSnippet,
+    status: privacyStatus,
 });
 const playlistItemResponse = z.object({
     id: z.string().min(1),
@@ -54,7 +50,7 @@ const playlistItemResponse = z.object({
         position: z.number().int().nonnegative(),
         resourceId: z.object({ kind: z.literal("youtube#video"), videoId }),
     }),
-    status: z.object({ privacyStatus: z.enum(["public", "private", "unlisted"]) }),
+    status: privacyStatus,
 });
 
 function thumbnail(images: z.infer<typeof thumbnails>) {
@@ -179,7 +175,7 @@ export async function fetchYoutubeSnapshot(key: string, now = new Date(), reques
             });
         }
     }
-    videos.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.id.localeCompare(b.id));
+    videos.sort(compareYoutubeVideos);
     const available = new Set(videos.map((video) => video.id));
     const snapshot = youtubeSnapshotSchema.parse({
         schemaVersion: youtubePolicy.schemaVersion,

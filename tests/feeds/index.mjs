@@ -37,7 +37,6 @@ test("feeds load all registered sources and only the selected detail source, inc
     feedSources[extra] = {
         title: "Fixture Source",
         route: extra,
-        periodDescription: feedSources[keys[0]].periodDescription,
         load: () => {
             calls.push(extra);
             return {
@@ -65,7 +64,7 @@ test("feeds load all registered sources and only the selected detail source, inc
             const detail = getFeedsPage(key, locale);
             assert.deepEqual(calls, [key]);
             assert.deepEqual(detail.sources.map((source) => source.route), [key]);
-            assert.equal(detail.description, formatMessage(messages[locale].ui[feedSources[key].periodDescription], {
+            assert.equal(detail.description, formatMessage(messages[locale].ui["description.activityPeriod"], {
                 from: "2026 / 10 / 01",
                 to: "2026 / 10 / 03",
             }, languages[locale].formatLocale));

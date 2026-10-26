@@ -1,3 +1,4 @@
+import { installGlobals } from "./fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { initializePageTurners } from "../src/scripts/page_turner.ts";
@@ -46,14 +47,7 @@ function fixture(context, { names = ["Page A", "Page B", "Page C"], reduced = fa
         document,
         window,
     };
-    for (const [key, value] of Object.entries(environment)) {
-        const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
-        Object.defineProperty(globalThis, key, { configurable: true, value });
-        context.after(() => {
-            if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-            else delete globalThis[key];
-        });
-    }
+    installGlobals(context, environment);
     initializePageTurners();
     return {
         ...nodes,

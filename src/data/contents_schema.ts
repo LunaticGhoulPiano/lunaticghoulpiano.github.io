@@ -31,30 +31,41 @@ export const entrySchema = z.discriminatedUnion("type", [
     z.strictObject({ type: z.literal("link"), url: contentUrlSchema }),
     z.strictObject({
         type: z.literal("site"),
-        engine: z.enum(["static", "docusaurus"]),
         root: localFile,
         path: routePath,
-        config: localFile.optional(),
     }),
 ]);
-const localizedSchema = z.strictObject({
-    title: z.string().trim().min(1),
-    description: z.string().trim().min(1),
+const metadataFields = {
+    kind: z.string(),
+    category: identifier,
+    tags: z.array(identifier),
+    placements: z.array(z.enum(contentRules.placements)),
+    related: z.array(identifier),
+    links,
+};
+const localizedFields = {
+    title: z.string(),
+    description: z.string(),
     date: dateSchema,
     updated: dateSchema.optional(),
-    draft: z.boolean().default(true),
+    draft: z.boolean(),
     entry: entrySchema,
+};
+const localizedSchema = z.strictObject({
+    ...localizedFields,
+    title: localizedFields.title.trim().min(1),
+    description: localizedFields.description.trim().min(1),
+    draft: localizedFields.draft.default(true),
 }).refine((data) => ! data.updated || data.updated >= data.date, "updated cannot precede date.");
 
 export const itemConfigSchema = z.strictObject({
     schemaVersion: z.literal(1).default(1),
     id: identifier,
-    kind: z.string().trim().min(1),
-    category: identifier,
-    tags: z.array(identifier).default([]),
-    placements: z.array(z.enum(contentRules.placements)).default([]),
-    related: z.array(identifier).default([]),
-    links,
+    ...metadataFields,
+    kind: metadataFields.kind.trim().min(1),
+    tags: metadataFields.tags.default([]),
+    placements: metadataFields.placements.default([]),
+    related: metadataFields.related.default([]),
     locales: z.record(z.string(), localizedSchema),
 }).superRefine((data, context) => {
     const keys = Object.keys(data.locales);
@@ -67,18 +78,8 @@ export const itemConfigSchema = z.strictObject({
 export const contentSchema = z.object({
     itemId: identifier,
     locale: z.enum(locales),
-    kind: z.string(),
-    category: identifier,
-    tags: z.array(identifier),
-    placements: z.array(z.enum(contentRules.placements)),
-    related: z.array(identifier),
-    links,
-    title: z.string(),
-    description: z.string(),
-    date: dateSchema,
-    updated: dateSchema.optional(),
-    draft: z.boolean(),
-    entry: entrySchema,
+    ...metadataFields,
+    ...localizedFields,
     href: z.string(),
     directory: z.string(),
     source: z.string().optional(),

@@ -1,3 +1,4 @@
+import { compareYoutubeVideos } from "../../config/youtube.ts";
 import { getYoutubeData } from "./store.mjs";
 import type { YoutubeSnapshot } from "./schema.ts";
 
@@ -8,8 +9,7 @@ export function getYoutubeContent(snapshot: YoutubeSnapshot | null = getYoutubeD
         period: null,
         notice: snapshot && { lastSuccessfulFetchAt: snapshot.lastSuccessfulFetchAt },
         channel: snapshot?.channel ?? null,
-        videos: videos.filter((video) => uploads.has(video.id)).sort((a, b) =>
-            Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || a.id.localeCompare(b.id)),
+        videos: videos.filter((video) => uploads.has(video.id)).sort(compareYoutubeVideos),
         library: videos,
         playlists: snapshot?.playlists ?? [],
     };

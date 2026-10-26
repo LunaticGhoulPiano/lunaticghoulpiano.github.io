@@ -1,7 +1,7 @@
 import { z } from "astro/zod";
 import { mymusic5Policy } from "../../config/mymusic5.ts";
 
-const timestamp = z.iso.datetime({ offset: true }).transform((value) => new Date(value).toISOString());
+import { timestampSchema as timestamp } from "../../utils/dates.ts";
 const image = z.url().refine((value) => {
     const url = new URL(value);
     return url.protocol === "https:" && ! url.username && ! url.password

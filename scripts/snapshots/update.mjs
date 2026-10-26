@@ -1,5 +1,4 @@
-import { mkdir, writeFile, rename } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { snapshotDirectory } from "../../src/config/runtime.mjs";
 import { youtubePolicy } from "../../src/config/youtube.ts";
@@ -8,19 +7,7 @@ import { getYoutubeData } from "../../src/data/youtube/store.mjs";
 import { getMymusic5Data } from "../../src/data/mymusic5/store.mjs";
 import { runYoutubeRefresh } from "../youtube/update.mjs";
 import { runMymusic5Refresh } from "../mymusic5/update.mjs";
-import { createTemporaryDirectory, removeTemporaryDirectory } from "../temp_dir.mjs";
-
-async function restoreSnapshot(filename, snapshot, outputDirectory) {
-    const stage = await createTemporaryDirectory("snapshot_restore_");
-    try {
-        await writeFile(join(stage, filename), `${JSON.stringify(snapshot, null, 4)}\n`, "utf8");
-        await mkdir(outputDirectory, { recursive: true });
-        await rename(join(stage, filename), join(outputDirectory, filename));
-    }
-    finally {
-        await removeTemporaryDirectory(stage);
-    }
-}
+import { writeSnapshot } from "./files.mjs";
 
 export async function runMediaRefresh({
     previousDirectory = process.env.SNAPSHOT_RESTORE_DIR,
@@ -51,7 +38,7 @@ export async function runMediaRefresh({
         const fallback = [current, previous]
             .filter((snapshot) => snapshot && Date.parse(snapshot.lastSuccessfulFetchAt) <= now.valueOf())
             .sort((a, b) => Date.parse(b.lastSuccessfulFetchAt) - Date.parse(a.lastSuccessfulFetchAt))[0];
-        if (fallback && fallback !== current) await restoreSnapshot(source.filename, fallback, outputDirectory);
+        if (fallback && fallback !== current) await writeSnapshot(outputDirectory, source.filename, fallback);
         try {
             await source.refresh();
             report.updated.push(source.name);

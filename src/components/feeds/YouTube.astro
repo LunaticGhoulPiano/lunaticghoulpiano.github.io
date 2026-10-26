@@ -1,11 +1,12 @@
 ---
 import { languages, type Locale } from "../../config/locales";
+import RecentFeed from "../common/RecentFeed.astro";
 import { useMessages } from "../../i18n/ui";
 import { formatMessage } from "../../i18n/format";
 import type { getYoutubeContent } from "../../data/youtube/content";
 import Videos from "../common/youtube/Videos.astro";
 import TimelineViewport from "../common/TimelineViewport.astro";
-import { feedHeadingHeight, youtubeFeedTimelineSize, youtubeFeedVideoLimit } from "../../config/collections";
+import { youtubeFeedTimelineSize, youtubeFeedVideoLimit } from "../../config/collections";
 
 interface Props {
     locale: Locale;
@@ -20,15 +21,8 @@ const videos = data.videos.slice(0, youtubeFeedVideoLimit);
 const title = formatMessage(copy.latestVideos, { count: youtubeFeedVideoLimit }, languages[locale].formatLocale);
 ---
 
-{channel ? (
-    <div class="recent-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
-        <header class="feed-category-heading">
-            <h3>{title}</h3>
-        </header>
-        {videos.length > 0 ? (
-            <TimelineViewport id="youtube-feed-timeline" label={title} locale={locale} visibleItems={youtubeFeedTimelineSize}>
-                <Videos locale={locale} videos={videos} />
-            </TimelineViewport>
-        ) : <p class="empty-message">{copy.noVideos}</p>}
-    </div>
-) : <p class="empty-message">{messages.content.unavailable}</p>}
+<RecentFeed locale={locale} title={title} available={Boolean(channel)} empty={videos.length === 0} emptyMessage={copy.noVideos}>
+    <TimelineViewport id="youtube-feed-timeline" label={title} locale={locale} visibleItems={youtubeFeedTimelineSize}>
+        <Videos locale={locale} videos={videos} />
+    </TimelineViewport>
+</RecentFeed>

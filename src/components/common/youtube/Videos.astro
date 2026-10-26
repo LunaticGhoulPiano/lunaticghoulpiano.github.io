@@ -1,8 +1,10 @@
 ---
 import type { Locale } from "../../../config/locales";
 import { languages } from "../../../config/locales";
+import { countFormatter } from "../../../i18n/format";
 import { useMessages } from "../../../i18n/ui";
 import type { YoutubeSnapshot } from "../../../data/youtube/schema";
+import { youtubeVideoUrl } from "../../../config/youtube";
 import { youtubeVideoLayout } from "../../../config/collections";
 import { displayDuration } from "../../../utils/dates";
 
@@ -14,8 +16,7 @@ interface Props {
 
 const { locale, videos, visibleIds } = Astro.props;
 const copy = useMessages(locale).youtube;
-const number = new Intl.NumberFormat(languages[locale].formatLocale);
-const count = (value: string | null) => value === null ? "—" : number.format(BigInt(value));
+const count = countFormatter(languages[locale].formatLocale);
 ---
 
 <ol class="activity-list youtube-videos" style={{
@@ -28,12 +29,12 @@ const count = (value: string | null) => value === null ? "—" : number.format(B
             <div>
                 <div class="youtube-video">
                     {video.thumbnail && (
-                        <a class="youtube-thumbnail" href={`https://www.youtube.com/watch?v=${video.id}`} tabindex="-1" aria-hidden="true">
+                        <a class="youtube-thumbnail" href={youtubeVideoUrl(video.id)} tabindex="-1" aria-hidden="true">
                             <img src={video.thumbnail} alt="" width="160" height="90" loading="lazy" />
                         </a>
                     )}
                     <div class="youtube-video-content">
-                        <a class="youtube-video-title" href={`https://www.youtube.com/watch?v=${video.id}`}>{video.title} ↗</a>
+                        <a class="youtube-video-title" href={youtubeVideoUrl(video.id)}>{video.title} ↗</a>
                         <div class="youtube-video-details">
                             {video.description && <p class="youtube-description">{video.description.replace(/\n\s*\n/g, "\n")}</p>}
                             <dl class="youtube-video-statistics">

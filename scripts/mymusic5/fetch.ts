@@ -1,5 +1,5 @@
 import { MyMusic5Client } from "mymusic5-api";
-import { mymusic5Artist, mymusic5Policy } from "../../src/config/mymusic5.ts";
+import { mymusic5Artist, mymusic5Policy, compareMymusic5Sheets } from "../../src/config/mymusic5.ts";
 import { mymusic5AuthorSchema, mymusic5SheetSchema, mymusic5SnapshotSchema, type Mymusic5Snapshot } from "../../src/data/mymusic5/schema.ts";
 import { mymusic5ToolPolicy } from "./config.ts";
 
@@ -52,7 +52,7 @@ export async function fetchMymusic5Snapshot(now = new Date(), request: typeof fe
             description: decodeText(sheet.description.replace(/<[^>]*>/g, " ")),
         };
     });
-    sheets.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.sheetId - a.sheetId);
+    sheets.sort(compareMymusic5Sheets);
     const snapshot = mymusic5SnapshotSchema.parse({
         schemaVersion: mymusic5Policy.schemaVersion,
         source: "mymusic5",

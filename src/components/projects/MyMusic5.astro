@@ -2,7 +2,7 @@
 import type { Locale } from "../../config/locales";
 import { languages } from "../../config/locales";
 import { mymusic5ProjectsLayout } from "../../config/collections";
-import { mymusic5Url } from "../../config/mymusic5";
+import { mymusic5Url, mymusic5DifficultyLabels } from "../../config/mymusic5";
 import { useMessages } from "../../i18n/ui";
 import type { projectSources } from "../../services/projects/index";
 import Sheets from "../common/mymusic5/Sheets.astro";
@@ -19,7 +19,7 @@ const messages = useMessages(locale);
 const copy = messages.mymusic5;
 const formatLocale = languages[locale].formatLocale;
 const number = new Intl.NumberFormat(formatLocale);
-const levels: Record<number, string> = { 0: copy.beginner, 1: copy.easy, 2: copy.normal, 3: copy.hard, 4: copy.expert };
+const levels = mymusic5DifficultyLabels(copy);
 const difficultyCounts = new Map<number | null, number>(Object.keys(levels).map((level) => [Number(level), 0]));
 for (const { level } of sheets) difficultyCounts.set(level, (difficultyCounts.get(level) ?? 0) + 1);
 const statistics = [

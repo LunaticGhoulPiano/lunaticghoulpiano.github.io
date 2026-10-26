@@ -1,6 +1,7 @@
 ---
 import type { Locale } from "../../../config/locales";
 import { languages } from "../../../config/locales";
+import { countFormatter } from "../../../i18n/format";
 import { useMessages } from "../../../i18n/ui";
 import type { YoutubeSnapshot } from "../../../data/youtube/schema";
 import { displayDate } from "../../../utils/dates";
@@ -13,8 +14,7 @@ interface Props {
 
 const { locale, channel } = Astro.props;
 const copy = useMessages(locale).youtube;
-const number = new Intl.NumberFormat(languages[locale].formatLocale);
-const count = (value: string | null) => value === null ? "—" : number.format(BigInt(value));
+const count = countFormatter(languages[locale].formatLocale);
 ---
 
 <div class="youtube-channel">

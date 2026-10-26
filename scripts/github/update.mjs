@@ -1,5 +1,5 @@
-import { appendFile, mkdir, writeFile, rename } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { appendFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { site } from "../../src/config/site.ts";
@@ -8,7 +8,8 @@ import { fetchGithubSnapshots } from "./fetch.ts";
 import { getGithubData } from "../../src/data/github/store.ts";
 import { projectRoot, snapshotDirectory } from "../../src/config/runtime.mjs";
 import { restoredSnapshotDirectory } from "../snapshots/artifact.mjs";
-import { createTemporaryDirectory, removeTemporaryDirectory } from "../temp_dir.mjs";
+import { removeTemporaryDirectory } from "../temp_dir.mjs";
+import { writeSnapshot } from "../snapshots/files.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { datasets, mergeSnapshots, refreshReport, snapshotUsable } from "./refresh.ts";
 import { githubReadToken, validationEnvironment } from "./environment.mjs";
@@ -81,19 +82,13 @@ export async function runGithubRefresh({
         updated: result.updated,
         reused: readiness.reused,
     }));
-    let stage;
     try {
         if (! readiness.ready) throw new Error(`GitHub refresh cannot be deployed. Missing datasets: ${readiness.missing.join(", ") || "none"}; unusable: ${readiness.unusable.join(", ") || "none"}; updated: ${result.updated.length}.`);
-        execution.stage = "staging";
-        stage = await createTemporaryDirectory("github_refresh_");
-        await writeFile(join(stage, githubPolicy.snapshotFilename), `${JSON.stringify(result.snapshots, null, 4)}\n`, "utf8");
-        execution.stage = "validation";
-        await validate(stage);
-        execution.stage = "saving";
-        await mkdir(outputDirectory, {
-            recursive: true,
+        await writeSnapshot(outputDirectory, githubPolicy.snapshotFilename, result.snapshots, {
+            validate,
+            onStage: (stage) => { execution.stage = stage; },
+            onCleanupError: () => console.warn("Unable to remove the GitHub staging directory."),
         });
-        await rename(join(stage, githubPolicy.snapshotFilename), join(outputDirectory, githubPolicy.snapshotFilename));
         execution.savedDatasets.push(...datasets);
         execution.status = "succeeded";
         console.log("Validated GitHub snapshots updated.");
@@ -118,11 +113,6 @@ export async function runGithubRefresh({
             catch {
                 console.warn("Unable to write the GitHub Actions summary.");
             }
-        }
-        if (stage) {
-            await removeTemporaryDirectory(stage).catch(() => {
-                console.warn("Unable to remove the GitHub staging directory.");
-            });
         }
     }
 }

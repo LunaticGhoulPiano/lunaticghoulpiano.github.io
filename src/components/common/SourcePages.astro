@@ -1,22 +1,35 @@
 ---
 import type { Locale } from "../../config/locales";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
+import type { PageSource, SourceKey, SourceSection, SourceData } from "../../services/sources";
+import GithubProjects from "../projects/GitHub.astro";
+import YoutubeProjects from "../projects/YouTube.astro";
+import Mymusic5Projects from "../projects/MyMusic5.astro";
+import GitHub from "../feeds/GitHub.astro";
+import YouTube from "../feeds/YouTube.astro";
+import MyMusic5 from "../feeds/MyMusic5.astro";
 import PageTurner from "./PageTurner.astro";
 import SnapshotNotice from "./SnapshotNotice.astro";
 
 interface Props {
     locale: Locale;
-    section: string;
+    section: SourceSection;
     label: string;
-    sources: {
-        key: string;
-        title: string;
-        data: { notice: { lastSuccessfulFetchAt: string } | null };
-    }[];
-    components: Record<string, AstroComponentFactory>;
+    sources: PageSource[];
 }
 
-const { locale, section, label, sources, components } = Astro.props;
+type SourceComponents = {
+    [Section in SourceSection]: {
+        [Key in SourceKey]: (props: { locale: Locale; data: SourceData<Section, Key> }) => unknown;
+    };
+};
+
+const renderers = {
+    feeds: { github: GitHub, youtube: YouTube, mymusic5: MyMusic5 },
+    projects: { github: GithubProjects, youtube: YoutubeProjects, mymusic5: Mymusic5Projects },
+} satisfies SourceComponents;
+const { locale, section, label, sources } = Astro.props;
+const components = renderers[section];
 ---
 
 <PageTurner id={`${section}-pages`} label={label} locale={locale}>
@@ -29,7 +42,7 @@ const { locale, section, label, sources, components } = Astro.props;
         ))}
     </Fragment>
     {sources.map((source, index) => {
-        const Content = components[source.key];
+        const Content: AstroComponentFactory = components[source.key];
         return (
             <section class="content-section" data-source={source.key} data-current={index === 0 ? "" : undefined} inert={index !== 0} aria-hidden={index !== 0} aria-label={source.title}>
                 <Content locale={locale} data={source.data} />

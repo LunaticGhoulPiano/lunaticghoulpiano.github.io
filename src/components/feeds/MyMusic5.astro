@@ -1,7 +1,8 @@
 ---
 import { languages, type Locale } from "../../config/locales";
-import { feedHeadingHeight, mymusic5FeedSheetLimit, mymusic5FeedTimelineSize } from "../../config/collections";
+import { mymusic5FeedSheetLimit, mymusic5FeedTimelineSize } from "../../config/collections";
 import type { getMymusic5Content } from "../../data/mymusic5/content";
+import RecentFeed from "../common/RecentFeed.astro";
 import { useMessages } from "../../i18n/ui";
 import { formatMessage } from "../../i18n/format";
 import Sheets from "../common/mymusic5/Sheets.astro";
@@ -19,21 +20,16 @@ const sheets = data.sheets.slice(0, mymusic5FeedSheetLimit);
 const title = formatMessage(copy.latestSheets, { count: mymusic5FeedSheetLimit }, languages[locale].formatLocale);
 ---
 
-{notice ? (
-    <div class="recent-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
-        <header class="feed-category-heading">
-            <h3>{title}</h3>
-        </header>
-        {author && sheets.length > 0 ? (
-            <Sheets
-                id="mymusic5-feed-timeline"
-                label={title}
-                locale={locale}
-                artistUrl={author.artistUrl}
-                sheets={sheets}
-                visibleItems={mymusic5FeedTimelineSize}
-                chronological
-            />
-        ) : <p class="empty-message">{copy.noSheets}</p>}
-    </div>
-) : <p class="empty-message">{messages.content.unavailable}</p>}
+<RecentFeed locale={locale} title={title} available={Boolean(notice)} empty={! author || sheets.length === 0} emptyMessage={copy.noSheets}>
+    {author && (
+        <Sheets
+            id="mymusic5-feed-timeline"
+            label={title}
+            locale={locale}
+            artistUrl={author.artistUrl}
+            sheets={sheets}
+            visibleItems={mymusic5FeedTimelineSize}
+            chronological
+        />
+    )}
+</RecentFeed>

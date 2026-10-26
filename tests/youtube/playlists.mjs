@@ -1,3 +1,4 @@
+import { installGlobals } from "../fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { initializeYoutubePlaylists } from "../../src/scripts/youtube.ts";
@@ -60,14 +61,7 @@ function fixture(context, { playlists = true } = {}) {
     };
     const root = { dataset: {}, querySelector: (selector) => nodes[selector], querySelectorAll: () => buttons };
     const environment = { document: { querySelectorAll: () => [root] }, window };
-    const previous = new Map(Object.keys(environment).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-    for (const [key, value] of Object.entries(environment)) Object.defineProperty(globalThis, key, { configurable: true, value });
-    context.after(() => {
-        for (const [key, descriptor] of previous) {
-            if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-            else delete globalThis[key];
-        }
-    });
+    installGlobals(context, environment);
     initializeYoutubePlaylists();
     initializeYoutubePlaylists();
     return {

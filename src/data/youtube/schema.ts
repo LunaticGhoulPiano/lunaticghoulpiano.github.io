@@ -1,8 +1,9 @@
 import { z } from "astro/zod";
 import { youtubePolicy } from "../../config/youtube.ts";
 
-export const youtubeTimestamp = z.iso.datetime({ offset: true })
-    .transform((value) => new Date(value).toISOString());
+import { timestampSchema } from "../../utils/dates.ts";
+
+export const youtubeTimestamp = timestampSchema;
 export const youtubeCount = z.string().regex(/^(0|[1-9]\d*)$/);
 export const channelId = z.string().regex(/^UC[\w-]{22}$/);
 export const videoId = z.string().regex(/^[\w-]{11}$/);

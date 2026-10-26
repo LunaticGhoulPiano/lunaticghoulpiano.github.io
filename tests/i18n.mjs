@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatMessage } from "../src/i18n/format.ts";
+import { formatMessage, countFormatter } from "../src/i18n/format.ts";
 import { messages } from "../src/i18n/ui.ts";
 import { languages, locales, defaultLocale, localizedPath } from "../src/config/locales.ts";
 
@@ -61,4 +61,12 @@ test("all configured languages have complete dictionaries and consistent URL pre
         assert.equal(localizedPath("blog/example", locale), `${prefix}/blog/example/`);
         assert.equal(localizedPath("", locale), `${prefix}/`);
     }
+});
+
+test("counts preserve integer precision and distinguish hidden counts from zero", () => {
+    const count = countFormatter("en-US");
+    assert.equal(count("9007199254740993"), "9,007,199,254,740,993");
+    assert.equal(count("0"), "0");
+    assert.equal(count(null), "—");
+    assert.equal(countFormatter("de-DE")("1234"), "1.234");
 });

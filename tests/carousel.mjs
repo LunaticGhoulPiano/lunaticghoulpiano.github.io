@@ -1,3 +1,4 @@
+import { installGlobals } from "./fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { carouselState, carouselWidths } from "../src/utils/carousel.ts";
@@ -150,18 +151,7 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         },
         cancelAnimationFrame: (id) => frames.delete(id),
     };
-    const previousGlobals = new Map(Object.keys(environment).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-    for (const [key, value] of Object.entries(environment)) Object.defineProperty(globalThis, key, {
-        configurable: true,
-        writable: true,
-        value,
-    });
-    context.after(() => {
-        for (const [key, descriptor] of previousGlobals) {
-            if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-            else delete globalThis[key];
-        }
-    });
+    installGlobals(context, environment, true);
     initializeCarousels();
     function frame(elapsed = 0) {
         now += elapsed;

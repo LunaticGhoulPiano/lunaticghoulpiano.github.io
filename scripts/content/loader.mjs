@@ -2,6 +2,7 @@ import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { routes } from "../../src/config/routes.ts";
+import { taxonomies } from "../../src/config/content.ts";
 import { locales, localizedPath } from "../../src/config/locales.ts";
 import { itemConfigSchema } from "../../src/data/contents_schema.ts";
 
@@ -38,8 +39,8 @@ export function validateEntries(records) {
             const firstSegment = entry.path.split("/")[1];
             if (locales.includes(firstSegment))
                 throw new Error(`Entry paths must not contain a language prefix: ${entry.path}`);
-            if (systemPaths.has(href) || locales.some((language) => href.startsWith(localizedPath("blog/tags", language))
-                || href.startsWith(localizedPath("blog/categories", language))))
+            if (systemPaths.has(href) || locales.some((language) => Object.values(taxonomies).some(({ route }) =>
+                href.startsWith(localizedPath(routes[route].path, language)))))
                 throw new Error(`Reserved content route: ${href}`);
             if (publicPaths.has(href))
                 throw new Error(`Duplicate content route: ${href}`);
@@ -110,10 +111,7 @@ export async function discoverContent(root) {
             }
             if (entry.type === "site") {
                 const siteRoot = await resolveItemFile(itemDirectory, entry.root, "directory");
-                if (entry.engine === "static")
-                    await resolveItemFile(siteRoot, "./index.html");
-                if (entry.config)
-                    await resolveItemFile(siteRoot, entry.config);
+                await resolveItemFile(siteRoot, "./index.html");
             }
             records.push({
                 id: `${locale}/${config.id}`,
@@ -138,34 +136,50 @@ export async function discoverContent(root) {
     return records;
 }
 
+const discoveryKey = Symbol.for("site.contentDiscovery");
+const discoveries = globalThis[discoveryKey] ??= new Map();
+
+export function invalidateContent(root) {
+    discoveries.delete(resolve(root));
+}
+
+export function readContent(root) {
+    const key = resolve(root);
+    if (! discoveries.has(key)) {
+        const pending = discoverContent(key).catch((error) => {
+            if (discoveries.get(key) === pending) discoveries.delete(key);
+            throw error;
+        });
+        discoveries.set(key, pending);
+    }
+    return discoveries.get(key);
+}
+
 export function contentLoader() {
     return {
         name: "item-configurations",
         async load(context) {
             const root = fileURLToPath(context.config.root);
-            const sync = async () => {
-                const records = await discoverContent(root);
-                const items = [];
-                for (const record of records) {
-                    if (record.data.draft) continue;
-                    const data = await context.parseData({ id: record.id, data: record.data });
-                    const body = record.data.entry.type === "markdown"
-                        ? await readFile(join(root, record.data.source), "utf8")
-                        : undefined;
-                    const rendered = body === undefined ? undefined
-                        : await context.renderMarkdown(body, { fileURL: pathToFileURL(join(root, record.data.source)) });
-                    items.push({
-                        id: record.id,
-                        data,
-                        ...(body === undefined ? {} : { body, rendered }),
-                        filePath: record.data.source ?? `${record.data.directory}/configs.json`,
-                        digest: context.generateDigest({ data, body }),
-                    });
-                }
-                context.store.clear();
-                for (const item of items) context.store.set(item);
-            };
-            await sync();
+            const records = await readContent(root);
+            const items = [];
+            for (const record of records) {
+                if (record.data.draft) continue;
+                const data = await context.parseData({ id: record.id, data: record.data });
+                const body = record.data.entry.type === "markdown"
+                    ? await readFile(join(root, record.data.source), "utf8")
+                    : undefined;
+                const rendered = body === undefined ? undefined
+                    : await context.renderMarkdown(body, { fileURL: pathToFileURL(join(root, record.data.source)) });
+                items.push({
+                    id: record.id,
+                    data,
+                    ...(body === undefined ? {} : { body, rendered }),
+                    filePath: record.data.source ?? `${record.data.directory}/configs.json`,
+                    digest: context.generateDigest({ data, body }),
+                });
+            }
+            context.store.clear();
+            for (const item of items) context.store.set(item);
         },
     };
 }

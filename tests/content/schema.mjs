@@ -1,10 +1,11 @@
+import { routes } from "../../src/config/routes.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile, unlink, rename, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { itemConfigSchema, contentUrlSchema, published } from "../../src/data/contents_schema.ts";
-import { discoverContent, validateEntries } from "../../scripts/content/loader.mjs";
-import { getPageEntries, contentPath } from "../../src/routing.ts";
+import { discoverContent, validateEntries, readContent, invalidateContent } from "../../scripts/content/loader.mjs";
+import { getPageEntries, contentPath, taxonomyPath } from "../../src/routing.ts";
 import { locales, defaultLocale, localizedPath } from "../../src/config/locales.ts";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { configuration, writeItem } from "./fixture.mjs";
@@ -30,7 +31,7 @@ test("configs defaults, real dates, supported languages and entry-specific field
         { type: "markdown", file: "./folder/../../body.md", path: "/blog/example/" },
         { type: "astro", file: "./body.md", path: "/demo/" },
         { type: "link", url: "/demo/", file: "./body.md" },
-        { type: "site", root: "./docs", path: "/docs/", engine: "shell" },
+        { type: "site", root: "../docs", path: "/docs/" },
         { type: "markdown", file: "./body.md", path: "/no-trailing-slash" },
     ]) assert.equal(itemConfigSchema.safeParse(configuration("sample", entry)).success, false);
 });
@@ -89,7 +90,7 @@ test("duplicate IDs, reserved routes, mounts, references and public references t
             second.data.href = localizedPath(path, defaultLocale);
             assert.throws(() => validateEntries([second]), /Reserved/);
         }
-        second.data.entry = { type: "site", engine: "static", root: "./built", path: "/blog/" };
+        second.data.entry = { type: "site", root: "./built", path: "/blog/" };
         second.data.href = localizedPath("/blog/", defaultLocale);
         assert.throws(() => validateEntries([second, base]), /Reserved|overlap/);
         second.data.entry.path = "/blog/sample/child/";
@@ -152,5 +153,52 @@ test("content links reject executable, credential-bearing and ambiguous destinat
     }
     for (const url of ["", "//example.test/", "/\\example.test/", "javascript:alert(1)", "data:text/html,test", "file:///secret", "relative/path", "https://", "https://user:secret@example.test/", "https://example.test/\npath"]) {
         assert.equal(contentUrlSchema.safeParse(url).success, false, url);
+    }
+});
+
+test("content scans are shared per root and invalidated after changes, including failed scans", async () => {
+    await withTemporaryDirectory(async (root) => {
+        await withTemporaryDirectory(async (other) => {
+            try {
+                await writeItem(root);
+                const pending = readContent(root);
+                assert.equal(readContent(root), pending);
+                assert.equal((await pending).length, 1);
+                assert.deepEqual(await readContent(other), []);
+                await unlink(join(root, "src/contents/sample/configs.json"));
+                invalidateContent(root);
+                assert.deepEqual(await readContent(root), []);
+                await writeItem(root);
+                await writeFile(join(root, "src/contents/sample/configs.json"), "{");
+                invalidateContent(root);
+                await assert.rejects(readContent(root), /Invalid/);
+                await writeItem(root);
+                assert.equal((await readContent(root)).length, 1);
+            }
+            finally {
+                invalidateContent(root);
+                invalidateContent(other);
+            }
+        });
+    });
+});
+
+test("taxonomy route changes propagate to links, generated pages and reserved routes", async () => {
+    const original = routes.blogTags.path;
+    routes.blogTags.path = "topics";
+    try {
+        await withTemporaryDirectory(async (root) => {
+            await writeItem(root, configuration("sample", undefined, { tags: ["framework"] }));
+            const items = await discoverContent(root);
+            const path = localizedPath("topics/framework", defaultLocale);
+            assert.equal(taxonomyPath("tag", "framework", defaultLocale), path);
+            assert.ok(getPageEntries(items).some((page) => page.params.path === path.slice(1, -1)));
+            items[0].data.entry.path = "/topics/other/";
+            items[0].data.href = localizedPath("topics/other", defaultLocale);
+            assert.throws(() => validateEntries(items), /Reserved/);
+        });
+    }
+    finally {
+        routes.blogTags.path = original;
     }
 });

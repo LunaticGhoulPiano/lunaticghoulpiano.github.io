@@ -1,5 +1,4 @@
-import { mkdir, writeFile, rename } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { snapshotDirectory } from "../../src/config/runtime.mjs";
 import { youtubePolicy } from "../../src/config/youtube.ts";
@@ -7,7 +6,7 @@ import { hourMilliseconds } from "../../src/config/time.ts";
 import { isWithinAge } from "../../src/utils/dates.ts";
 import { getYoutubeData } from "../../src/data/youtube/store.mjs";
 import { readCredential } from "../environment.mjs";
-import { createTemporaryDirectory, removeTemporaryDirectory } from "../temp_dir.mjs";
+import { writeSnapshot } from "../snapshots/files.mjs";
 import { fetchYoutubeSnapshot } from "./fetch.ts";
 import { youtubeToolPolicy } from "./config.ts";
 
@@ -20,15 +19,7 @@ export async function runYoutubeRefresh({
     request = fetch,
 } = {}) {
     const result = await fetchYoutubeSnapshot(key, now, request);
-    const stage = await createTemporaryDirectory("youtube_refresh_");
-    try {
-        await writeFile(join(stage, youtubePolicy.snapshotFilename), `${JSON.stringify(result.snapshot, null, 4)}\n`, "utf8");
-        await mkdir(outputDirectory, { recursive: true });
-        await rename(join(stage, youtubePolicy.snapshotFilename), join(outputDirectory, youtubePolicy.snapshotFilename));
-    }
-    finally {
-        await removeTemporaryDirectory(stage);
-    }
+    await writeSnapshot(outputDirectory, youtubePolicy.snapshotFilename, result.snapshot);
     console.log(`[YouTube] Updated ${result.snapshot.videos.length} public videos using ${result.requests} requests.`);
     return result;
 }

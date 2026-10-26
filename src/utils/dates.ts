@@ -7,6 +7,9 @@ export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value)
     return Number.isFinite(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }, "Use a valid YYYY-MM-DD calendar date.");
 
+export const timestampSchema = z.iso.datetime({ offset: true })
+    .transform((value) => new Date(value).toISOString());
+
 function utcDate(value: string) {
     return new Date(value).toISOString().slice(0, 10);
 }

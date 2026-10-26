@@ -1,3 +1,9 @@
+export function countFormatter(locale: string) {
+    const number = new Intl.NumberFormat(locale);
+    return (value: string | number | bigint | null) => value === null ? "—"
+        : number.format(typeof value === "string" ? BigInt(value) : value);
+}
+
 export type PluralMessage = Partial<Record<Intl.LDMLPluralRule, string>> & {
     other: string;
 };
