@@ -4,7 +4,7 @@ import { render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import type { getContentContext, ContentEntry } from "../../data/contents";
 import { contentPath, categoryPath, tagPath, getRoutePath } from "../../routing";
-import { tagName } from "../../data/tags";
+import { tagName } from "../../data/taxonomy";
 import { useMessages } from "../../i18n/ui";
 import { formatSequenceNumber } from "../../utils/numbering";
 
@@ -35,7 +35,7 @@ const toc = headings.filter((heading) => (contentRules.tocDepths as readonly num
             <a class="text-link" href={getRoutePath(route, locale)}>← {copy.backToList}</a>
             <h1>{post.data.title}</h1>
             <p class="post-meta">
-                <a href={categoryPath(post.data.category, locale)}>{post.data.category}</a> ·
+                <a href={categoryPath(post.data.category, locale, route)}>{post.data.category}</a> ·
                 <time datetime={post.data.date}>{post.data.date}</time>
                 {post.data.updated && (
                     <>
@@ -47,7 +47,7 @@ const toc = headings.filter((heading) => (contentRules.tocDepths as readonly num
             <p class="page-description">{post.data.description}</p>
             <ul class="tag-list">
                 {post.data.tags.map((tag) => (
-                    <li><a href={tagPath(tag, locale)}>{tagName(tag, locale)}</a></li>
+                    <li><a href={tagPath(tag, locale, route)}>{tagName(tag, locale)}</a></li>
                 ))}
             </ul>
         </header>

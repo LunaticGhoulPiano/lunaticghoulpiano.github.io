@@ -7,6 +7,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import ProfileLayout from "../layouts/ProfileLayout.astro";
 import ContentList from "./common/ContentList.astro";
 import SourcePages from "./common/SourcePages.astro";
+import TaxonomyIndex from "./common/TaxonomyIndex.astro";
 
 interface Props {
     locale: Locale;
@@ -27,9 +28,13 @@ const description = context.section === "feeds" ? context.description : t(page.d
         {route === "profile" && <p class="name-alias">{site.secondaryName}</p>}
         {context.section !== "profile" && <p class="page-description">{description}</p>}
     </header>
+    {context.taxonomyNavigation.map(({ label, href }, index) => (
+        <>{index > 0 && " · "}<a class="text-link" href={href}>{content[label]} →</a></>
+    ))}
+    {context.section === "taxonomy" && <TaxonomyIndex locale={locale} {...context.taxonomy} />}
     {context.section === "profile" && (
         <ProfileLayout locale={locale} route={route} navigation={context.navigation}>
-            {context.items.length > 0 ? <ContentList locale={locale} items={context.items} /> : (
+            {context.items.length > 0 ? <ContentList locale={locale} items={context.items} placement={route} /> : (
                 <dl class="profile-fields">
                     {context.fields.map((heading) => (
                         <div>
@@ -41,35 +46,19 @@ const description = context.section === "feeds" ? context.description : t(page.d
             )}
         </ProfileLayout>
     )}
-    {context.section === "blog" && (
-        context.taxonomy ? (
-            context.taxonomy.entries.length > 0 ? (
-                <ul class="tag-index">
-                    {context.taxonomy.entries.map(({ title, count, href }) => (
-                        <li>
-                            <a href={href}>{title}</a>
-                            <span>{count}</span>
-                        </li>
-                    ))}
-                </ul>
-            ) : <p class="empty-message">{content[context.taxonomy.emptyLabel]}</p>
-        ) : (
-            <>
-                {context.navigation.map(({ label, href }, index) => (
-                    <>{index > 0 && " · "}<a class="text-link" href={href}>{content[label]} →</a></>
-                ))}
-                {context.items.length > 0 ? (
-                    <ContentList locale={locale} items={context.items} />
-                ) : <p class="empty-message">{t("empty.blog")}</p>}
-                {context.defaultLanguagePath && (
-                    <a class="text-link" href={context.defaultLanguagePath}>{content.defaultLanguagePosts} →</a>
-                )}
-            </>
-        )
+    {context.section === "content" && (
+        <>
+            {context.items.length > 0 ? (
+                <ContentList locale={locale} items={context.items} placement={route} />
+            ) : <p class="empty-message">{"empty" in page ? t(page.empty) : copy.unpublished}</p>}
+            {context.defaultLanguagePath && (
+                <a class="text-link" href={context.defaultLanguagePath}>{content.defaultLanguagePosts} →</a>
+            )}
+        </>
     )}
     {(context.section === "feeds" || context.section === "projects") && (
         <>
-            {context.items.length > 0 && <ContentList locale={locale} items={context.items} />}
+            {context.items.length > 0 && <ContentList locale={locale} items={context.items} placement={route} />}
             <SourcePages locale={locale} section={context.section} label={t(page.title)} sources={context.sources} />
         </>
     )}

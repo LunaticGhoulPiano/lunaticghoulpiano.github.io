@@ -870,6 +870,15 @@ h3 {
     border-bottom: 1px solid var(--line);
 }
 
+.tag-index a {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.tag-index li > span {
+    flex-shrink: 0;
+}
+
 .article-toc {
     margin-block: 2rem;
     padding-block: 1rem;

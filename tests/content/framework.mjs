@@ -11,6 +11,7 @@ import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { validationEnvironment } from "../../scripts/github/environment.mjs";
 import { configuration, writeItem, copySiteFixture, buildSiteFixture } from "./fixture.mjs";
 import { defaultLocale, locales, localizedPath } from "../../src/config/locales.ts";
+import { tagPath } from "../../src/routing.ts";
 
 async function styles(html, output) {
     const inline = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map((match) => match[1]);
@@ -30,7 +31,7 @@ test("one item directory publishes Markdown, an interactive Astro page, a direct
 
         const article = configuration("fixture-article", { type: "markdown", file: "./body.md", path: "/notes/fixture-article/" }, {
             related: ["fixture-demo", "fixture-site", "fixture-external"],
-            tags: ["framework"], placements: ["blog", "studying", "cv"],
+            tags: ["framework", "C++", "鋼琴", "ピアノ"], placements: ["blog", "studying", "cv"],
         });
         await writeItem(root, article, {
             "body.md": "## Fixture heading\n\n![Local image](./image.svg)",
@@ -156,6 +157,16 @@ const { item, locale } = Astro.props;
             await until("/docs/fixture-site/guide/", (status, body) => status === 200 && body.includes("Independent guide"));
             await writeFile(join(root, "src/contents/fixture-article/body.md"), "## Updated Markdown fixture");
             await until("/notes/fixture-article/", (status, body) => status === 200 && body.includes("Updated Markdown fixture"));
+            for (const tag of ["C++", "鋼琴", "ピアノ"]) {
+                await until(tagPath(tag, defaultLocale), (status, body) => status === 200
+                    && body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1].trim() === tag);
+            }
+            article.tags.push("العربية");
+            await writeItem(root, article, {});
+            await until(tagPath("العربية", defaultLocale), (status, body) => status === 200 && body.includes("العربية"));
+            article.tags = article.tags.filter((tag) => tag !== "ピアノ");
+            await writeItem(root, article, {});
+            await until(tagPath("ピアノ", defaultLocale), (status) => status === 404);
             const added = configuration("fixture-added", { type: "astro", file: "./Added.astro", path: "/games/fixture-added/" });
             const addedDirectory = join(root, "src/contents/fixture-added");
             await mkdir(addedDirectory, { recursive: true });

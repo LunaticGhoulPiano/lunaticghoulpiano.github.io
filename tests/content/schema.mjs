@@ -184,8 +184,8 @@ test("content scans are shared per root and invalidated after changes, including
 });
 
 test("taxonomy route changes propagate to links, generated pages and reserved routes", async () => {
-    const original = routes.blogTags.path;
-    routes.blogTags.path = "topics";
+    const original = routes.tags.path;
+    routes.tags.path = "topics";
     try {
         await withTemporaryDirectory(async (root) => {
             await writeItem(root, configuration("sample", undefined, { tags: ["framework"] }));
@@ -199,6 +199,6 @@ test("taxonomy route changes propagate to links, generated pages and reserved ro
         });
     }
     finally {
-        routes.blogTags.path = original;
+        routes.tags.path = original;
     }
 });

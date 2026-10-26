@@ -1,5 +1,11 @@
 import type { TranslationKey } from "../i18n/ui.ts";
 import type { SiteSection } from "./navigation.ts";
+import type { Taxonomy } from "./content.ts";
+
+export interface TaxonomyMount {
+    kind: Taxonomy;
+    placement?: string;
+}
 
 export const routes = {
     profile: {
@@ -60,22 +66,26 @@ export const routes = {
     },
     blog: {
         content: true,
+        taxonomies: ["tag", "category"],
+        empty: "empty.blog",
         section: "blog",
         path: "blog",
         title: "route.blog",
         description: "description.blog",
     },
-    blogTags: {
+    tags: {
+        taxonomy: { kind: "tag" },
         section: "blog",
         path: "blog/tags",
-        title: "route.blogTags",
-        description: "description.blogTags",
+        title: "route.tags",
+        description: "description.tags",
     },
-    blogCategories: {
+    categories: {
+        taxonomy: { kind: "category" },
         section: "blog",
         path: "blog/categories",
-        title: "route.blogCategories",
-        description: "description.blogCategories",
+        title: "route.categories",
+        description: "description.categories",
     },
     feeds: {
         section: "feeds",
@@ -109,10 +119,20 @@ export const routes = {
         title: TranslationKey;
         description: TranslationKey;
         content?: boolean;
+        empty?: TranslationKey;
+        taxonomies?: readonly Taxonomy[];
+        taxonomy?: TaxonomyMount;
     }
 >;
 
 export type RouteKey = keyof typeof routes;
+
+export function getTaxonomyRoutes(): (TaxonomyMount & { route: RouteKey })[] {
+    return (Object.keys(routes) as RouteKey[]).flatMap((route) => {
+        const page = routes[route];
+        return "taxonomy" in page ? [{ route, ...page.taxonomy }] : [];
+    });
+}
 
 export type ContentRoute = {
     [Route in RouteKey]: (typeof routes)[Route] extends { content: true } ? Route : never;

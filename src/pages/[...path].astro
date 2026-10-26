@@ -1,9 +1,10 @@
 ---
 import SitePage from "../components/SitePage.astro";
 import Post from "../components/blog/Post.astro";
-import Taxonomy from "../components/blog/Taxonomy.astro";
+import Taxonomy from "../components/common/Taxonomy.astro";
 import { getPageEntries } from "../routing";
 import { getContent, getContentContext } from "../data/contents";
+import { getTaxonomyContext } from "../services/index";
 
 export async function getStaticPaths() {
     return getPageEntries(await getContent());
@@ -11,7 +12,7 @@ export async function getStaticPaths() {
 
 type Props = ReturnType<typeof getPageEntries>[number]["props"];
 const props = Astro.props;
-const items = props.kind === "content" ? await getContent() : [];
+const items = props.kind !== "page" ? await getContent() : [];
 const item = items.find((item) => props.kind === "content" && item.id === props.id);
 if (props.kind === "content" && ! item) throw new Error(`Missing content: ${props.id}`);
 const context = item ? getContentContext(item, items) : undefined;
@@ -19,4 +20,4 @@ const context = item ? getContentContext(item, items) : undefined;
 
 {props.kind === "page" && <SitePage route={props.route} locale={props.locale} />}
 {item?.data.entry.type === "markdown" && context && <Post post={item} context={context} />}
-{props.kind === "taxonomy" && <Taxonomy taxonomy={props.taxonomy} value={props.value} locale={props.locale} />}
+{props.kind === "taxonomy" && <Taxonomy context={getTaxonomyContext(props.route, props.value, props.locale, items)} />}

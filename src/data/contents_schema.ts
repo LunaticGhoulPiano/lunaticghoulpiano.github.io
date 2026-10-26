@@ -2,8 +2,11 @@ import { z } from "astro/zod";
 import { contentRules } from "../config/content.ts";
 import { locales } from "../config/locales.ts";
 import { dateSchema } from "../utils/dates.ts";
+import { selectContent } from "./taxonomy.ts";
 
 const identifier = z.string().regex(contentRules.slugPattern);
+const tag = z.string().min(1).refine((value) => ! contentRules.invalidTagCharacters.test(value),
+    "Tags must be valid Unicode text without whitespace or control characters.");
 export const contentUrlSchema = z.string().min(1).refine((value) => {
     if (/[\u0000-\u0020\u007f\\]/.test(value)) return false;
     if (value.startsWith("/")) return ! value.startsWith("//");
@@ -38,7 +41,7 @@ export const entrySchema = z.discriminatedUnion("type", [
 const metadataFields = {
     kind: z.string(),
     category: identifier,
-    tags: z.array(identifier),
+    tags: z.array(tag),
     placements: z.array(z.enum(contentRules.placements)),
     related: z.array(identifier),
     links,
@@ -90,6 +93,6 @@ export type ContentRecord = { id: string; data: ContentData };
 export type Placement = typeof contentRules.placements[number];
 
 export function published<T extends ContentRecord>(entries: T[]): T[] {
-    return entries.filter((entry) => ! entry.data.draft)
+    return selectContent(entries)
         .sort((a, b) => b.data.date.localeCompare(a.data.date) || a.id.localeCompare(b.id));
 }

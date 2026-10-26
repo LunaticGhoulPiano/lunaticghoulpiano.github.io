@@ -1,0 +1,68 @@
+---
+import { languages, type Locale } from "../../config/locales";
+import { useMessages } from "../../i18n/ui";
+import { formatMessage } from "../../i18n/format";
+import { taxonomies, type Taxonomy } from "../../config/content";
+
+interface Props {
+    locale: Locale;
+    kind: Taxonomy;
+    entries: readonly { title: string; count: number; href: string }[];
+}
+
+const { locale, kind, entries } = Astro.props;
+const copy = useMessages(locale).content;
+const formatLocale = languages[locale].formatLocale;
+---
+
+{entries.length > 0 ? (
+    <div data-tag-browser={kind === "tag" ? "" : undefined} data-format-locale={formatLocale}>
+        {kind === "tag" && (
+            <div data-tag-controls hidden>
+                <label class="search-field">
+                    <span class="sr-only">{copy.searchTags}</span>
+                    <input type="search" placeholder={copy.searchTags} autocomplete="off" data-tag-search />
+                </label>
+                <p role="status" aria-live="polite" aria-atomic="true" data-tag-count data-label={JSON.stringify(copy.tagResults)}>
+                    {formatMessage(copy.tagResults, { count: entries.length }, formatLocale)}
+                </p>
+            </div>
+        )}
+        <ul class="tag-index">
+            {entries.map(({ title, count, href }) => (
+                <li data-tag-entry data-tag-name={title}>
+                    <a href={href}>{title}</a>
+                    <span>{count}</span>
+                </li>
+            ))}
+        </ul>
+        {kind === "tag" && <p class="empty-message" data-tag-empty hidden>{copy.noTagResults}</p>}
+    </div>
+) : <p class="empty-message">{copy[taxonomies[kind].emptyLabel]}</p>}
+
+<script>
+    import { formatMessage } from "../../i18n/format";
+
+    document.querySelectorAll<HTMLElement>("[data-tag-browser]").forEach((root) => {
+        const controls = root.querySelector<HTMLElement>("[data-tag-controls]")!;
+        const input = root.querySelector<HTMLInputElement>("[data-tag-search]")!;
+        const status = root.querySelector<HTMLElement>("[data-tag-count]")!;
+        const empty = root.querySelector<HTMLElement>("[data-tag-empty]")!;
+        const rows = [...root.querySelectorAll<HTMLElement>("[data-tag-entry]")];
+        const message = JSON.parse(status.dataset.label!);
+        const searchable = (text: string) => text.normalize("NFC").toLowerCase();
+        const filter = () => {
+            const query = searchable(input.value.trim());
+            let count = 0;
+            for (const row of rows) {
+                row.hidden = ! searchable(row.dataset.tagName!).includes(query);
+                if (! row.hidden) count++;
+            }
+            status.textContent = formatMessage(message, { count }, root.dataset.formatLocale!);
+            empty.hidden = count > 0;
+        };
+        controls.hidden = false;
+        input.addEventListener("input", filter);
+        filter();
+    });
+</script>

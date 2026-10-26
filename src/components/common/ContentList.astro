@@ -2,16 +2,17 @@
 import type { Locale } from "../../config/site";
 import type { ContentEntry } from "../../data/contents";
 import { contentPath, categoryPath, tagPath } from "../../routing";
-import { tagName } from "../../data/tags";
+import { tagName } from "../../data/taxonomy";
 import { useMessages } from "../../i18n/ui";
 import Pagination from "./Pagination.astro";
 
 interface Props {
     locale: Locale;
     items: ContentEntry[];
+    placement?: string;
 }
 
-const { locale, items } = Astro.props;
+const { locale, items, placement } = Astro.props;
 const copy = useMessages(locale).content;
 ---
 
@@ -20,7 +21,7 @@ const copy = useMessages(locale).content;
         {items.map((item) => (
             <li data-page-item>
                 <p class="post-meta">
-                    <a href={categoryPath(item.data.category, locale)}>{item.data.category}</a> · {copy.updated}
+                    <a href={categoryPath(item.data.category, locale, placement)}>{item.data.category}</a> · {copy.updated}
                     <time datetime={item.data.updated ?? item.data.date}>{item.data.updated ?? item.data.date}</time>
                 </p>
                 <h2><a href={contentPath(item)}>{item.data.title}</a></h2>
@@ -28,7 +29,7 @@ const copy = useMessages(locale).content;
                 {item.data.tags.length > 0 && (
                     <ul class="tag-list">
                         {item.data.tags.map((tag) => (
-                            <li><a href={tagPath(tag, locale)}>{tagName(tag, locale)}</a></li>
+                            <li><a href={tagPath(tag, locale, placement)}>{tagName(tag, locale)}</a></li>
                         ))}
                     </ul>
                 )}
