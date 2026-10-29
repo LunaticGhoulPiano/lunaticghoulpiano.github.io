@@ -1,22 +1,20 @@
 import { appendFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { spawnSync } from "node:child_process";
 import { site } from "../../src/config/site.ts";
 import { GithubClient } from "./client.ts";
 import { fetchGithubSnapshots } from "./fetch.ts";
 import { getGithubData } from "../../src/data/github/store.ts";
-import { projectRoot, snapshotDirectory } from "../../src/config/runtime.mjs";
+import { snapshotDirectory } from "../../src/config/runtime.mjs";
 import { restoredSnapshotDirectory } from "../snapshots/artifact.mjs";
 import { removeTemporaryDirectory } from "../temp_dir.mjs";
 import { writeSnapshot } from "../snapshots/files.mjs";
 import { githubPolicy } from "../../src/config/github.ts";
 import { datasets, mergeSnapshots, refreshReport, snapshotUsable } from "./refresh.ts";
-import { githubReadToken, validationEnvironment } from "./environment.mjs";
+import { githubReadToken } from "./environment.mjs";
 import { renderGithubSummary } from "./summary.ts";
 import { githubToolPolicy } from "./config.ts";
 import { hourMilliseconds } from "../../src/config/time.ts";
-import { astroArguments } from "../astro/run.mjs";
 
 export const refreshInterval = githubToolPolicy.refreshHours * hourMilliseconds;
 
@@ -33,20 +31,7 @@ export async function refreshDevelopmentData() {
         client: new GithubClient(token),
         previousDirectory: null,
         summaryFile: null,
-        // The fetch pipeline validates datasets before saving; Astro dev renders them directly.
-        validate: async () => {},
     });
-}
-
-async function validateSnapshots(stage) {
-    for (const command of ["check", "build"]) {
-        const check = spawnSync(process.execPath, astroArguments(command), {
-            stdio: "inherit",
-            cwd: projectRoot,
-            env: validationEnvironment(stage),
-        });
-        if (check.error || check.status !== 0) throw new Error(`Astro ${command} failed; saved snapshots were not replaced.`);
-    }
 }
 
 function loadSnapshots(directory, login) {
@@ -60,7 +45,7 @@ export async function runGithubRefresh({
     login = site.handle,
     outputDirectory = snapshotDirectory,
     previousDirectory = process.env.GITHUB_PREVIOUS_SNAPSHOT_DIR,
-    validate = validateSnapshots,
+    validate,
     summaryFile = process.env.GITHUB_STEP_SUMMARY,
     now = new Date(),
 }) {

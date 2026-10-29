@@ -55,6 +55,14 @@ jobs:
             - name: Install locked dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Restore reusable content builds
+              uses: actions/cache@v5
+              with:
+                  path: .cache/content-build
+                  key: content-build-${{ runner.os }}-${{ hashFiles('.node-version') }}-${{ github.sha }}
+                  restore-keys: |
+                      content-build-${{ runner.os }}-${{ hashFiles('.node-version') }}-
+
             - name: Run tests
               run: pnpm test
 
@@ -87,11 +95,17 @@ jobs:
                   SNAPSHOT_RESTORE_DIR: ${{ steps.previous_snapshots.outputs.restore_directory }}
               run: pnpm refresh:media
 
-            - name: Refresh GitHub data, check, and build
+            - name: Refresh GitHub data
               env:
                   WEBPAGE_GITHUB_PROFILE_READONLY: ${{ secrets.WEBPAGE_GITHUB_PROFILE_READONLY }}
                   GITHUB_PREVIOUS_SNAPSHOT_DIR: ${{ steps.previous_snapshots.outputs.restore_directory }}
               run: pnpm refresh:github
+
+            - name: Build changed content and website
+              run: pnpm build --install
+
+            - name: Check website
+              run: pnpm check
 
             - name: Save validated snapshots
               uses: actions/upload-artifact@v7

@@ -60,8 +60,7 @@ export function validateEntries(records) {
     }
 }
 
-/** @returns {Promise<import("../../src/data/contents_schema.ts").ContentRecord[]>} */
-export async function discoverContent(root) {
+export async function readContentConfigurations(root) {
     const sourceRoot = join(root, "src", "contents");
     let directories;
     try {
@@ -71,7 +70,7 @@ export async function discoverContent(root) {
         if (error.code === "ENOENT") return [];
         throw error;
     }
-    const records = [];
+    const configurations = [];
     const ids = new Set();
     for (const directory of directories.sort((a, b) => a.name.localeCompare(b.name))) {
         if (! directory.isDirectory() || directory.name.startsWith("."))
@@ -97,6 +96,15 @@ export async function discoverContent(root) {
         if (ids.has(config.id))
             throw new Error(`Duplicate content ID: ${config.id}`);
         ids.add(config.id);
+        configurations.push({ directory: itemDirectory, config });
+    }
+    return configurations;
+}
+
+/** @returns {Promise<import("../../src/data/contents_schema.ts").ContentRecord[]>} */
+export async function discoverContent(root) {
+    const records = [];
+    for (const { directory: itemDirectory, config } of await readContentConfigurations(root)) {
         for (const [language, localized] of Object.entries(config.locales)) {
             const locale = language;
             const { entry } = localized;
@@ -124,7 +132,7 @@ export async function discoverContent(root) {
                     links: config.links,
                     ...localized,
                     href: entry.type === "link" ? entry.url : localizedPath(entry.path, locale),
-                    directory: `src/contents/${directory.name}`,
+                    directory: relative(root, itemDirectory).replaceAll(sep, "/"),
                     ...(source ? { source } : {}),
                 },
             });

@@ -6,7 +6,9 @@
     "scripts": {
         "dev": "node scripts/dev.mjs",
         "check": "node scripts/astro/run.mjs check",
-        "build": "node scripts/astro/run.mjs build",
+        "build": "node scripts/build.mjs",
+        "build:contents": "node scripts/content/build.mjs",
+        "build:full": "node scripts/build.mjs --force",
         "preview": "node scripts/astro/run.mjs preview",
         "test": "node --test \"tests/**/!(fixture).mjs\"",
         "refresh:media": "node scripts/snapshots/update.mjs",

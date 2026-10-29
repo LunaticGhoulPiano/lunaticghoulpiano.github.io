@@ -1,0 +1,50 @@
+{
+    "id": "mymusic5-api",
+    "kind": "documentation",
+    "category": "development",
+    "tags": ["MyMusic5", "API", "JavaScript", "REST"],
+    "placements": ["documentations"],
+    "build": {
+        "command": ["node", "build.mjs", "--locale", "{locale}", "--out-dir", "{outDir}"],
+        "inputs": [
+            "./i18n/{locale}",
+            "./build.mjs",
+            "./docusaurus.config.js",
+            "./sidebars.js",
+            "./package.json",
+            "./pnpm-lock.yaml",
+            "./pnpm-workspace.yaml"
+        ],
+        "sharedInputs": ["./src/config", "./src/i18n"]
+    },
+    "links": [
+        {
+            "label": "GitHub",
+            "url": "https://github.com/LunaticGhoulPiano/MyMusic5API"
+        }
+    ],
+    "locales": {
+        "en": {
+            "title": "MyMusic5API",
+            "description": "Read-only REST API and JavaScript library for public MyMusic5 sheet music metadata.",
+            "date": "2026-10-29",
+            "draft": false,
+            "entry": {
+                "type": "site",
+                "root": "./build/en",
+                "path": "/documentations/mymusic5-api/"
+            }
+        },
+        "zh-tw": {
+            "title": "MyMusic5API",
+            "description": "取得 MyMusic5 公開樂譜資料的唯讀 REST API 與 JavaScript 程式庫。",
+            "date": "2026-10-29",
+            "draft": false,
+            "entry": {
+                "type": "site",
+                "root": "./build/zh-tw",
+                "path": "/documentations/mymusic5-api/"
+            }
+        }
+    }
+}

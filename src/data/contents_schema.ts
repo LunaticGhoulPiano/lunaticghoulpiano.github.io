@@ -69,6 +69,11 @@ export const itemConfigSchema = z.strictObject({
     tags: metadataFields.tags.default([]),
     placements: metadataFields.placements.default([]),
     related: metadataFields.related.default([]),
+    build: z.strictObject({
+        command: z.array(z.string().min(1)).min(1),
+        inputs: z.array(localFile).min(1),
+        sharedInputs: z.array(localFile).default([]),
+    }).optional(),
     locales: z.record(z.string(), localizedSchema),
 }).superRefine((data, context) => {
     const keys = Object.keys(data.locales);

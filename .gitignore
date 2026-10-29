@@ -1,7 +1,8 @@
-docs/
+/docs/
 node_modules/
 dist/
 .astro/
+.cache/
 src/data/generated/
 .env
 .env.*

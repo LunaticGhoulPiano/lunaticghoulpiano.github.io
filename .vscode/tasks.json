@@ -27,14 +27,60 @@
             "args": ["run", "refresh:github"]
         },
         {
+            "label": "Build changed content and website",
+            "detail": "Reuse unchanged content builds, then rebuild the Astro website.",
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "build"],
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "Build selected content and website",
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "build", "--item=${input:contentId}", "--locale=${input:contentLocale}"]
+        },
+        {
+            "label": "Build section content and website",
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "build", "--section=${input:contentSection}", "--locale=${input:contentLocale}"]
+        },
+        {
+            "label": "Rebuild entire website",
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "build:full"]
+        },
+        {
             "label": "Update websites' cache",
-            "detail": "Refresh all website caches. GitHub runs last to check and build with the updated snapshots.",
+            "detail": "Refresh and validate website snapshots without building the website.",
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Update YouTube cache",
                 "Update MyMusic5 cache",
                 "Update GitHub cache"
             ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "contentId",
+            "type": "promptString",
+            "description": "Content ID from configs.json; leave empty for all content.",
+            "default": ""
+        },
+        {
+            "id": "contentLocale",
+            "type": "promptString",
+            "description": "Locale key from configs.json; leave empty for all locales.",
+            "default": ""
+        },
+        {
+            "id": "contentSection",
+            "type": "promptString",
+            "description": "Section key from placements; leave empty for all sections.",
+            "default": ""
         }
     ]
 }

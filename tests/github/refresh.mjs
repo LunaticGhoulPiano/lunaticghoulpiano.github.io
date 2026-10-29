@@ -6,6 +6,8 @@ import { temporaryRoot } from "../../scripts/runtime.mjs";
 import { withTemporaryDirectory as temporaryDirectory } from "../../scripts/temp_dir.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
+import childProcess from "node:child_process";
+import { syncBuiltinESMExports } from "node:module";
 import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { GithubClient } from "../../scripts/github/client.ts";
@@ -182,6 +184,29 @@ test("snapshot restoration selects the newest valid dataset without changing its
     assert.deepEqual(merged.profile, result.snapshots.profile);
     assert.deepEqual(merged.repositories, current.repositories);
     assert.equal(refreshReadiness(merged, []).ready, false);
+});
+
+test("default snapshot refresh validates and saves data without starting a compiler", async (context) => {
+    context.mock.method(globalThis, "fetch", fixtureFetch());
+    const spawn = context.mock.method(childProcess, "spawnSync", () => assert.fail("Cache refresh must not start check or build"));
+    syncBuiltinESMExports();
+    context.after(() => {
+        spawn.mock.restore();
+        syncBuiltinESMExports();
+    });
+    await temporaryDirectory(async (directory) => {
+        const result = await runGithubRefresh({
+            client: new GithubClient("fixture_only"),
+            login: fixtureLogin,
+            now: fixtureNow,
+            outputDirectory: directory,
+            previousDirectory: null,
+            summaryFile: null,
+        });
+        assert.equal(result.report.readiness.ready, true);
+        assert.deepEqual(result.report.execution.savedDatasets, datasets);
+        assert.deepEqual(JSON.parse(await readFile(join(directory, githubPolicy.snapshotFilename), "utf8")), result.snapshots);
+    });
 });
 
 test("failed contribution refresh reuses the artifact, validates it and saves every registered dataset", async (context) => {
