@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile, writeFile, rm, readdir } from "node:fs/promises";
+import { cp, readFile, writeFile, rm, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { buildContents, buildOptions, runCommand } from "../../scripts/content/build.mjs";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
@@ -85,25 +85,30 @@ test("item, section and locale selection share one builder and multiple placemen
     });
 });
 
-test("CI installs locked dependencies once per changed project and never for cache hits", async (context) => {
-    const previous = process.env.npm_execpath;
-    process.env.npm_execpath = join(process.cwd(), "pnpm.cjs");
-    context.after(() => {
-        if (previous === undefined) delete process.env.npm_execpath;
-        else process.env.npm_execpath = previous;
+for (const native of [false, true]) {
+    test(`CI runs ${native ? "native" : "JavaScript"} pnpm once per changed project and never for cache hits`, async (context) => {
+        const previous = process.env.npm_execpath;
+        context.after(() => {
+            if (previous === undefined) delete process.env.npm_execpath;
+            else process.env.npm_execpath = previous;
+        });
+        await withTemporaryDirectory(async (root) => {
+            const { directory } = await fixture(root, "first", ["documentations"]);
+            await writeFile(join(directory, "package.json"), '{"type":"commonjs"}');
+            const executable = join(root, native ? (process.platform === "win32" ? "pnpm.exe" : "pnpm") : "pnpm.cjs");
+            if (native) await cp(process.execPath, executable);
+            const installer = native ? join(directory, "install") : executable;
+            const args = native ? ["--frozen-lockfile"] : ["install", "--frozen-lockfile"];
+            await writeFile(installer, `require("node:assert/strict").deepEqual(process.argv.slice(2), ${JSON.stringify(args)});
+require("node:fs").appendFileSync("installs.txt", "installed\\n");
+`);
+            process.env.npm_execpath = executable;
+            assert.deepEqual(built(await buildContents({ root, install: true, ...quiet })), ["first/en", "first/zh-tw"]);
+            assert.equal(await readFile(join(directory, "installs.txt"), "utf8"), "installed\n");
+            await buildContents({ root, install: true, run: () => assert.fail("Cache hits must not install or build"), ...quiet });
+        });
     });
-    await withTemporaryDirectory(async (root) => {
-        const { directory } = await fixture(root);
-        const installs = [];
-        const run = (command, cwd) => {
-            if (command[1] === process.env.npm_execpath) installs.push({ command, cwd });
-            else runCommand(command, cwd);
-        };
-        await buildContents({ root, install: true, run, ...quiet });
-        assert.deepEqual(installs, [{ command: ["node", process.env.npm_execpath, "install", "--frozen-lockfile"], cwd: directory }]);
-        await buildContents({ root, install: true, run: () => assert.fail("Cache hits must not install or build"), ...quiet });
-    });
-});
+}
 
 test("failed or incomplete builds keep previous outputs and success records, and removed targets leave no reusable cache", async () => {
     await withTemporaryDirectory(async (root) => {

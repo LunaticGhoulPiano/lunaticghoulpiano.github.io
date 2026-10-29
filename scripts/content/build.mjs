@@ -175,7 +175,8 @@ export async function buildContents({ root = projectRoot, item, locale, section,
             if (install && ! installed) {
                 const pnpm = process.env.npm_execpath;
                 if (! pnpm || ! basename(pnpm).startsWith("pnpm")) throw new Error("Use pnpm build --install to install content dependencies.");
-                await run(["node", pnpm, "install", "--frozen-lockfile"], directory);
+                const command = /\.(?:cjs|mjs|js)$/i.test(pnpm) ? ["node", pnpm] : [pnpm];
+                await run([...command, "install", "--frozen-lockfile"], directory);
                 installed = true;
             }
             const stage = await mkdtemp(join(cache, ".build-"));
