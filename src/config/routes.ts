@@ -58,6 +58,14 @@ export const routes = {
         title: "route.mymusic5Projects",
         description: "description.mymusic5Projects",
     },
+    playground: {
+        content: true,
+        empty: "empty.playground",
+        section: "playground",
+        path: "playground",
+        title: "route.playground",
+        description: "description.playground",
+    },
     blog: {
         content: true,
         empty: "empty.blog",
@@ -65,6 +73,14 @@ export const routes = {
         path: "blog",
         title: "route.blog",
         description: "description.blog",
+    },
+    documentations: {
+        content: true,
+        empty: "empty.documentations",
+        section: "documentations",
+        path: "documentations",
+        title: "route.documentations",
+        description: "description.documentations",
     },
     search: {
         section: null,

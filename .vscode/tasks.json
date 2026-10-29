@@ -1,0 +1,40 @@
+{
+    "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}"
+    },
+    "problemMatcher": [],
+    "tasks": [
+        {
+            "label": "Update YouTube cache",
+            "hide": true,
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "refresh:youtube"]
+        },
+        {
+            "label": "Update MyMusic5 cache",
+            "hide": true,
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "refresh:mymusic5"]
+        },
+        {
+            "label": "Update GitHub cache",
+            "hide": true,
+            "type": "shell",
+            "command": "pnpm",
+            "args": ["run", "refresh:github"]
+        },
+        {
+            "label": "Update websites' cache",
+            "detail": "Refresh all website caches. GitHub runs last to check and build with the updated snapshots.",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Update YouTube cache",
+                "Update MyMusic5 cache",
+                "Update GitHub cache"
+            ]
+        }
+    ]
+}

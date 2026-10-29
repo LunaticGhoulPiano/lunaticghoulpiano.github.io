@@ -1,8 +1,10 @@
 export const mainNavigation = [
     "profile",
-    "projects",
-    "blog",
     "feeds",
+    "projects",
+    "playground",
+    "blog",
+    "documentations",
 ] as const;
 
 export type SiteSection = (typeof mainNavigation)[number];
