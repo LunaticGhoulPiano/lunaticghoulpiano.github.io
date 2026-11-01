@@ -15,8 +15,7 @@ const paths = {
 };
 ---
 
-<div class="rail-links">
-    <p class="rail-label">{useMessages(locale).design.elsewhere}</p>
+<nav class="social-links-container" aria-label={useMessages(locale).design.elsewhere}>
     <ul class="social-links">
         {socialLinks.map((link) => (
             <li>
@@ -24,9 +23,64 @@ const paths = {
                     <path d={paths[link.platform]} fill="currentColor" fill-rule="evenodd" />
                 </svg>
                 <a href={link.url} aria-label={`${link.label}: ${link.url}`}>
-                    {new URL(link.url).hostname.replace(/^www\./, "")}/<wbr />{new URL(link.url).pathname.slice(1)}
+                    {link.label}
                 </a>
             </li>
         ))}
     </ul>
-</div>
+</nav>
+
+<style>
+    .social-links a:hover {
+        color: var(--accent);
+    }
+
+    .social-links-container {
+        margin-top: 1.25rem;
+    }
+
+    .social-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.5rem;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        color: var(--muted);
+    }
+
+    .social-links li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .social-links svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .social-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        font-size: 0.75rem;
+        text-decoration: none;
+    }
+
+    @media (max-width: 48rem) {
+
+        .social-links {
+            gap: 0.4rem 1.25rem;
+        }
+
+    }
+
+    @media print {
+
+        .social-links-container {
+            display: none;
+        }
+
+    }
+</style>

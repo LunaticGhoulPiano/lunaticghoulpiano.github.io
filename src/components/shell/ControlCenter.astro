@@ -1,0 +1,173 @@
+---
+import { appearanceOptions, appearanceDefaults } from "../../config/appearance";
+import type { Locale } from "../../config/locales";
+import { useMessages } from "../../i18n/ui";
+import { wallpapers } from "../../assets/wallpapers";
+import LanguageSwitcher from "../navigation/LanguageSwitcher.astro";
+import Panel from "../common/Panel.astro";
+import Icon from "../common/Icon.astro";
+interface Props { locale: Locale; languagePaths: Partial<Record<Locale, string>>; }
+const { locale, languagePaths } = Astro.props;
+const { shell: copy, design } = useMessages(locale);
+const settings = Object.keys(appearanceOptions).filter((key) => key !== "preset") as Exclude<keyof typeof appearanceOptions, "preset">[];
+---
+<Panel id="controls" title={copy.controls} locale={locale}>
+    <fieldset class="preset-options">
+        <legend>{copy.preset}</legend>
+        {appearanceOptions.preset.map((preset) => (
+            <label class="preset-choice" style={`--preset-preview: url('${wallpapers[preset].image.src}')`}>
+                <input type="radio" name="appearance-preset" value={preset} data-appearance-setting="preset" checked={preset === appearanceDefaults.preset} />
+                <span>{copy[preset]}</span>
+            </label>
+        ))}
+    </fieldset>
+    <div class="control-row">
+        <span>{copy.theme}</span>
+        <button class="theme-toggle" type="button" data-theme-toggle data-system-label={design.themeSystem} data-dark-label={design.themeDark} data-light-label={design.themeLight} data-system-value={copy.system} data-light-value={copy.light} data-dark-value={copy.dark} aria-label={design.themeSystem} hidden>
+            <Icon name="contrast" /><span data-theme-value>{copy.system}</span>
+        </button>
+    </div>
+    {settings.map((key) => (
+        <label class="control-row"><span>{copy[key]}</span>
+            <select data-appearance-setting={key} aria-label={copy[key]}>
+                {appearanceOptions[key].map((value) => <option value={value} selected={value === appearanceDefaults[key]}>{copy[value]}</option>)}
+            </select>
+        </label>
+    ))}
+    <div class="control-row"><span>{copy.language}</span><LanguageSwitcher locale={locale} languagePaths={languagePaths} /></div>
+    <div class="control-footer">
+        <button class="text-link" type="button" data-appearance-reset><Icon name="reset" />{copy.reset}</button>
+    </div>
+    <details class="wallpaper-credits"><summary>{copy.credits}</summary>
+        {appearanceOptions.preset.map((preset) => <p><a href={wallpapers[preset].credit.source} target="_blank" rel="noreferrer">{wallpapers[preset].credit.photographer} / Unsplash ↗</a></p>)}
+    </details>
+</Panel>
+
+<style>
+    .preset-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+        gap: 0.6rem;
+        padding: 0 0 1.5rem;
+        margin: 0;
+        border: 0;
+    }
+
+    .preset-options legend {
+        padding: 0 0 0.75rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+    }
+
+    .preset-choice {
+        position: relative;
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        min-height: 90px;
+        padding: 0.65rem 0.3rem;
+        border: 2px solid transparent;
+        border-radius: 2px;
+        background: linear-gradient(#10121120, #101211ee), var(--preset-preview) center 55% / cover;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.7rem;
+        text-align: center;
+    }
+
+    .preset-choice:has(:checked) {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent);
+    }
+
+    .preset-choice input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .preset-choice:has(:focus-visible) {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+    }
+
+    .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        min-height: 54px;
+        padding-block: 0.5rem;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.8rem;
+    }
+
+    .control-row > span {
+        flex-shrink: 0;
+    }
+
+    .control-row select {
+        width: 11.5rem;
+        min-width: 0;
+        max-width: 65%;
+        min-height: 38px;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: var(--field);
+        color: var(--text);
+        font-size: 0.75rem;
+    }
+
+    .theme-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: end;
+        gap: 0.6rem;
+        min-height: 44px;
+        padding: 0.4rem 0;
+        max-width: 65%;
+        border: 0;
+        background: transparent;
+        font-size: 0.72rem;
+        text-align: right;
+    }
+
+    .theme-toggle :global(.icon) {
+        width: 18px;
+        height: 18px;
+    }
+
+    .control-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 0.75rem;
+    }
+
+    .control-footer .text-link {
+        border: 0;
+        background: transparent;
+        font-size: 0.75rem;
+    }
+
+    .wallpaper-credits {
+        font-size: 0.65rem;
+        color: var(--muted);
+        margin-top: 0.5rem;
+    }
+
+    .wallpaper-credits summary {
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+    }
+
+    .wallpaper-credits p {
+        margin-block: 0.5rem;
+    }
+</style>

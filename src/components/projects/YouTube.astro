@@ -23,7 +23,7 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
 ---
 
 {channel ? (
-    <div data-youtube-browser data-carousel-hover>
+    <div data-youtube-browser>
         <Channel locale={locale} channel={channel}>
             <div class="profile-search" data-list-search-controls hidden>
                 <SearchField id="youtube-search" label={copy.search} placeholder={copy.searchPlaceholder} aria-controls="youtube-timeline" data-list-search />
@@ -42,8 +42,6 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
                         label={copy.playlists}
                         locale={locale}
                         visibleItems={youtubePlaylistNavigation.visibleItems}
-                        interval={youtubePlaylistNavigation.interval}
-                        slideDuration={youtubePlaylistNavigation.duration}
                         navigation
                         loop
                     >
@@ -125,7 +123,7 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
         padding: 0.25rem 0.5rem;
         border: 1px solid var(--line);
         color: var(--text);
-        background: var(--background);
+        background: var(--surface);
         font: inherit;
     }
 

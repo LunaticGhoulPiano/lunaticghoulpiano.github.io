@@ -1,5 +1,4 @@
 import { carouselState, carouselWidths } from "../utils/carousel.ts";
-import { createAutoAdvance } from "./auto_advance.ts";
 
 export function initializeCarousels() {
     document.querySelectorAll<HTMLElement>("[data-carousel]").forEach((carousel) => {
@@ -14,7 +13,6 @@ export function initializeCarousels() {
         const space = carousel.querySelector<HTMLElement>("[data-carousel-space]");
         const navigation = carousel.dataset.navigation === "true";
         const loop = carousel.dataset.loop === "true";
-        const duration = Number(carousel.dataset.slideDuration);
         let offset = 0;
         let base = 0;
         let columns = 1;
@@ -28,15 +26,6 @@ export function initializeCarousels() {
         let naturalWidths: number[] = [];
         let selected = Math.max(0, cards.findIndex((card) => card.getAttribute("aria-pressed") === "true"));
         let state = carouselState(cards.length, columns, 0, loop);
-        let sliding = false;
-        let slideFrame = 0;
-        let slideTimer: ReturnType<typeof setTimeout> | undefined;
-        const automatic = createAutoAdvance(carousel.closest<HTMLElement>("[data-carousel-hover]") ?? carousel, {
-            interval: Number(carousel.dataset.interval),
-            advance: () => move(1, false),
-            canAdvance: () => ! sliding && (navigation ? selectionState() : state).next !== null,
-        });
-
         function selectionState() {
             return carouselState(cards.length, 1, selected, loop);
         }
@@ -45,14 +34,6 @@ export function initializeCarousels() {
             selected = index;
             cards.forEach((card, cardIndex) => card.setAttribute("aria-pressed", String(cardIndex === selected)));
             cards[selected]?.dispatchEvent(new Event("carousel:select"));
-        }
-
-        function stopSlide() {
-            cancelAnimationFrame(slideFrame);
-            clearTimeout(slideTimer);
-            slideTimer = undefined;
-            slideFrame = 0;
-            sliding = false;
         }
 
         function syncHeight() {
@@ -82,21 +63,16 @@ export function initializeCarousels() {
             }
             if (navigation) {
                 const current = carouselState(cards.length, columns, base, loop).indices;
-                const following = carouselState(cards.length, columns, base + 1, loop).indices;
                 const available = track.clientWidth - Math.max(0, current.length - 1) * gap;
                 const widths = carouselWidths(current.map((index) => naturalWidths[index]), available);
-                const nextWidths = carouselWidths(following.map((index) => naturalWidths[index]), available);
-                const progress = offset - base;
                 for (let index = 0; index < cards.length; index++) {
                     const card = cards[(base + index) % cards.length];
                     let width = naturalWidths[(base + index) % cards.length];
-                    if (index === 0) width = widths[0];
-                    else if (index < current.length) width = widths[index] + (nextWidths[index - 1] - widths[index]) * progress;
-                    else if (index === current.length) width = nextWidths.at(-1)!;
+                    if (index < current.length) width = widths[index];
                     card.style.width = `${width}px`;
-                    card.inert = index >= current.length + (progress > 0 ? 1 : 0);
+                    card.inert = index >= current.length;
                 }
-                track.scrollLeft = progress * ((widths[0] ?? 0) + gap);
+                track.scrollLeft = 0;
             }
             else {
                 track.scrollLeft = (offset - base) * step;
@@ -117,58 +93,19 @@ export function initializeCarousels() {
             syncHeight();
         }
 
-        function move(direction: number, manual = true, changeSelection = true) {
+        function move(direction: number, changeSelection = true) {
             const target = direction < 0 ? state.previous : state.next;
             const selection = navigation && changeSelection ? selectionState() : null;
             const selectedTarget = selection ? direction < 0 ? selection.previous : selection.next : null;
-            if (sliding || (target === null && selectedTarget === null)) return;
-            automatic.cancel();
-            position.setAttribute("aria-live", manual ? "polite" : "off");
+            if (target === null && selectedTarget === null) return;
+            position.setAttribute("aria-live", "polite");
             if (selectedTarget !== null) select(selectedTarget);
-            if (target === null) {
-                render(offset);
-                automatic.schedule();
-                return;
-            }
-            if (! automatic.reducedMotion.matches && Number.isFinite(duration) && duration > 0) {
-                const start = offset;
-                let end = target;
-                if (loop && direction > 0 && end < start) end += cards.length;
-                if (loop && direction < 0 && end > start) end -= cards.length;
-                const startedAt = performance.now();
-                sliding = true;
-                function finish() {
-                    if (! sliding) return;
-                    stopSlide();
-                    render(end);
-                    automatic.schedule();
-                }
-                function frame(now: number) {
-                    const progress = automatic.reducedMotion.matches
-                        ? 1 : Math.min(1, (now - startedAt) / duration);
-                    const eased = progress * progress * (3 - 2 * progress);
-                    render(start + (end - start) * eased);
-                    if (progress < 1) {
-                        slideFrame = requestAnimationFrame(frame);
-                    }
-                    else {
-                        finish();
-                    }
-                }
-                slideFrame = requestAnimationFrame(frame);
-                slideTimer = setTimeout(finish, duration);
-            }
-            else {
-                render(target);
-                automatic.schedule();
-            }
+            render(target ?? offset);
         }
 
         function interact(requestedOffset: number, updateScrollbar = true) {
-            stopSlide();
             position.setAttribute("aria-live", "polite");
             render(requestedOffset, updateScrollbar);
-            automatic.schedule();
         }
 
         function geometryChanged() {
@@ -182,8 +119,7 @@ export function initializeCarousels() {
         if (navigation) {
             cards.forEach((card, index) => card.addEventListener("click", () => {
                 select(index);
-                if (card === cards[state.indices.at(-1)!] && columns > 1) move(1, true, false);
-                automatic.schedule();
+                if (card === cards[state.indices.at(-1)!] && columns > 1) move(1, false);
             }));
         }
         track.addEventListener("scroll", () => {
@@ -242,7 +178,6 @@ export function initializeCarousels() {
         });
         function resize() {
             const changed = geometryChanged();
-            if (changed) stopSlide();
             const style = getComputedStyle(track);
             columns = Number.parseInt(style.getPropertyValue("--carousel-columns"), 10) || 1;
             gap = Number.parseFloat(style.columnGap);
@@ -266,7 +201,6 @@ export function initializeCarousels() {
                 scrollbar.style.height = `${Math.max(16, nativeHeight + 1)}px`;
             }
             render(offset);
-            automatic.schedule();
         }
         let resizeFrame = 0;
         const observer = new ResizeObserver(() => {

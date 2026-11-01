@@ -3,7 +3,7 @@ import { themes, themeStyles } from "../config/theme";
 import { languages, site, type Locale } from "../config/site";
 import { type RouteKey } from "../config/routes";
 import { getRoutePath } from "../routing";
-import { useTranslations } from "../i18n/ui";
+import { useMessages, useTranslations } from "../i18n/ui";
 import SiteHeader from "../components/navigation/SiteHeader.astro";
 import SiteFooter from "../components/common/SiteFooter.astro";
 import SiteNavigation from "../components/navigation/SiteNavigation.astro";
@@ -11,7 +11,12 @@ import Discovery from "../components/common/Discovery.astro";
 import { discoveryIndex } from "../data/search";
 import { getSearchDocuments } from "../services/search";
 import themeScript from "../scripts/theme.js?raw";
+import appearanceScript from "../scripts/appearance.js?raw";
+import { appearanceConfiguration } from "../config/appearance";
+import Wallpaper from "../components/shell/Wallpaper.astro";
+import Panel from "../components/common/Panel.astro";
 import "../styles/global.css";
+import "../styles/shell.css";
 
 interface Props {
     article?: {
@@ -46,7 +51,7 @@ const translations =
 ---
 
 <!doctype html>
-<html lang={languages[locale].htmlLang} data-light-color={themes.light.background} data-dark-color={themes.dark.background}>
+<html lang={languages[locale].htmlLang} data-light-color={themes.light.background} data-dark-color={themes.dark.background} data-appearance-config={JSON.stringify(appearanceConfiguration)}>
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,6 +59,7 @@ const translations =
         <meta name="theme-color" content={themes.light.background} />
         <style is:inline set:html={themeStyles} />
         <script is:inline set:html={themeScript} />
+        <script is:inline set:html={appearanceScript} />
         <title>{pageTitle}</title>
         {description && <meta name="description" content={description} />}
         {noindex && <meta name="robots" content="noindex, follow" />}
@@ -80,14 +86,17 @@ const translations =
         {description && <meta property="og:description" content={description} />}
         {canonical && <meta property="og:url" content={canonical} />}
     </head>
-    <body class:list={{ "cv-page": route === "cv" }}>
+    <body class:list={{ "cv-page": route === "cv", "home-page": route === "profile" }}>
+        <Wallpaper />
         <a class="skip-link" href="#main-content">{t("nav.skip")}</a>
         <SiteHeader locale={locale} route={route} languagePaths={translations} />
-        <div class="container site-frame">
-            <aside class="site-rail">
-                <SiteNavigation locale={locale} route={route} />
-            </aside>
+        <aside class="site-rail">
+            <SiteNavigation locale={locale} route={route} />
+        </aside>
+        <Panel id="filters" title={useMessages(locale).shell.filters} locale={locale}>
             <Discovery locale={locale} index={discovery} filters={filters} />
+        </Panel>
+        <div class="container site-frame">
             <main class="main-content" id="main-content" tabindex="-1">
                 <slot />
             </main>

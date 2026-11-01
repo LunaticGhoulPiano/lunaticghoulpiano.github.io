@@ -3,7 +3,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { carouselState, carouselWidths } from "../src/utils/carousel.ts";
 import { initializeCarousels } from "../src/scripts/carousel.ts";
-import { githubCategorySlideInterval, githubCategorySlideDuration } from "../src/config/collections.ts";
 
 function element() {
     const handlers = new Map();
@@ -32,7 +31,7 @@ function element() {
     };
 }
 
-function fixture(context, loop = true, { interval = 0, duration = 0, hovered = false, reduced = false, navigation = false, count = 10, hoverScope = false } = {}) {
+function fixture(context, loop = true, { navigation = false, count = 10 } = {}) {
     context.mock.timers.enable({ apis: ["setTimeout"] });
     let columns = navigation ? 4 : 3;
     let resizeCallback;
@@ -107,16 +106,11 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         scrollbar: navigation ? null : scrollbar,
         space: navigation ? null : space,
     };
-    const hoverArea = hoverScope ? Object.assign(element(), { matches: () => hovered }) : null;
     const root = Object.assign(element(), {
         dataset: {
             loop: String(loop),
-            interval: String(interval),
-            slideDuration: String(duration),
             navigation: String(navigation),
         },
-        matches: () => hovered,
-        closest: () => hoverArea,
         contains: (target) => target != null && (cards.includes(target) || Object.values(nodes).includes(target)),
         querySelector(selector) {
             return nodes[selector.slice("[data-carousel-".length, -1)];
@@ -127,12 +121,10 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         activeElement: null,
         querySelectorAll: () => [root],
     });
-    const motion = Object.assign(element(), { matches: reduced });
-    const window = Object.assign(element(), { matchMedia: () => motion });
+    const window = element();
     const environment = {
         document,
         window,
-        performance: { now: () => now },
         getComputedStyle: () => ({
             columnGap: String(gap),
             paddingTop: "8",
@@ -149,7 +141,6 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
             frames.set(++frameId, callback);
             return frameId;
         },
-        cancelAnimationFrame: (id) => frames.delete(id),
     };
     installGlobals(context, environment, true);
     initializeCarousels();
@@ -164,12 +155,11 @@ function fixture(context, loop = true, { interval = 0, duration = 0, hovered = f
         cards,
         selections,
         root,
-        hoverArea,
         document,
         window,
-        motion,
         frame,
-        tick: (elapsed = githubCategorySlideInterval) => context.mock.timers.tick(elapsed),
+        pendingFrames: () => frames.size,
+        tick: (elapsed = 60_000) => context.mock.timers.tick(elapsed),
         visible: () => track.children.filter((card) => {
             const bounds = card.getBoundingClientRect();
             return bounds.right > 1 && bounds.left < track.clientWidth - 1;
@@ -229,94 +219,6 @@ test("navigation moves one label per arrow and rightmost selection, including wr
     assert.equal(new Set(view.track.children).size, view.cards.length);
 });
 
-test("navigation shares hover-only auto advance and maintains adjacent labels during animation", (context) => {
-    const view = fixture(context, true, { navigation: true, interval: 5000, duration: 450, hovered: true });
-    view.tick(5000);
-    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
-    view.root.dispatch("mouseleave");
-    view.tick(5000);
-    view.frame(225);
-    assert.ok(view.track.scrollLeft > 0);
-    view.frame(225);
-    assert.deepEqual(view.visible(), [1, 2, 3, 4]);
-    assert.equal(view.selected(), 1);
-    assert.deepEqual(view.selections, [1]);
-    view.root.dispatch("mouseenter");
-    view.tick(5000);
-    assert.deepEqual(view.visible(), [1, 2, 3, 4]);
-    assert.equal(view.selected(), 1);
-    view.window.dispatch("blur");
-    view.tick(5000);
-    view.tick(450);
-    assert.deepEqual(view.visible(), [2, 3, 4, 5]);
-    view.resize(2);
-    assert.deepEqual(view.visible(), [2, 3]);
-    assert.equal(view.selected(), 2);
-});
-
-test("short navigation cycles selection even when all labels fit in the window", (context) => {
-    const view = fixture(context, true, { navigation: true, count: 2, interval: 5000 });
-    assert.deepEqual(view.visible(), [0, 1]);
-    assert.equal(view.controls.hidden, false);
-    assert.equal(view.previous.disabled, false);
-    assert.equal(view.next.disabled, false);
-    assert.equal(view.cards[1].getBoundingClientRect().right, view.track.clientWidth);
-    view.tick(5000);
-    assert.equal(view.selected(), 1);
-    assert.deepEqual(view.visible(), [0, 1]);
-    view.next.dispatch("click");
-    assert.equal(view.selected(), 0);
-    view.previous.dispatch("click");
-    assert.equal(view.selected(), 1);
-    assert.deepEqual(view.selections, [1, 0, 1]);
-});
-
-test("navigation selection wraps with automatic sliding and keeps a clicked selection during animation", (context) => {
-    const view = fixture(context, true, { navigation: true, interval: 5000, duration: 450 });
-    for (let index = 1; index <= 11; index++) {
-        view.tick(5000);
-        view.tick(450);
-        assert.equal(view.selected(), index % 10);
-        assert.ok(view.visible().includes(view.selected()));
-        assert.equal(view.selections.length, index);
-    }
-    view.next.dispatch("click");
-    view.cards[3].dispatch("click");
-    view.frame(450);
-    assert.equal(view.selected(), 3);
-    assert.equal(view.selections.at(-1), 3);
-    view.resize(1);
-    assert.deepEqual(view.visible(), [3]);
-    view.cards[3].dispatch("click");
-    view.frame(450);
-    assert.deepEqual(view.visible(), [3]);
-    view.next.dispatch("click");
-    view.frame(450);
-    assert.deepEqual(view.visible(), [4]);
-    assert.equal(view.selected(), 4);
-});
-
-test("one navigation item has no next selection or automatic advance", (context) => {
-    const view = fixture(context, true, { navigation: true, count: 1, interval: 5000 });
-    view.tick(10000);
-    assert.equal(view.previous.disabled, true);
-    assert.equal(view.next.disabled, true);
-    assert.equal(view.selected(), 0);
-    assert.deepEqual(view.selections, []);
-});
-
-test("a shared hover area pauses navigation while reading content outside the label track", (context) => {
-    const view = fixture(context, true, { navigation: true, interval: 5000, hoverScope: true });
-    view.hoverArea.dispatch("mouseenter");
-    view.tick(15000);
-    assert.equal(view.selected(), 0);
-    assert.equal(view.hoverArea.dataset.paused, "true");
-    view.hoverArea.dispatch("mouseleave");
-    view.tick(5000);
-    assert.equal(view.selected(), 1);
-    assert.equal(view.hoverArea.dataset.paused, "false");
-});
-
 test("scrollbar movement, keyboard and responsive layout preserve the active window", (context) => {
     const view = fixture(context);
     view.scrollbar.scrollLeft = view.scrollbar.scrollWidth - view.scrollbar.clientWidth;
@@ -344,97 +246,6 @@ test("non-looping carousel stops at both boundaries", (context) => {
     for (let index = 0; index < 12; index++) view.previous.dispatch("click");
     assert.deepEqual(view.visible(), [0, 1, 2]);
     assert.equal(view.previous.disabled, true);
-});
-
-test("automatic sliding advances one card after each interval and wraps without replacing timelines", (context) => {
-    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration });
-    view.tick(githubCategorySlideInterval - 1);
-    assert.deepEqual(view.visible(), [0, 1, 2]);
-    view.tick(1);
-    view.frame(githubCategorySlideDuration / 2);
-    assert.ok(view.track.scrollLeft > 0 && view.track.scrollLeft < 104);
-    assert.deepEqual(view.visible(), [0, 1, 2, 3]);
-    view.frame(githubCategorySlideDuration / 2);
-    assert.deepEqual(view.visible(), [1, 2, 3]);
-    assert.equal(view.position.getAttribute("aria-live"), "off");
-    for (let index = 2; index <= 11; index++) {
-        view.tick();
-        view.frame(githubCategorySlideDuration);
-        assert.deepEqual(view.visible(), [index % 10, (index + 1) % 10, (index + 2) % 10]);
-    }
-    assert.equal(new Set(view.track.children).size, view.cards.length);
-    view.cards.forEach((card, index) => assert.equal(card.timelineScrollTop, index * 20));
-});
-
-test("only hover pauses sliding and keyboard focus does not prevent resuming", (context) => {
-    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration, hovered: true });
-    view.tick();
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [0, 1, 2]);
-    view.root.dispatch("mouseleave");
-    view.tick(githubCategorySlideInterval - 1);
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [0, 1, 2]);
-    view.tick(1);
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [1, 2, 3]);
-    view.root.dispatch("focusin");
-    view.root.dispatch("mouseenter");
-    view.root.dispatch("mouseleave");
-    view.tick();
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [2, 3, 4]);
-    view.root.dispatch("focusout", { relatedTarget: null });
-    view.document.hidden = true;
-    view.document.dispatch("visibilitychange");
-    view.tick();
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [3, 4, 5]);
-    view.root.matches = () => false;
-    view.document.hidden = false;
-    view.document.dispatch("visibilitychange");
-    view.tick();
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [4, 5, 6]);
-});
-
-test("boundary animations slide through adjacent cards in either direction", (context) => {
-    const view = fixture(context, true, { duration: githubCategorySlideDuration });
-    view.previous.dispatch("click");
-    view.frame(githubCategorySlideDuration / 2);
-    assert.deepEqual(view.visible(), [9, 0, 1, 2]);
-    view.frame(githubCategorySlideDuration / 2);
-    assert.deepEqual(view.visible(), [9, 0, 1]);
-    view.next.dispatch("click");
-    view.frame(githubCategorySlideDuration / 2);
-    assert.deepEqual(view.visible(), [9, 0, 1, 2]);
-    view.frame(githubCategorySlideDuration / 2);
-    assert.deepEqual(view.visible(), [0, 1, 2]);
-});
-
-test("reduced motion skips animation without disabling automatic or manual navigation", (context) => {
-    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration, reduced: true });
-    view.tick();
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [1, 2, 3]);
-    view.next.dispatch("click");
-    assert.deepEqual(view.visible(), [2, 3, 4]);
-    view.motion.matches = false;
-    view.motion.dispatch("change");
-    view.tick();
-    view.frame(githubCategorySlideDuration);
-    assert.deepEqual(view.visible(), [3, 4, 5]);
-});
-
-test("background sliding keeps looping without receiving animation frames", (context) => {
-    const view = fixture(context, true, { interval: githubCategorySlideInterval, duration: githubCategorySlideDuration });
-    view.document.hidden = true;
-    view.document.dispatch("visibilitychange");
-    for (let index = 1; index <= 11; index++) {
-        view.tick();
-        view.tick(githubCategorySlideDuration);
-        assert.deepEqual(view.visible(), [index % 10, (index + 1) % 10, (index + 2) % 10]);
-    }
 });
 
 test("carousel advances one item across either boundary and stops when looping is disabled", () => {
@@ -482,4 +293,47 @@ test("carousel advances one item across either boundary and stops when looping i
     });
     assert.deepEqual(carouselState(0, 3).indices, []);
     assert.throws(() => carouselState(9, 0), /positive integer/);
+});
+
+test("carousel remains stationary while idle and responds immediately without animation frames", (context) => {
+    const view = fixture(context);
+    for (const event of ["mouseenter", "mouseleave", "focusin"]) view.root.dispatch(event);
+    view.document.hidden = true;
+    view.document.dispatch("visibilitychange");
+    view.window.dispatch("blur");
+    view.tick();
+    assert.deepEqual(view.visible(), [0, 1, 2]);
+    assert.equal(view.pendingFrames(), 0);
+    view.previous.dispatch("click");
+    assert.deepEqual(view.visible(), [9, 0, 1]);
+    view.next.dispatch("click");
+    view.next.dispatch("click");
+    assert.deepEqual(view.visible(), [1, 2, 3]);
+    assert.equal(view.pendingFrames(), 0);
+    view.tick();
+    assert.deepEqual(view.visible(), [1, 2, 3]);
+});
+
+test("playlist selection wraps manually even when every label fits and never advances on a timer", (context) => {
+    const view = fixture(context, true, { navigation: true, count: 2 });
+    view.tick();
+    assert.equal(view.selected(), 0);
+    view.next.dispatch("click");
+    assert.equal(view.selected(), 1);
+    view.next.dispatch("click");
+    assert.equal(view.selected(), 0);
+    view.previous.dispatch("click");
+    assert.equal(view.selected(), 1);
+    view.tick();
+    assert.equal(view.selected(), 1);
+    assert.equal(view.pendingFrames(), 0);
+});
+
+test("a single playlist needs no navigation and cannot change selection", (context) => {
+    const view = fixture(context, true, { navigation: true, count: 1 });
+    assert.equal(view.previous.disabled, true);
+    assert.equal(view.next.disabled, true);
+    view.next.dispatch("click");
+    view.tick();
+    assert.equal(view.selected(), 0);
 });

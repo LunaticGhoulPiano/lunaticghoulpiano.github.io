@@ -1,5 +1,5 @@
 ---
-import { site, type Locale } from "../config/site";
+import { type Locale } from "../config/site";
 import { routes, type RouteKey } from "../config/routes";
 import { useMessages, useTranslations } from "../i18n/ui";
 import { getPageContext } from "../services/index";
@@ -8,6 +8,7 @@ import ProfileLayout from "../layouts/ProfileLayout.astro";
 import ContentList from "./common/ContentList.astro";
 import SourcePages from "./common/SourcePages.astro";
 import SearchResults from "./common/SearchResults.astro";
+import Overview from "./profile/Overview.astro";
 
 interface Props {
     locale: Locale;
@@ -23,14 +24,13 @@ const description = context.section === "feeds" ? context.description : t(page.d
 ---
 
 <BaseLayout title={t(page.title)} description={description} locale={locale} route={route} noindex={route === "search"}>
-    <header class="page-heading">
-        <h1>{route === "profile" ? site.name : t(page.title)}</h1>
-        {route === "profile" && <p class="name-alias">{site.secondaryName}</p>}
+    {route === "profile" ? <Overview locale={locale} /> : <header class="page-heading">
+        <h1>{t(page.title)}</h1>
         {context.section !== "profile" && <p class="page-description">{description}</p>}
-    </header>
+    </header>}
     {context.section === "search" && <SearchResults locale={locale} />}
     {context.section === "profile" && (
-        <ProfileLayout locale={locale} route={route} navigation={context.navigation}>
+        <ProfileLayout locale={locale} route={route} navigation={route === "profile" ? [] : context.navigation}>
             {context.items.length > 0 ? <ContentList locale={locale} items={context.items} placement={route} /> : (
                 <dl class="profile-fields">
                     {context.fields.map((heading) => (

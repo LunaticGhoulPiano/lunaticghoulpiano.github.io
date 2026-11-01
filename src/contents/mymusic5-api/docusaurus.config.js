@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { site } from "../../config/site.ts";
 import { languages, localizedPath } from "../../config/locales.ts";
+import { themeStyles } from "../../config/theme.ts";
+import { appearanceConfiguration } from "../../config/appearance.ts";
+
+const appearanceScript = readFileSync(new URL("../../scripts/appearance.js", import.meta.url), "utf8");
 
 const content = JSON.parse(readFileSync(new URL("./configs.json", import.meta.url), "utf8"));
 const locale = process.env.DOCUSAURUS_CURRENT_LOCALE ?? site.defaultLocale;
@@ -15,6 +19,10 @@ export default {
     url: site.url,
     baseUrl: localizedPath(content.locales[locale].entry.path, locale),
     trailingSlash: true,
+    headTags: [
+        { tagName: "style", attributes: {}, innerHTML: themeStyles },
+        { tagName: "script", attributes: {}, innerHTML: `document.documentElement.dataset.appearanceConfig = ${JSON.stringify(JSON.stringify(appearanceConfiguration))};\n${appearanceScript}` },
+    ],
     onBrokenLinks: "throw",
     markdown: {
         hooks: { onBrokenMarkdownLinks: "throw" },
@@ -38,6 +46,7 @@ export default {
             blog: false,
             pages: false,
             sitemap: false,
+            theme: { customCss: "./src/css/appearance.css" },
         }],
     ],
     themeConfig: {

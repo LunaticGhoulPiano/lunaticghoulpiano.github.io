@@ -33,13 +33,7 @@ export function initializeDiscovery(rail: HTMLElement, onChange?: (filters: Disc
     const copy: ReturnType<typeof useMessages>["search"] = JSON.parse(rail.dataset.copy!);
     const defaults = JSON.parse(rail.dataset.defaultFilters!);
     const groups = [...rail.querySelectorAll<HTMLDetailsElement>("[data-filter-group]")];
-    const wide = window.matchMedia("(min-width: 94rem)");
-    const layout = () => {
-        for (const group of groups) group.open = wide.matches;
-        rail.dataset.ready = "";
-    };
-    layout();
-    wide.addEventListener("change", layout);
+    rail.dataset.ready = "";
     const parameters = new URLSearchParams(location.search);
     const state = readSearchState(parameters);
     let filters: DiscoveryFilters = {

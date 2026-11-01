@@ -1,6 +1,4 @@
 import { carouselState } from "../utils/carousel.ts";
-import { pageTurnDuration } from "../config/collections.ts";
-import { createAutoAdvance } from "./auto_advance.ts";
 
 export function initializePageTurners() {
     document.querySelectorAll<HTMLElement>("[data-page-turner]").forEach((root) => {
@@ -13,13 +11,6 @@ export function initializePageTurners() {
         const next = root.querySelector<HTMLButtonElement>("[data-page-turner-next]")!;
         const position = root.querySelector<HTMLElement>("[data-page-turner-position]")!;
         let state = carouselState(pages.length, 1, 0, true);
-        let animation: Animation | undefined;
-        const automatic = createAutoAdvance(root, {
-            interval: Number(root.dataset.interval),
-            advance: () => move(1),
-            canAdvance: () => ! animation && state.next !== null,
-        });
-
         function render() {
             pages.forEach((page, index) => {
                 const current = index === state.index;
@@ -39,44 +30,17 @@ export function initializePageTurners() {
             position.textContent = pages[state.index]?.getAttribute("aria-label") ?? "";
         }
 
-        function move(direction: number, manual = false) {
+        function move(direction: number) {
             const target = direction < 0 ? state.previous : state.next;
-            if (animation || target === null) return;
-            automatic.cancel();
-            const outgoing = pages[state.index];
+            if (target === null) return;
             state = carouselState(pages.length, 1, target, true);
-            position.setAttribute("aria-live", manual ? "polite" : "off");
+            position.setAttribute("aria-live", "polite");
             render();
-            const turning = direction < 0 ? pages[state.index] : outgoing;
-            if (! automatic.reducedMotion.matches && typeof turning.animate === "function") {
-                turning.setAttribute("data-turning", "");
-                const frames = [
-                    { transform: "rotateY(0deg)", opacity: 1, boxShadow: "0 0 0 transparent" },
-                    { transform: "rotateY(-105deg)", opacity: 0, boxShadow: "18px 0 32px #0000001a" },
-                ];
-                const currentAnimation = turning.animate(direction < 0 ? frames.reverse() : frames, {
-                    duration: pageTurnDuration,
-                    easing: "ease-in-out",
-                });
-                animation = currentAnimation;
-                const completionTimer = setTimeout(finish, pageTurnDuration);
-                function finish() {
-                    if (animation !== currentAnimation) return;
-                    clearTimeout(completionTimer);
-                    turning.removeAttribute("data-turning");
-                    animation = undefined;
-                    currentAnimation.cancel();
-                    automatic.schedule();
-                }
-                currentAnimation.finished.then(finish, finish);
-            }
-            automatic.schedule();
         }
 
-        previous.addEventListener("click", () => move(-1, true));
-        next.addEventListener("click", () => move(1, true));
+        previous.addEventListener("click", () => move(-1));
+        next.addEventListener("click", () => move(1));
         root.dataset.ready = "true";
         render();
-        automatic.schedule();
     });
 }

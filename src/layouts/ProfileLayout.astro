@@ -14,8 +14,8 @@ const { locale, route, navigation } = Astro.props;
 const t = useTranslations(locale);
 ---
 
-<div class="profile-layout">
-    <nav class="profile-nav" aria-label={t("nav.profile")}>
+<div class:list={["profile-layout", { "profile-published": route === "profile" }]}>
+    {navigation.length > 0 && <nav class="profile-nav" aria-label={t("nav.profile")}>
         <ul>
             {navigation.map((item) => (
                 <li>
@@ -25,8 +25,16 @@ const t = useTranslations(locale);
                 </li>
             ))}
         </ul>
-    </nav>
+    </nav>}
     <div class="section-stack">
         <slot />
     </div>
 </div>
+
+<style>
+    .profile-published {
+        margin-top: 3rem;
+        padding-block: var(--page-padding);
+        border-top: 1px solid var(--chrome-line);
+    }
+</style>

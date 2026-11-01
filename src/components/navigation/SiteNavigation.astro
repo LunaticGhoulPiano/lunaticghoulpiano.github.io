@@ -3,35 +3,19 @@ import type { Locale } from "../../config/site";
 import { mainNavigation } from "../../config/navigation";
 import { routes, type RouteKey } from "../../config/routes";
 import { getRoutePath, isSectionActive } from "../../routing";
-import { useMessages, useTranslations } from "../../i18n/ui";
-import { formatSequenceNumber } from "../../utils/numbering";
-import SocialLinks from "../common/SocialLinks.astro";
-
-interface Props {
-    locale: Locale;
-    route?: RouteKey;
-}
-
+import { useTranslations } from "../../i18n/ui";
+import Icon from "../common/Icon.astro";
+interface Props { locale: Locale; route?: RouteKey; }
 const { locale, route } = Astro.props;
 const t = useTranslations(locale);
-const copy = useMessages(locale).design;
 ---
-
 <nav class="site-nav" aria-label={t("nav.main")}>
-    <p class="rail-label">{copy.siteIndex}</p>
-    <ul>
-        {mainNavigation.map((item, index) => (
-            <li>
-                <a
-                    href={getRoutePath(item, locale)}
-                    class:list={{ "is-active": isSectionActive(route, item) }}
-                    aria-current={route === item ? "page" : undefined}
-                >
-                    <span class="nav-number" aria-hidden="true">{formatSequenceNumber(index + 1, mainNavigation.length)}</span>
-                    <span>{t(routes[item].title)}</span>
-                </a>
-            </li>
-        ))}
+    <ul class="dock-items">
+        {mainNavigation.map((item) => <li>
+            <a href={getRoutePath(item, locale)} class:list={{ "is-active": isSectionActive(route, item) }} aria-label={t(routes[item].title)} aria-current={route === item ? "page" : undefined}>
+                <Icon name={item} /><span class="dock-label">{t(routes[item].title)}</span>
+                <span class="dock-tooltip" aria-hidden="true">{t(routes[item].title)}</span>
+            </a>
+        </li>)}
     </ul>
-    <SocialLinks locale={locale} />
 </nav>

@@ -240,7 +240,7 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.ok(landingSwitcher.includes(`href="${localizedPath("profile", language)}"`));
             }
             assert.deepEqual(headings(main(profile), 1), [site.name]);
-            assert.equal(text(profile.match(/<p class="name-alias">([\s\S]*?)<\/p>/)[1]), site.secondaryName);
+            assert.equal(text(profile.match(/<p class="name-alias"[^>]*>([\s\S]*?)<\/p>/)[1]), site.secondaryName);
             assert.doesNotMatch(profile, /home-intro/);
             const overview = await page("feeds", locale);
             const feed = await page("feeds/github", locale);
@@ -255,7 +255,7 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.match(main(youtube), /data-carousel-previous/);
             assert.match(main(youtube), /data-carousel-next/);
             assert.doesNotMatch(main(youtube), /data-carousel-scrollbar/);
-            assert.match(main(youtube), /data-carousel-hover/);
+            assert.doesNotMatch(main(youtube), /data-carousel-hover|data-slide-duration|data-interval/);
             const sorting = youtube.match(/<select\b[^>]*data-youtube-sort[\s\S]*?<\/select>/)[0];
             assert.deepEqual([...sorting.matchAll(/<option\b[^>]*value="([^"]+)"/g)].map((match) => match[1]), youtubeVideoSortOptions);
             assert.match(sorting, /autocomplete="off"/);
@@ -449,7 +449,12 @@ test("isolated builds cover every configured language plus an additional locale,
                     .map((match) => attributes(match[0]))
                     .filter((link) => link.class?.split(/\s+/).includes("is-active"));
                 assert.deepEqual(active.map((link) => link.href), section ? [localizedPath(routes[section].path, locale)] : []);
-                assert.equal(html.includes('class="profile-layout"'), section === "profile");
+                assert.equal(/class="[^"]*\bprofile-layout\b[^"]*"/.test(html), section === "profile");
+                const panelIds = [...html.matchAll(/<dialog\b[^>]*id="([^"]+)"/g)].map((match) => match[1]);
+                assert.deepEqual(panelIds.sort(), ["controls", "filters"]);
+                assert.doesNotMatch(html, /selected-work|selected-item|data-command|data-panel-open="shortcuts"|data-active-filter-count|data-turning|data-interval|data-slide-duration/);
+                assert.equal([...html.matchAll(/<form\b[^>]*data-global-search/g)].length, 1);
+                for (const opener of html.matchAll(/data-panel-open="([^"]+)"/g)) assert.ok(panelIds.includes(opener[1]));
                 assert.doesNotMatch(html, /page-location/);
                 assert.equal(attributes(html.match(/<html\b[^>]*>/)[0]).lang, testLanguages[locale].htmlLang);
                 assert.deepEqual(links(html, "canonical").map((link) => link.href), [new URL(localizedPath(path, locale), site.url).href]);
@@ -458,7 +463,7 @@ test("isolated builds cover every configured language plus an additional locale,
                         link.hreflang === testLanguages[language].htmlLang
                         && link.href === new URL(localizedPath(path, language), site.url).href));
                 }
-                for (const social of html.matchAll(/<ul class="social-links">([\s\S]*?)<\/ul>/g)) {
+                for (const social of html.matchAll(/<ul class="social-links"[^>]*>([\s\S]*?)<\/ul>/g)) {
                     assert.doesNotMatch(social[1], /<a[^>]*>\s*<svg/);
                     const urls = [...social[1].matchAll(/<a\b[^>]*>/g)].map((match) => attributes(match[0]).href);
                     assert.deepEqual(urls, socialLinks.map((link) => link.url));

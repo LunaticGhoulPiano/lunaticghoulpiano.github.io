@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "../../config/site";
-import { feedHeadingHeight, githubTimelineCategorySize, githubActivityCategoryLayout, githubCategorySlideInterval, githubCategorySlideDuration } from "../../config/collections";
+import { feedHeadingHeight, githubTimelineCategorySize, githubActivityCategoryLayout } from "../../config/collections";
 import { useMessages } from "../../i18n/ui";
 import type { getGithubFeed } from "../../services/feeds/github";
 import ActivityTimeline from "./ActivityTimeline.astro";
@@ -22,8 +22,6 @@ const copy = messages.activity;
     id="activity-categories"
     label={copy.categories}
     locale={locale}
-    interval={githubCategorySlideInterval}
-    slideDuration={githubCategorySlideDuration}
     loop
 >
     {categories.map((category) => (

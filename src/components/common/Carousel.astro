@@ -8,12 +8,10 @@ interface Props {
     locale: Locale;
     loop?: boolean;
     visibleItems?: number;
-    interval?: number;
-    slideDuration?: number;
     navigation?: boolean;
 }
 
-const { id, label, locale, loop = false, visibleItems = 3, interval = 0, slideDuration = 0, navigation = false } = Astro.props;
+const { id, label, locale, loop = false, visibleItems = 3, navigation = false } = Astro.props;
 const copy = useMessages(locale).carousel;
 ---
 
@@ -22,8 +20,6 @@ const copy = useMessages(locale).carousel;
     data-carousel
     data-navigation={navigation || undefined}
     data-loop={String(loop)}
-    data-interval={interval}
-    data-slide-duration={slideDuration}
     style={{
         "--carousel-wide": visibleItems,
         "--carousel-medium": Math.min(2, visibleItems),

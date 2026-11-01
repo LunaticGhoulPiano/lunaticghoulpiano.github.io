@@ -1,0 +1,28 @@
+/* Documentation keeps its chapter navigation and shares the site's palette. */
+:root, html[data-theme] {
+    --ifm-color-primary: var(--accent);
+    --ifm-background-color: var(--background);
+    --ifm-background-surface-color: var(--surface);
+    --ifm-font-color-base: var(--text);
+    --ifm-color-content: var(--text);
+    --ifm-color-content-secondary: var(--muted);
+    --ifm-heading-color: var(--text);
+    --ifm-menu-color: var(--muted);
+    --ifm-navbar-background-color: var(--surface);
+    --ifm-navbar-link-color: var(--text);
+    --ifm-toc-border-color: var(--line);
+    --ifm-color-emphasis-300: var(--line);
+    --ifm-menu-color-background-active: var(--subtle);
+    --ifm-breadcrumb-color-active: var(--accent);
+    --ifm-font-family-base: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    --ifm-font-family-monospace: "Cascadia Code", Consolas, monospace;
+    --ifm-heading-font-weight: 600;
+    --ifm-global-radius: 6px;
+    --ifm-navbar-shadow: none;
+}
+
+.navbar { border-bottom: 1px solid var(--line); }
+.markdown { line-height: 1.85; }
+.markdown h1 { letter-spacing: -0.04em; }
+.pagination-nav__link { border-color: var(--line); }
+.pagination-nav__link:hover { border-color: var(--accent); }

@@ -26,6 +26,8 @@
         const label = toggle.dataset[`${preference}Label`];
         toggle.setAttribute("aria-label", label);
         toggle.title = label;
+        const value = toggle.querySelector?.("[data-theme-value]");
+        if (value) value.textContent = toggle.dataset[`${preference}Value`] || label;
     }
 
     function bindToggle() {
@@ -52,4 +54,11 @@
     document.addEventListener("DOMContentLoaded", bindToggle, {
         once: true,
     });
+    document.addEventListener("site:reset", () => {
+        preference = "system";
+        applyTheme();
+        try { localStorage.setItem("site-theme", preference); }
+        catch { /* Keep the reset active when storage is unavailable. */ }
+    });
+    document.addEventListener("site:appearance", applyTheme);
 })();

@@ -32,3 +32,30 @@ const t = useTranslations(locale);
         ))}
     </ul>
 </nav>
+
+<style>
+    .language-switcher ul {
+        display: flex;
+        gap: 0.3rem;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    .language-switcher a, .language-switcher span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.3rem 0.6rem;
+        text-decoration: none;
+        font-size: 0.75rem;
+    }
+
+    .language-switcher [aria-current="page"] {
+        color: var(--accent);
+        background: var(--subtle);
+        border-radius: 2px;
+    }
+</style>

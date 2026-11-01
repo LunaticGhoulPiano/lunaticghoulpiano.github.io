@@ -1,0 +1,75 @@
+---
+import { wallpapers } from "../../assets/wallpapers";
+import { defaultThemePreset, type ThemePreset } from "../../config/theme";
+const variables = (preset: ThemePreset) => `--wallpaper-photo: url('${wallpapers[preset].image.src}'); --wallpaper-position: ${wallpapers[preset].position};`;
+const wallpaperStyles = `:root { ${variables(defaultThemePreset)} }` +
+    (Object.keys(wallpapers) as ThemePreset[]).map((preset) => `:root[data-preset="${preset}"] { ${variables(preset)} }`).join("");
+---
+<style is:inline set:html={wallpaperStyles} />
+<div class="desktop-background" aria-hidden="true">
+    <div class="wallpaper-image"></div>
+    <div class="wallpaper-shade"></div>
+</div>
+
+<style>
+    @media (prefers-color-scheme: dark) {
+        :global(:root:not([data-theme])) {
+            --wallpaper-wash: 84%;
+        }
+    }
+
+    :global(:root[data-theme="dark"]) {
+        --wallpaper-wash: 84%;
+    }
+
+    :global(:root) {
+        --wallpaper-wash: 94%;
+    }
+
+    .desktop-background {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        background: var(--background);
+    }
+
+    .wallpaper-image, .wallpaper-shade {
+        position: absolute;
+        inset: 0;
+    }
+
+    .wallpaper-image {
+        background: var(--wallpaper-photo) var(--wallpaper-position) / cover no-repeat;
+    }
+
+    .wallpaper-shade {
+        background:
+            linear-gradient(90deg, color-mix(in srgb, var(--background) 98%, transparent), transparent 85%),
+            linear-gradient(0deg, color-mix(in srgb, var(--background) 50%, transparent), transparent 65%),
+            color-mix(in srgb, var(--background) var(--wallpaper-wash), transparent);
+    }
+
+    :global(:root[data-wallpaper="plain"]) .wallpaper-image {
+        display: none;
+    }
+
+    :global(:root[data-shade="deep"]) .wallpaper-shade {
+        --wallpaper-wash: 98%;
+    }
+
+    @media (max-width: 48rem) {
+
+        .wallpaper-image {
+            background-position: 56% center;
+        }
+
+    }
+
+    @media print {
+        .desktop-background {
+            display: none;
+        }
+
+    }
+</style>

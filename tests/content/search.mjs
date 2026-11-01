@@ -111,9 +111,7 @@ function discoveryFixture(defaults = {}) {
 }
 
 test("discovery works without a header and each embedded controller keeps its own selection", (context) => {
-    const wide = Object.assign(new EventTarget(), { matches: false });
     installGlobals(context, {
-        window: { matchMedia: () => wide },
         location: { search: "", href: "https://example.test/playground/" },
     });
     const first = discoveryFixture({ category: "health", tags: ["tag-a"] });
@@ -135,10 +133,6 @@ test("discovery works without a header and each embedded controller keeps its ow
     first.clear.dispatchEvent(new Event("click"));
     assert.deepEqual(one.filters.tags, []);
     assert.equal(changes.length, 3);
-    assert.ok(first.groups.every((group) => ! group.open));
-    wide.matches = true;
-    wide.dispatchEvent(new Event("change"));
-    assert.ok([...first.groups, ...second.groups].every((group) => group.open));
 });
 
 test("standalone discovery navigation preserves query and other filters without global search markup", (context) => {

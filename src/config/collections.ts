@@ -1,7 +1,5 @@
 // common
 export const collectionPageSize = 10;
-export const pageTurnInterval = 8_000;
-export const pageTurnDuration = 650;
 export const feedHeadingHeight = 65;
 
 // github
@@ -13,8 +11,6 @@ export const githubActivityCategoryLayout = {
     itemHeight: githubCategoryItemHeight,
     repositoryLines: 2,
 };
-export const githubCategorySlideInterval = 5_000;
-export const githubCategorySlideDuration = 450;
 
 // youtube
 export const youtubeFeedVideoLimit = 10;
@@ -22,8 +18,6 @@ export const youtubeFeedTimelineSize = 3;
 export const youtubeVideoSortOptions = ["newest", "oldest", "mostViewed", "mostLiked"] as const;
 export const youtubePlaylistNavigation = {
     visibleItems: 4,
-    interval: 5_000,
-    duration: 450,
 };
 export const youtubeProjectsLayout = {
     visibleItems: 3,

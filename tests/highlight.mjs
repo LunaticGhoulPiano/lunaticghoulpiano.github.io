@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { highlightRanges, highlightMatches } from "../src/scripts/highlight.ts";
 import { searchTerms } from "../src/data/search.ts";
-import { themes } from "../src/config/theme.ts";
+import { themePresets } from "../src/config/theme.ts";
 import { textElement } from "./fixture.mjs";
 
 const matches = (text, terms) => highlightRanges(text, terms).map(([start, end]) => text.slice(start, end));
@@ -78,10 +78,11 @@ function contrast(a, b) {
 }
 
 test("every theme provides high contrast highlight text and a distinct background on each page surface", () => {
-    for (const [name, theme] of Object.entries(themes)) {
+    for (const [name, theme] of Object.entries(themePresets).flatMap(([preset, modes]) => Object.entries(modes).map(([mode, values]) => [`${preset}/${mode}`, values]))) {
         assert.ok(contrast(theme["highlight-text"], theme["highlight-background"]) >= 7, `${name} text`);
-        for (const surface of ["background", "subtle", "field"]) {
+        for (const surface of ["background", "subtle", "field", "surface"]) {
             assert.ok(contrast(theme["highlight-background"], theme[surface]) >= 3, `${name} ${surface}`);
+            for (const foreground of ["text", "muted", "accent"]) assert.ok(contrast(theme[foreground], theme[surface]) >= 4.5, `${name} ${foreground} on ${surface}`);
         }
     }
 });

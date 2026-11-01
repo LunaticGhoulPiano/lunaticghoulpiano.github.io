@@ -1,0 +1,104 @@
+---
+import type { Locale } from "../../config/locales";
+import { useMessages } from "../../i18n/ui";
+import Icon from "./Icon.astro";
+interface Props { id: string; title: string; locale: Locale; }
+const { id, title, locale } = Astro.props;
+---
+<dialog id={id} class="shell-panel" data-panel aria-labelledby={`${id}-title`}>
+    <header class="panel-heading">
+        <h2 id={`${id}-title`}>{title}</h2>
+        <button class="icon-button" type="button" data-panel-close aria-label={useMessages(locale).shell.close}><Icon name="close" /></button>
+    </header>
+    <slot />
+</dialog>
+
+<script>
+    import { initializePanels } from "../../scripts/panels";
+    initializePanels();
+</script>
+
+<style>
+    :global(body:has(dialog[data-panel][open])) {
+        overflow: hidden;
+    }
+
+    .shell-panel {
+        color: var(--text);
+        background: var(--surface);
+        padding: 1.4rem;
+        border: 1px solid var(--chrome-line);
+        border-radius: 4px;
+        box-shadow: 0 20px 100px #0005;
+        overflow: auto;
+        overscroll-behavior: contain;
+        font-size: 0.9rem;
+        width: min(25rem, calc(100% - 2rem));
+        /* Width is controlled here, including the full-width mobile layout. */
+        max-width: none;
+        max-height: calc(100dvh - 6rem);
+        inset: 5rem 1.5rem auto auto;
+        margin: 0;
+    }
+
+    .shell-panel::backdrop {
+        background: #0007;
+    }
+
+    .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .panel-heading h2 {
+        font-size: 1rem;
+    }
+
+    .panel-heading .icon-button {
+        border: 0;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+
+        :global(:root[data-motion="subtle"]) .shell-panel[open] {
+            animation: panel-enter 180ms ease-out both;
+        }
+
+        @keyframes panel-enter {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+
+        }
+
+    }
+
+    @media (max-width: 48rem) {
+
+        .shell-panel {
+            inset: auto 0 0;
+            width: 100%;
+            max-height: 90dvh;
+            margin: 0;
+            padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
+            border-radius: 4px 4px 0 0;
+        }
+
+    }
+
+    @media print {
+        .shell-panel {
+            display: none;
+        }
+
+    }
+</style>

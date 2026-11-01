@@ -31,7 +31,7 @@ const count = countFormatter(languages[locale].formatLocale);
                 <div class="youtube-video">
                     {video.thumbnail && (
                         <a class="youtube-thumbnail" href={youtubeVideoUrl(video.id)} tabindex="-1" aria-hidden="true">
-                            <img src={video.thumbnail} alt="" width="160" height="90" loading="lazy" />
+                            <img class="content-thumbnail" src={video.thumbnail} alt="" width="160" height="90" loading="lazy" />
                         </a>
                     )}
                     <div class="youtube-video-content">
@@ -63,7 +63,6 @@ const count = countFormatter(languages[locale].formatLocale);
         width: 10rem;
         height: 5.625rem;
         object-fit: cover;
-        border-radius: 0.75rem 0;
     }
 
     .youtube-thumbnail {
