@@ -4,8 +4,11 @@ import { basename, dirname, join, resolve, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { projectRoot } from "../../src/config/runtime.mjs";
 import { isWithin, readContentConfigurations, resolveItemFile } from "./loader.mjs";
+
+const filesystemRetryOptions = { maxRetries: 5, retryDelay: 100 };
 
 export function buildOptions(args = process.argv.slice(2)) {
     return parseArgs({ args, options: {
@@ -80,7 +83,21 @@ async function managedPath(root, target) {
 
 async function removeDirectory(path, root) {
     await managedPath(root, path);
-    await rm(path, { recursive: true, force: true });
+    await rm(path, { recursive: true, force: true, ...filesystemRetryOptions });
+}
+
+async function renameDirectory(source, target) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            await rename(source, target);
+            return;
+        }
+        catch (error) {
+            // Windows scanners/watchers can briefly hold directory handles during a build.
+            if (! ["EPERM", "EACCES", "EBUSY"].includes(error.code) || attempt >= filesystemRetryOptions.maxRetries) throw error;
+            await delay(filesystemRetryOptions.retryDelay * (attempt + 1));
+        }
+    }
 }
 
 async function replaceDirectory(source, target, root) {
@@ -93,19 +110,24 @@ async function replaceDirectory(source, target, root) {
     try {
         await cp(source, next, { recursive: true });
         try {
-            await rename(target, backup);
+            await renameDirectory(target, backup);
             preserveBackup = true;
         }
         catch (error) {
             if (error.code !== "ENOENT") throw error;
         }
         try {
-            await rename(next, target);
+            await renameDirectory(next, target);
             preserveBackup = false;
         }
         catch (error) {
             if (preserveBackup) {
-                await rename(backup, target);
+                try {
+                    await renameDirectory(backup, target);
+                }
+                catch (restoreError) {
+                    throw new AggregateError([error, restoreError], `Content replacement and rollback failed. Previous output is preserved at: ${backup}`);
+                }
                 preserveBackup = false;
             }
             throw error;
@@ -134,6 +156,8 @@ export async function buildContents({ root = projectRoot, item, locale, section,
     for (const directory of await readdir(cache, { withFileTypes: true })) {
         if (! directory.isDirectory() || directory.name.startsWith(".")) continue;
         for (const language of await readdir(join(cache, directory.name))) {
+            // Failed rollbacks retain their previous output here for recovery.
+            if (language.startsWith(".")) continue;
             if (! active.has(`${directory.name}/${language}`)) await removeDirectory(join(cache, directory.name, language), cache);
         }
     }

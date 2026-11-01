@@ -33,10 +33,11 @@ export function initializeCarousels() {
             return carouselState(cards.length, 1, selected, loop);
         }
 
-        function select(index: number) {
+        function select(index: number, direction = Math.sign(index - selected)) {
+            if (index === selected) return;
             selected = index;
             cards.forEach((card, cardIndex) => card.setAttribute("aria-pressed", String(cardIndex === selected)));
-            cards[selected]?.dispatchEvent(new Event("carousel:select"));
+            cards[selected]?.dispatchEvent(new CustomEvent("carousel:select", { detail: { direction } }));
         }
 
         function syncHeight() {
@@ -115,7 +116,7 @@ export function initializeCarousels() {
             const selectedTarget = selection ? direction < 0 ? selection.previous : selection.next : null;
             if (target === null && selectedTarget === null) return;
             position.setAttribute("aria-live", "polite");
-            if (selectedTarget !== null) select(selectedTarget);
+            if (selectedTarget !== null) select(selectedTarget, direction);
             animateTo(target ?? offset, direction);
         }
 

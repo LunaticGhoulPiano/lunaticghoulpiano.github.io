@@ -12,7 +12,7 @@ const { items } = Astro.props;
 
 <dl class="statistics" style={{ "--statistics-columns": items.length }}>
     {items.map(({ label, value, datetime }) => (
-        <div>
+        <div data-reveal-item>
             <dt>{label}</dt>
             <dd>{datetime ? <time datetime={datetime}>{value}</time> : value}</dd>
         </div>

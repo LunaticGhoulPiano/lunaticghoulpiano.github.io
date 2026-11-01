@@ -1,3 +1,43 @@
+import { collectionPageSize } from "../src/config/collections.ts";
+
+export function paginationNavigation() {
+    const controls = ["first-page", "previous", "current", "next", "last-page"].map((role) => Object.assign(new EventTarget(), {
+        dataset: { pageControl: role }, setAttribute() {}, focus() {},
+    }));
+    const status = {};
+    const navigation = {
+        dataset: { pageSize: String(collectionPageSize), formatLocale: "en", pageLabel: "Page {page}", statusLabel: "Page {page} of {total}" },
+        querySelectorAll: (selector) => selector === "[data-page-control]" ? controls : [],
+        querySelector: (selector) => selector === "[data-page-status]" ? status : controls[2],
+    };
+    return { navigation, status, page: (role) => controls.find((control) => control.dataset.pageControl === role).dispatchEvent(new Event("click")) };
+}
+
+export function contentTransitionFixture(reduced = true) {
+    const element = () => Object.assign(new EventTarget(), {
+        style: { removeProperty(name) { delete this[name.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())]; } },
+        attributes: new Set(), inert: false, offsetHeight: 600,
+        setAttribute(name) { this.attributes.add(name); },
+        removeAttribute(name) { this.attributes.delete(name); },
+    });
+    const body = element();
+    const root = Object.assign(element(), { querySelector: () => body });
+    const preference = Object.assign(new EventTarget(), { matches: reduced });
+    const window = Object.assign(new EventTarget(), { matchMedia: () => preference });
+    const frames = new Map();
+    let id = 0;
+    return {
+        root, body, preference,
+        environment: {
+            window,
+            requestAnimationFrame(callback) { frames.set(++id, callback); return id; },
+            cancelAnimationFrame(key) { frames.delete(key); },
+        },
+        frame(now) { const pending = [...frames.values()]; frames.clear(); pending.forEach((callback) => callback(now)); },
+        pending: () => frames.size,
+    };
+}
+
 export function installGlobals(context, environment, writable = false) {
     const previous = new Map(Object.keys(environment).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
     for (const [key, value] of Object.entries(environment)) {

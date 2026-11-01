@@ -1,5 +1,6 @@
 import { youtubeVideoSortOptions } from "../config/collections.ts";
 import { createListSearch } from "./list_search.ts";
+import { createContentTransition } from "./motion.ts";
 
 export function initializeYoutubePlaylists() {
     document.querySelectorAll<HTMLElement>("[data-youtube-browser]").forEach((root) => {
@@ -14,7 +15,9 @@ export function initializeYoutubePlaylists() {
         const timeline = root.querySelector<HTMLElement>("[data-timeline-window]")!;
         const viewport = timeline.querySelector<HTMLElement>("[data-timeline-scroll]")!;
         const duplicates: HTMLElement[] = [];
-        const search = createListSearch(root, [...rows.values()], render);
+        const transition = createContentTransition(root.querySelector<HTMLElement>("[data-content-transition]")!);
+        const search = createListSearch(root, [...rows.values()], renderImmediately);
+        let selected = 0;
         let ids = [...rows.values()].filter((row) => ! row.hidden).map((row) => row.dataset.videoId!);
         let playlist = false;
         const metrics = new Map([...rows].map(([id, row]) => [id, {
@@ -37,6 +40,7 @@ export function initializeYoutubePlaylists() {
         };
 
         function render() {
+            description.textContent = buttons[selected]?.dataset.description ?? "";
             for (const duplicate of duplicates.splice(0)) duplicate.remove();
             for (const row of rows.values()) row.hidden = true;
             const compare = comparisons[sort.value as keyof typeof comparisons] ?? comparisons[youtubeVideoSortOptions[0]];
@@ -60,18 +64,25 @@ export function initializeYoutubePlaylists() {
 
         function resetSort() {
             sort.value = youtubeVideoSortOptions[0];
+            renderImmediately();
+        }
+
+        function renderImmediately() {
+            transition.cancel();
             render();
         }
 
-        for (const button of buttons) {
-            button.addEventListener("carousel:select", () => {
+        for (const [index, button] of buttons.entries()) {
+            button.addEventListener("carousel:select", (event) => {
+                if (index === selected) return;
+                const direction = (event as CustomEvent<{ direction: number }>).detail?.direction ?? Math.sign(index - selected);
+                selected = index;
                 ids = JSON.parse(button.dataset.videoIds!);
                 playlist = Boolean(button.dataset.youtubeFilter);
-                description.textContent = button.dataset.description!;
-                render();
+                transition.run(render, direction);
             });
         }
-        sort.addEventListener("change", render);
+        sort.addEventListener("change", renderImmediately);
         window.addEventListener("pageshow", resetSort);
         resetSort();
         root.querySelector<HTMLElement>("[data-youtube-sort-controls]")!.hidden = false;

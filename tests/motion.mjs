@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { installGlobals } from "./fixture.mjs";
-import { createMotion, revealItems } from "../src/scripts/motion.ts";
+import { installGlobals, contentTransitionFixture } from "./fixture.mjs";
+import { createMotion, createContentTransition, revealItems } from "../src/scripts/motion.ts";
 
 function fixture(context, reduced = false) {
     const frames = new Map();
@@ -69,6 +69,53 @@ test("reduced motion applies the destination immediately, including a preference
     assert.equal(values.at(-1), 1);
     assert.equal(view.pending(), 0);
     assert.equal(view.motion.active, false);
+});
+
+test("content switches preserve direction, fade through the swap, and release styles and focus state", (context) => {
+    const view = contentTransitionFixture(false);
+    installGlobals(context, view.environment);
+    const transition = createContentTransition(view.root);
+    let changes = 0;
+    transition.run(() => changes++, -1);
+    view.frame(0);
+    view.frame(140);
+    assert.ok(Number.parseFloat(view.body.style.translate) > 0);
+    assert.equal(changes, 0);
+    assert.equal(view.body.inert, true);
+    view.frame(280);
+    assert.equal(changes, 1);
+    assert.equal(view.body.style.opacity, "0");
+    view.frame(420);
+    assert.ok(Number.parseFloat(view.body.style.translate) < 0);
+    view.frame(560);
+    assert.equal(changes, 1);
+    assert.equal(view.body.inert, false);
+    assert.equal(view.body.style.translate, undefined);
+    assert.equal(view.body.style.opacity, undefined);
+    assert.equal(view.root.style.minHeight, undefined);
+    assert.equal(view.root.attributes.size, 0);
+    assert.equal(view.pending(), 0);
+});
+
+test("content transitions respect reduced motion and finish on manual interaction without replay", (context) => {
+    const view = contentTransitionFixture(true);
+    installGlobals(context, view.environment);
+    const transition = createContentTransition(view.root);
+    const changes = [];
+    transition.run(() => changes.push("immediate"));
+    assert.deepEqual(changes, ["immediate"]);
+    assert.equal(view.pending(), 0);
+    view.preference.matches = false;
+    transition.run(() => changes.push("interrupted"));
+    view.root.dispatchEvent(new Event("wheel"));
+    view.frame(1000);
+    assert.deepEqual(changes, ["immediate", "interrupted"]);
+    assert.equal(view.body.inert, false);
+    transition.run(() => changes.push("preference changed"));
+    view.preference.matches = true;
+    view.preference.dispatchEvent(new Event("change"));
+    assert.equal(changes.at(-1), "preference changed");
+    assert.equal(view.pending(), 0);
 });
 
 function entranceItem() {

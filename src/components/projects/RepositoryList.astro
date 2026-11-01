@@ -7,6 +7,7 @@ import { formatSequenceNumber } from "../../utils/numbering";
 import type { Repository } from "../../data/github/schema";
 import Pagination from "../common/Pagination.astro";
 import SearchField from "../common/SearchField.astro";
+import ContentTransition from "../common/ContentTransition.astro";
 
 interface Props {
     locale: Locale;
@@ -21,7 +22,7 @@ const copy = useMessages(locale).design;
 
 <div class="repository-browser" data-repository-browser data-paginated-list data-format-locale={languages[locale].formatLocale}>
     {filterable && (
-        <div class="repository-controls" data-list-search-controls hidden>
+        <div class="repository-controls" data-list-search-controls data-reveal-item hidden>
             <SearchField id={`${id}-search`} label={copy.search} placeholder={copy.searchPlaceholder} data-list-search />
             <div class="repository-filter-bar">
                 <div class="filter-options" role="group" aria-label={copy.repositoryType}>
@@ -37,11 +38,13 @@ const copy = useMessages(locale).design;
             </div>
         </div>
     )}
+    <ContentTransition>
     <ol class="repository-list">
         {repositories.map((repository, index) => (
             <li
                 class="repository-row focus-item"
                 data-page-item
+                data-reveal-item
                 data-repository
                 data-type={repository.fork ? "fork" : "original"}
                 data-search={`${repository.name} ${repository.description ?? ""} ${repository.language ?? ""}`}
@@ -79,59 +82,10 @@ const copy = useMessages(locale).design;
             <button class="text-button" type="button" data-clear-filters>{copy.reset}</button>
         </div>
     )}
+    </ContentTransition>
 </div>
 
 <script>
-    import { formatMessage } from "../../i18n/format";
-    import { paginationFor } from "../../scripts/pagination";
-    import { formatSequenceNumber } from "../../utils/numbering";
-    import { createListSearch } from "../../scripts/list_search";
-
-    document.querySelectorAll<HTMLElement>("[data-repository-browser]").forEach((browser) => {
-        const input = browser.querySelector<HTMLInputElement>("[data-list-search]");
-        const count = browser.querySelector<HTMLElement>("[data-repository-count]");
-        const empty = browser.querySelector<HTMLElement>("[data-no-results]");
-        const buttons = [...browser.querySelectorAll<HTMLButtonElement>("[data-repository-filter]")];
-        const rows = [...browser.querySelectorAll<HTMLElement>("[data-repository]")];
-        if (! input || ! count || ! empty) return;
-        const pagination = paginationFor(browser);
-        const countMessage = JSON.parse(count.dataset.label!);
-
-        let selected = "all";
-        const filter = () => {
-            const matching = rows.filter((row) =>
-                (selected === "all" || row.dataset.type === selected)
-                && search.matches(row),
-            );
-            matching.forEach((row, index) => {
-                row.querySelector<HTMLElement>("[data-repository-index]")!.textContent = formatSequenceNumber(index + 1, matching.length);
-                search.highlight(row);
-            });
-            pagination.setItems(matching);
-            count.textContent = formatMessage(countMessage, {
-                count: matching.length,
-            }, browser.dataset.formatLocale!);
-            empty.hidden = matching.length > 0;
-            buttons.forEach((button) =>
-                button.setAttribute(
-                    "aria-pressed",
-                    String(button.dataset.repositoryFilter === selected),
-                ),
-            );
-        };
-
-        const search = createListSearch(browser, rows, filter);
-        filter();
-        buttons.forEach((button) =>
-            button.addEventListener("click", () => {
-                selected = button.dataset.repositoryFilter ?? "all";
-                filter();
-            }),
-        );
-        browser.querySelector("[data-clear-filters]")?.addEventListener("click", () => {
-            selected = "all";
-            search.reset();
-            input.focus();
-        });
-    });
+    import { initializeRepositories } from "../../scripts/repositories";
+    initializeRepositories();
 </script>

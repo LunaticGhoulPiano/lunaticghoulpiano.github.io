@@ -5,6 +5,7 @@
     background: var(--background);
     font-synthesis: style;
     --mono: "Cascadia Code", Consolas, monospace;
+    --content-divider-width: 1px;
 }
 
 * {
@@ -321,7 +322,7 @@ h3 {
     grid-template-columns: 1.7rem minmax(0, 1fr) 1rem;
     gap: 0.8rem;
     padding-block: 1.5rem;
-    border-bottom: 1px solid var(--line);
+    border-bottom: var(--content-divider-width) solid var(--line);
 }
 
 .row-index, .row-arrow {
@@ -468,7 +469,7 @@ h3 {
     gap: 0.3rem 1rem;
     margin-top: 0.75rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--line);
+    border-bottom: var(--content-divider-width) solid var(--line);
 }
 
 .filter-options {
@@ -632,7 +633,7 @@ h3 {
 
 .post-list > li {
     padding-block: 1.5rem;
-    border-bottom: 1px solid var(--line);
+    border-bottom: var(--content-divider-width) solid var(--line);
 }
 
 .post-list h2 {
@@ -865,7 +866,7 @@ h3 {
     gap: 0.5rem;
     min-height: 44px;
     height: var(--feed-heading-height);
-    border-top: 1px solid var(--line);
+    border-top: var(--content-divider-width) solid var(--line);
     font: 1.125rem var(--mono);
 }
 

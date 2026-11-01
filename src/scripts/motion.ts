@@ -42,6 +42,64 @@ export function createMotion() {
     };
 }
 
+/** Switch one live result list without copying its rows, IDs or event handlers. */
+export function createContentTransition(root: HTMLElement) {
+    const body = root.querySelector<HTMLElement>("[data-content-transition-body]")!;
+    const motion = createMotion();
+    let pending: (() => void) | undefined;
+    let x = 0;
+    let opacity = 1;
+    function apply() {
+        const update = pending;
+        pending = undefined;
+        update?.();
+    }
+    function finish() {
+        apply();
+        motion.cancel();
+    }
+    for (const type of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+        root.addEventListener(type, finish, { passive: true, capture: true });
+    }
+    window.addEventListener("pagehide", finish);
+    window.addEventListener("beforeprint", finish);
+    return {
+        cancel() { motion.cancel(); },
+        run(update: () => void, direction = 1) {
+            const startX = x;
+            const startOpacity = opacity;
+            motion.cancel();
+            pending = update;
+            const wasInert = body.inert;
+            root.style.minHeight = `${root.offsetHeight}px`;
+            root.setAttribute("data-content-transition-active", "");
+            body.inert = true;
+            motion.run((progress) => {
+                if (progress < 0.5) {
+                    x = startX + (-direction * 100 - startX) * progress * 2;
+                    opacity = startOpacity * (1 - progress * 2);
+                }
+                else {
+                    apply();
+                    x = direction * 100 * (2 - progress * 2);
+                    opacity = progress * 2 - 1;
+                }
+                body.style.translate = `${x}% 0`;
+                body.style.opacity = String(opacity);
+            }, () => {
+                pending = undefined;
+                x = 0;
+                opacity = 1;
+                body.inert = wasInert;
+                body.style.removeProperty("translate");
+                body.style.removeProperty("opacity");
+                root.style.removeProperty("min-height");
+                root.removeAttribute("data-content-transition-active");
+            });
+        },
+    };
+}
+
 export async function animateElement(element: HTMLElement, frames: Keyframe[], options: KeyframeAnimationOptions, signal: AbortSignal) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (reduced.matches || signal.aborted) return;

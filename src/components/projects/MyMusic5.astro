@@ -1,13 +1,13 @@
 ---
 import type { Locale } from "../../config/locales";
 import { languages } from "../../config/locales";
-import { mymusic5ProjectsLayout } from "../../config/collections";
 import { mymusic5Url, mymusic5DifficultyLabels } from "../../config/mymusic5";
 import { useMessages } from "../../i18n/ui";
 import type { projectSources } from "../../services/projects/index";
 import Sheets from "../common/mymusic5/Sheets.astro";
 import Statistics from "../common/Statistics.astro";
 import SearchField from "../common/SearchField.astro";
+import Pagination from "../common/Pagination.astro";
 
 interface Props {
     locale: Locale;
@@ -36,8 +36,8 @@ const statistics = [
 ---
 
 {notice ? (
-    <div class="mymusic5-catalog" data-sheet-browser={searchable || undefined}>
-        <div class="sheet-author">
+    <div class="mymusic5-catalog" data-sheet-browser={searchable || undefined} data-paginated-list={searchable || undefined}>
+        <div class="sheet-author" data-reveal-item>
             {author && (
                 <div class="sheet-identity">
                     {author.profileUrl && <img src={author.profileUrl} alt="" width="64" height="64" />}
@@ -52,17 +52,20 @@ const statistics = [
         </div>
         <Statistics items={statistics} />
         {author && sheets.length > 0 ? (
+            <div data-reveal-list>
             <Sheets
                 id="mymusic5-sheets"
                 label={copy.sheets}
                 locale={locale}
                 artistUrl={author.artistUrl}
                 sheets={sheets}
-                visibleItems={mymusic5ProjectsLayout.visibleItems}
+                paginated
                 searchable
             >
                 <p class="empty-message" data-sheet-empty role="status" hidden>{copy.noResults}</p>
             </Sheets>
+            <Pagination locale={locale} />
+            </div>
         ) : <p class="empty-message">{copy.noSheets}</p>}
     </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}

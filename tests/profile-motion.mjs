@@ -82,14 +82,14 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
     };
     const dispatch = (name, event) => Promise.all((listeners.get(name) ?? []).map((listener) => listener(event)));
     return { event, effects, animations, window, oldPage, newPage, controller,
-        ready() { return dispatch("DOMContentLoaded"); },
-        load() { return dispatch("astro:page-load"); },
+        ready() { return dispatch("site:page-ready"); },
+        async load() { await dispatch("astro:page-load"); return dispatch("site:page-ready"); },
         prepare() { void dispatch("astro:before-preparation", event); return event.loader(); },
-        reveal() { current = newPage; return dispatch("astro:page-load"); },
+        async reveal() { current = newPage; await dispatch("astro:page-load"); return dispatch("site:page-ready"); },
     };
 }
 
-test("DOM readiness reveals items before window.load and page-load does not replay the entrance", async () => {
+test("prepared pages reveal items and page-load does not replay the entrance", async () => {
     const page = browser();
     const hidden = page.oldPage.items[4];
     hidden.getClientRects = () => [];
@@ -120,8 +120,8 @@ test("Overview and Resume fade and focus the main content without scrolling past
         await page.reveal();
         assert.deepEqual(page.effects, [
             ["load"], ["old", "fade", 1, 0],
-            ...page.newPage.items.map((item) => [item.name, "fade", 0, 1]),
             ["focus", "main-content"],
+            ...page.newPage.items.map((item) => [item.name, "fade", 0, 1]),
         ]);
         assert.equal(page.window.scrollY, 0);
         assert.equal(page.newPage.style.opacity, undefined);
@@ -168,7 +168,7 @@ test("failed loads and superseded navigation never leave the current page faded 
 
 test("leaving during an entrance cancels all item animations even when the next load fails", async () => {
     const page = browser({ holdAnimations: true });
-    const entering = page.load();
+    const entering = page.ready();
     assert.ok(page.animations.length > 0);
     assert.ok(page.animations.every((animation) => !animation.cancelled));
     page.event.loader = async () => { throw new Error("network"); };

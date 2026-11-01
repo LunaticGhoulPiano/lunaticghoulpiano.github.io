@@ -12,7 +12,10 @@ export default defineConfig({
     vite: {
         server: {
             watch: {
-                ignored: [`${temporaryRoot.replaceAll("\\", "/")}/**`],
+                ignored: [
+                    `${temporaryRoot.replaceAll("\\", "/")}/**`,
+                    /(?:^|[/\\])\.cache[/\\]content-build(?:[/\\]|$)/,
+                ],
             },
         },
     },

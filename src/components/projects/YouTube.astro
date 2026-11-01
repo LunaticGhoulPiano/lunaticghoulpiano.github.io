@@ -8,6 +8,7 @@ import TimelineViewport from "../common/TimelineViewport.astro";
 import { youtubeProjectsLayout, youtubePlaylistNavigation, youtubeVideoSortOptions } from "../../config/collections";
 import Carousel from "../common/Carousel.astro";
 import SearchField from "../common/SearchField.astro";
+import ContentTransition from "../common/ContentTransition.astro";
 
 interface Props {
     locale: Locale;
@@ -36,7 +37,7 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
             "--youtube-playlist-description-lines": youtubeProjectsLayout.playlistDescriptionLines,
         }}>
             {playlists.length > 0 && (
-                <div data-youtube-controls hidden>
+                <div data-youtube-controls data-reveal-item hidden>
                     <Carousel
                         id="youtube-playlists"
                         label={copy.playlists}
@@ -52,7 +53,8 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
                     </Carousel>
                 </div>
             )}
-            <div class="youtube-toolbar">
+            <ContentTransition>
+            <div class="youtube-toolbar" data-reveal-item>
                 <p class="youtube-playlist-description" data-youtube-description></p>
                 <div class="youtube-sort" data-youtube-sort-controls hidden>
                     <label for="youtube-sort">{copy.sortBy}</label>
@@ -74,6 +76,7 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
                 <Videos locale={locale} videos={rows} visibleIds={uploads} searchable />
                 <p class="empty-message" data-youtube-empty data-all-label={copy.noVideos} data-playlist-label={copy.emptyPlaylist} data-search-label={copy.noResults} role="status" hidden={videos.length > 0}>{copy.noVideos}</p>
             </TimelineViewport>
+            </ContentTransition>
         </div>
     </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}

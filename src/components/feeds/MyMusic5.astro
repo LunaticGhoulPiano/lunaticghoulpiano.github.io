@@ -6,6 +6,7 @@ import RecentFeed from "../common/RecentFeed.astro";
 import { useMessages } from "../../i18n/ui";
 import { formatMessage } from "../../i18n/format";
 import Sheets from "../common/mymusic5/Sheets.astro";
+import TimelineViewport from "../common/TimelineViewport.astro";
 
 interface Props {
     locale: Locale;
@@ -22,14 +23,15 @@ const title = formatMessage(copy.latestSheets, { count: mymusic5FeedSheetLimit }
 
 <RecentFeed locale={locale} title={title} available={Boolean(notice)} empty={! author || sheets.length === 0} emptyMessage={copy.noSheets}>
     {author && (
+        <TimelineViewport id="mymusic5-feed-timeline" label={title} locale={locale} visibleItems={mymusic5FeedTimelineSize}>
         <Sheets
-            id="mymusic5-feed-timeline"
+            id="mymusic5-feed-sheets"
             label={title}
             locale={locale}
             artistUrl={author.artistUrl}
             sheets={sheets}
-            visibleItems={mymusic5FeedTimelineSize}
             chronological
         />
+        </TimelineViewport>
     )}
 </RecentFeed>

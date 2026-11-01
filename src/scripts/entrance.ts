@@ -50,11 +50,7 @@ export async function initializeEntrances() {
 }
 
 document.addEventListener("astro:before-preparation", () => entrance?.abort());
-document.addEventListener("astro:page-load", initializeEntrances);
+// The head bootstrap emits this only while the initialized page is concealed.
+// Late modules and timeout fallbacks must not hide already-visible content again.
+document.addEventListener("site:page-ready", initializeEntrances);
 window.addEventListener("pagehide", () => entrance?.abort());
-// Module scripts initialize the carousels and timelines before DOMContentLoaded.
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeEntrances, { once: true });
-} else {
-    requestAnimationFrame(() => void initializeEntrances());
-}

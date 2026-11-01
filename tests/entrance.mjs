@@ -68,6 +68,19 @@ test("each document enters once; carousel changes and newly visible items do not
     assert.equal(view.calls[0].maxDelay, 270);
 });
 
+test("DOM and router readiness alone never re-hide content; only the prepared page enters", async () => {
+    const view = fixture();
+    view.items.push(element("heading", 10, 10));
+    view.document.dispatchEvent(new Event("DOMContentLoaded"));
+    view.document.dispatchEvent(new Event("astro:page-load"));
+    assert.equal(view.calls.length, 0);
+    view.document.dispatchEvent(new Event("site:page-ready"));
+    await Promise.resolve();
+    assert.equal(view.calls.length, 1);
+    view.document.dispatchEvent(new Event("site:page-ready"));
+    assert.equal(view.calls.length, 1);
+});
+
 test("user input, scrolling and leaving the page cancel the entrance without changing focus or scroll", async () => {
     for (const mode of ["all", "visible"]) {
     for (const type of ["pointerdown", "touchstart", "wheel", "keydown", "scroll", "astro:before-preparation", "pagehide"]) {

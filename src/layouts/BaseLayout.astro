@@ -13,6 +13,7 @@ import { discoveryIndex } from "../data/search";
 import { getSearchDocuments } from "../services/search";
 import themeScript from "../scripts/theme.js?raw";
 import appearanceScript from "../scripts/appearance.js?raw";
+import pageReadyScript from "../scripts/page-ready.js?raw";
 import { appearanceConfiguration } from "../config/appearance";
 import Wallpaper from "../components/shell/Wallpaper.astro";
 import Panel from "../components/common/Panel.astro";
@@ -35,8 +36,9 @@ interface Props {
 }
 
 const { title, locale, description, route, noindex = false, pagePath, languagePaths, article, filters } = Astro.props;
-const isProfile = !!route && routes[route].section === "profile";
-const isFeeds = !!route && routes[route].section === "feeds";
+const section = route ? routes[route].section : null;
+const isProfile = section === "profile";
+const hasSources = section === "feeds" || section === "projects";
 const t = useTranslations(locale);
 const discovery = discoveryIndex(await getSearchDocuments(), locale);
 const pageTitle = route === "profile" ? site.name : `${title} | ${site.name}`;
@@ -61,6 +63,13 @@ const translations =
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="dark light" />
         <meta name="theme-color" content={themes.light.background} />
+        <style is:inline media="screen">
+            html[data-page-pending] :is(.site-header, .site-frame, .site-footer) {
+                opacity: 0;
+                pointer-events: none;
+            }
+        </style>
+        <script is:inline set:html={pageReadyScript} />
         <style is:inline set:html={themeStyles} />
         <script is:inline set:html={themeScript} />
         <script is:inline set:html={appearanceScript} />
@@ -90,7 +99,7 @@ const translations =
         {description && <meta property="og:description" content={description} />}
         {canonical && <meta property="og:url" content={canonical} />}
     </head>
-    <body class:list={{ "profile-page": isProfile, "feeds-page": isFeeds }}>
+    <body class:list={{ "profile-page": isProfile, "borderless-page": isProfile || hasSources }}>
         <Wallpaper />
         <a class="skip-link" href="#main-content">{t("nav.skip")}</a>
         <SiteHeader locale={locale} route={route} languagePaths={translations} />
@@ -101,7 +110,7 @@ const translations =
             <Discovery locale={locale} index={discovery} filters={filters} />
         </Panel>
         <div class="container site-frame">
-            <main class="main-content" id="main-content" tabindex="-1" data-entrance={isFeeds || undefined}>
+            <main class="main-content" id="main-content" tabindex="-1" data-entrance={hasSources || undefined}>
                 <slot />
             </main>
         </div>

@@ -28,17 +28,11 @@ button, select {
     align-items: center;
     min-height: 44px;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--chrome-line);
+    border-bottom: var(--content-divider-width) solid var(--chrome-line);
 }
 
 .profile-page { overflow-x: clip; }
-:is(.profile-page, .feeds-page) .header-inner { border-bottom: 0; }
-
-.feeds-page .main-content :is(.page-turner-header, .feed-category-heading, .post-list > li) { border: 0; }
-
-@media (width > 48rem) {
-    :is(.profile-page, .feeds-page) .site-nav { border-inline-start: 0; }
-}
+.borderless-page { --content-divider-width: 0px; }
 
 .brand {
     font-size: 0.875rem;
@@ -109,7 +103,7 @@ button, select {
 
 .site-nav {
     padding: 0.25rem 0.5rem;
-    border-inline-start: 1px solid var(--chrome-line);
+    border-inline-start: var(--content-divider-width) solid var(--chrome-line);
     font-style: normal;
 }
 

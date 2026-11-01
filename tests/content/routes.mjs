@@ -397,6 +397,9 @@ test("isolated builds cover every configured language plus an additional locale,
             }
             assert.match(projects, /data-youtube-sort/);
             assert.match(projects, /data-repository-browser/);
+            assert.match(projects, /<div\b[^>]*class="repository-controls"[^>]*data-reveal-item/);
+            assert.match(youtube, /<div\b[^>]*class="youtube-channel"[^>]*data-reveal-item/);
+            assert.match(youtube, /<div\b[^>]*data-youtube-controls[^>]*data-reveal-item/);
             assert.doesNotMatch(projects, /data-activity-category/);
             assert.doesNotMatch(githubProjects, /data-youtube-browser|data-activity-category/);
             for (const html of [overview, youtubeFeedPage]) {
@@ -415,7 +418,12 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.deepEqual(projectSheets.map((row) => Number(attributes(row)["data-sheet-id"])),
                 mymusic5Data.snapshot.sheets.map((sheet) => sheet.sheetId));
             assert.match(mymusic5Projects, /class="sheet-identity"/);
+            assert.match(mymusic5Projects, /<div\b[^>]*class="sheet-author"[^>]*data-reveal-item/);
             assert.match(mymusic5Projects, /class="statistics"/);
+            assert.match(mymusic5Projects, /data-paginated-list/);
+            assert.match(mymusic5Projects, new RegExp(`data-page-size="${collectionPageSize}"`));
+            assert.doesNotMatch(mymusic5Projects, /data-timeline-window|data-timeline-scroll|data-timeline-newest|data-timeline-oldest/);
+            assert.ok(projectSheets.every((row) => /data-page-item/.test(row)));
             const sheetSearch = attributes(mymusic5Projects.match(/<input\b[^>]*id="mymusic5-search"[^>]*>/)[0]);
             assert.equal(sheetSearch.placeholder, copy.mymusic5.searchPlaceholder);
             assert.equal(sheetSearch["aria-controls"], "mymusic5-sheets");
@@ -460,7 +468,14 @@ test("isolated builds cover every configured language plus an additional locale,
             for (const [route, definition] of Object.entries(routes)) {
                 const { path, section } = definition;
                 const html = await page(path, locale);
-                if (section === "feeds") assert.match(html, /<body class="feeds-page"/);
+                const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/)[1];
+                assert.match(head, /html\[data-page-pending\]/, "First-paint protection must be inline, including in development.");
+                assert.match(head, /site:page-ready/);
+                assert.doesNotMatch(html.match(/<html\b[^>]*>/)[0], /data-page-pending/, "Without JavaScript, content must remain visible.");
+                const sourcePage = section === "feeds" || section === "projects";
+                const bodyClasses = attributes(html.match(/<body\b[^>]*>/)[0]).class?.split(/\s+/) ?? [];
+                assert.equal(bodyClasses.includes("borderless-page"), section === "profile" || sourcePage);
+                assert.equal(/data-entrance/.test(html.match(/<main\b[^>]*>/)[0]), sourcePage);
                 assert.doesNotMatch(html, /data-curved|timeline-curved/);
                 assert.deepEqual(headings(main(html), 1), [route === "profile" ? site.name : copy.ui[definition.title]]);
                 const navigation = html.match(/<nav class="site-nav"[^>]*>([\s\S]*?)<\/nav>/)[1];

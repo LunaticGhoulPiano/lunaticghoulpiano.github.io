@@ -1,0 +1,9 @@
+<div class="content-transition" data-content-transition>
+    <div data-content-transition-body><slot /></div>
+</div>
+
+<style>
+    .content-transition { min-width: 0; display: flow-root; }
+    [data-content-transition-body] { display: flow-root; }
+    .content-transition[data-content-transition-active] { overflow: clip; }
+</style>

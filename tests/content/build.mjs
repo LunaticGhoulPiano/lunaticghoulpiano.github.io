@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cp, readFile, writeFile, rm, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import fs, { cp, readFile, writeFile, rm, readdir } from "node:fs/promises";
+import timers from "node:timers/promises";
+import { syncBuiltinESMExports } from "node:module";
+import { basename, dirname, join } from "node:path";
 import { buildContents, buildOptions, runCommand } from "../../scripts/content/build.mjs";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { configuration, writeItem } from "./fixture.mjs";
@@ -38,6 +40,22 @@ async function fixture(root, id = "first", placements = ["documentations", "proj
 
 const quiet = { log: () => {} };
 const built = (results) => results.filter((result) => result.built).map(({ id, locale }) => `${id}/${locale}`);
+
+function interceptRenames(context, implementation) {
+    const original = fs.rename;
+    const move = context.mock.method(fs, "rename", (from, to) => implementation(from, to, original));
+    const delays = [];
+    const wait = context.mock.method(timers, "setTimeout", async (milliseconds) => { delays.push(milliseconds); });
+    syncBuiltinESMExports();
+    context.after(() => {
+        move.mock.restore();
+        wait.mock.restore();
+        syncBuiltinESMExports();
+    });
+    return { move, delays };
+}
+
+const locked = (code) => Object.assign(new Error(`Directory operation failed: ${code}`), { code });
 
 test("content builds discover targets without output files and reuse unchanged per-locale results", async () => {
     await withTemporaryDirectory(async (root) => {
@@ -160,5 +178,99 @@ test("cache corruption rebuilds, changed inputs during compilation fail, and out
         await writeFile(join(directory, "configs.json"), JSON.stringify(config));
         await assert.rejects(buildContents({ root, ...quiet }), /input overlaps output/);
         assert.equal(await readFile(join(directory, "source/en.txt"), "utf8"), "edited during build");
+    });
+});
+
+test("temporary directory locks retry both cache and published output swaps", async (context) => {
+    await withTemporaryDirectory(async (root) => {
+        const { directory } = await fixture(root);
+        await buildContents({ root, locale: "en", ...quiet });
+        await writeFile(join(directory, "source/en.txt"), "Updated English");
+        const attempts = new Map();
+        const { delays } = interceptRenames(context, async (from, to, rename) => {
+            const key = `${from}:${to}`;
+            const count = attempts.get(key) ?? 0;
+            attempts.set(key, count + 1);
+            if (count < 3) throw locked(["EPERM", "EBUSY", "EACCES"][count]);
+            return rename(from, to);
+        });
+        assert.deepEqual(built(await buildContents({ root, locale: "en", ...quiet })), ["first/en"]);
+        for (const output of [join(root, ".cache/content-build/first/en/output"), join(directory, "build/en")]) {
+            assert.equal(await readFile(join(output, "index.html"), "utf8"), "<h1>Updated English</h1>");
+        }
+        assert.equal(attempts.size, 4);
+        assert.deepEqual(delays, Array.from({ length: 4 }, () => [100, 200, 300]).flat());
+        await buildContents({ root, locale: "en", ...quiet, run: () => assert.fail("Successful retry must leave a reusable cache") });
+    });
+});
+
+test("persistent directory locks stop after bounded retries and preserve existing cache and output", async (context) => {
+    await withTemporaryDirectory(async (root) => {
+        const { directory } = await fixture(root);
+        await buildContents({ root, locale: "en", ...quiet });
+        const cache = join(root, ".cache/content-build/first/en");
+        const manifest = await readFile(join(cache, "manifest.json"), "utf8");
+        await writeFile(join(directory, "source/en.txt"), "Updated English");
+        const { move, delays } = interceptRenames(context, async () => { throw locked("EPERM"); });
+        await assert.rejects(buildContents({ root, locale: "en", ...quiet }), { code: "EPERM" });
+        assert.equal(move.mock.callCount(), 6);
+        assert.deepEqual(delays, [100, 200, 300, 400, 500]);
+        assert.equal(await readFile(join(cache, "manifest.json"), "utf8"), manifest);
+        assert.equal(await readFile(join(cache, "output/index.html"), "utf8"), "<h1>English</h1>");
+        assert.equal(await readFile(join(directory, "build/en/index.html"), "utf8"), "<h1>English</h1>");
+        assert.deepEqual(await readdir(dirname(cache)), ["en"]);
+        assert.deepEqual(await readdir(join(root, ".cache/content-build")), ["first"]);
+    });
+});
+
+test("failed publication restores the old output even when rollback is temporarily locked", async (context) => {
+    await withTemporaryDirectory(async (root) => {
+        const { directory } = await fixture(root);
+        await buildContents({ root, locale: "en", ...quiet });
+        const output = join(directory, "build/en");
+        await writeFile(join(directory, "source/en.txt"), "Updated English");
+        let publicationAttempts = 0;
+        let restoreAttempts = 0;
+        interceptRenames(context, async (from, to, rename) => {
+            if (to === output && basename(from) === "next") {
+                publicationAttempts++;
+                throw locked("EIO");
+            }
+            if (to === output && basename(from) === "previous" && restoreAttempts++ === 0) throw locked("EPERM");
+            return rename(from, to);
+        });
+        await assert.rejects(buildContents({ root, locale: "en", ...quiet }), { code: "EIO" });
+        assert.equal(publicationAttempts, 1, "Unrelated errors must not be retried");
+        assert.equal(restoreAttempts, 2);
+        assert.equal(await readFile(join(output, "index.html"), "utf8"), "<h1>English</h1>");
+        assert.deepEqual(await readdir(dirname(output)), ["en"]);
+    });
+});
+
+test("failed rollback reports and retains its backup through the next build", async (context) => {
+    await withTemporaryDirectory(async (root) => {
+        const { directory } = await fixture(root);
+        await buildContents({ root, locale: "en", ...quiet });
+        const cache = join(root, ".cache/content-build/first/en");
+        await writeFile(join(directory, "source/en.txt"), "Updated English");
+        let backup;
+        const { move } = interceptRenames(context, async (from, to, rename) => {
+            if (to === cache) {
+                if (basename(from) === "previous") backup = from;
+                throw locked("EBUSY");
+            }
+            return rename(from, to);
+        });
+        await assert.rejects(buildContents({ root, locale: "en", ...quiet }), (error) => {
+            assert.ok(error instanceof AggregateError);
+            assert.ok(error.message.includes(backup));
+            return true;
+        });
+        assert.equal(await readFile(join(backup, "output/index.html"), "utf8"), "<h1>English</h1>");
+        move.mock.restore();
+        syncBuiltinESMExports();
+        await buildContents({ root, locale: "en", ...quiet });
+        assert.equal(await readFile(join(cache, "output/index.html"), "utf8"), "<h1>Updated English</h1>");
+        assert.equal(await readFile(join(backup, "output/index.html"), "utf8"), "<h1>English</h1>");
     });
 });

@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { join, relative, extname } from "node:path";
+import { join, relative, extname, resolve, dirname, basename } from "node:path";
 import { createReadStream } from "node:fs";
 import { access, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { readContent, invalidateContent, isWithin } from "./loader.mjs";
@@ -68,6 +68,19 @@ const context = getContentContext(item, items);
                 addWatchFile(routeManifest);
                 updateConfig({
                     vite: {
+                        server: {
+                            watch: {
+                                // Generated sites are read by the middleware on demand. Watching
+                                // them on Windows can lock both the output and its swap directory.
+                                ignored: [(path) => records.some(({ data }) => {
+                                    if (data.entry.type !== "site") return false;
+                                    const output = resolve(root, data.directory, data.entry.root);
+                                    const target = resolve(path);
+                                    return target === output || isWithin(output, target)
+                                        || target.startsWith(join(dirname(output), `.${basename(output)}-`));
+                                })],
+                            },
+                        },
                         plugins: [{
                             name: "item-content-status",
                             resolveId(id) {

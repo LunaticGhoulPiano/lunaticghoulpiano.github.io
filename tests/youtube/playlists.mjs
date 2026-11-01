@@ -1,9 +1,10 @@
-import { installGlobals, textElement } from "../fixture.mjs";
+import { installGlobals, textElement, contentTransitionFixture } from "../fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { initializeYoutubePlaylists } from "../../src/scripts/youtube.ts";
 
-function fixture(context, { playlists = true } = {}) {
+function fixture(context, { playlists = true, reduced = true } = {}) {
+    const transition = contentTransitionFixture(reduced);
     const metadata = {
         newest: { date: "2026-10-18T00:00:00Z", videoViews: "9007199254740992", videoLikes: "0", search: "Piano performance 鋼琴" },
         oldest: { date: "2020-01-01T00:00:00Z", videoViews: "9007199254740993", search: "Concert Description with piano" },
@@ -51,7 +52,7 @@ function fixture(context, { playlists = true } = {}) {
     const sortControls = { hidden: true };
     const search = Object.assign(new EventTarget(), { value: "" });
     const searchControls = { hidden: true };
-    const window = new EventTarget();
+    const window = transition.environment.window;
     const nodes = {
         "[data-youtube-controls]": playlists ? controls : null,
         "[data-youtube-sort]": sort,
@@ -62,14 +63,15 @@ function fixture(context, { playlists = true } = {}) {
         "[data-timeline-window]": timeline,
         "[data-list-search]": search,
         "[data-list-search-controls]": searchControls,
+        "[data-content-transition]": transition.root,
     };
     const root = { dataset: {}, querySelector: (selector) => nodes[selector], querySelectorAll: () => buttons };
-    const environment = { document: { querySelectorAll: () => [root] }, window };
+    const environment = { ...transition.environment, document: { querySelectorAll: () => [root] } };
     installGlobals(context, environment);
     initializeYoutubePlaylists();
     initializeYoutubePlaylists();
     return {
-        buttons, originals, list, description, empty, viewport, controls, sort, sortControls, searchControls, window,
+        buttons, originals, list, description, empty, viewport, controls, sort, sortControls, searchControls, window, transition,
         updates: () => updates,
         select(index) { buttons[index].dispatchEvent(new Event("carousel:select")); },
         order(value) { sort.value = value; sort.dispatchEvent(new Event("change")); },
@@ -93,6 +95,36 @@ test("playlist switching sorts the view while preserving membership, repeated en
     assert.ok(view.originals.every((row) => view.list.children.includes(row)));
     assert.equal(view.description.textContent, "");
     assert.equal(view.updates(), 3);
+});
+
+test("playlist transitions slide and fade before changing rows, and a newer selection wins", (context) => {
+    const view = fixture(context, { reduced: false });
+    view.select(1);
+    assert.deepEqual(view.visible(), ["newest", "oldest"]);
+    view.transition.frame(0);
+    view.transition.frame(140);
+    assert.ok(Number.parseFloat(view.transition.body.style.translate) < 0);
+    assert.ok(Number(view.transition.body.style.opacity) < 1);
+    view.select(2);
+    view.transition.frame(150);
+    view.transition.frame(430);
+    assert.deepEqual(view.visible(), []);
+    view.transition.frame(710);
+    assert.equal(view.empty.hidden, false);
+    assert.equal(view.transition.body.style.translate, undefined);
+    assert.equal(view.transition.body.inert, false);
+    assert.equal(view.transition.pending(), 0);
+    assert.ok(view.originals.every((row) => view.list.children.includes(row)));
+});
+
+test("search during a playlist transition renders the latest selection without a delayed overwrite", (context) => {
+    const view = fixture(context, { reduced: false });
+    view.select(1);
+    view.search("collaboration");
+    view.transition.frame(1000);
+    assert.deepEqual(view.visible(), ["collaborator"]);
+    assert.equal(view.description.textContent, "<b>Literal description</b>");
+    assert.equal(view.transition.pending(), 0);
 });
 
 test("empty playlists show the empty state and can switch back to populated playlists", (context) => {

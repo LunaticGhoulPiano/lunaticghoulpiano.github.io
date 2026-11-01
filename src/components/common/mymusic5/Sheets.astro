@@ -8,7 +8,6 @@ import type { Mymusic5Snapshot } from "../../../data/mymusic5/schema";
 import { useMessages } from "../../../i18n/ui";
 import { displayDate } from "../../../utils/dates";
 import { formatSequenceNumber } from "../../../utils/numbering";
-import TimelineViewport from "../TimelineViewport.astro";
 
 interface Props {
     id: string;
@@ -16,12 +15,12 @@ interface Props {
     locale: Locale;
     artistUrl: string;
     sheets: Mymusic5Snapshot["sheets"];
-    visibleItems: number;
+    paginated?: boolean;
     chronological?: boolean;
     searchable?: boolean;
 }
 
-const { id, label, locale, artistUrl, sheets, visibleItems, chronological = false, searchable = false } = Astro.props;
+const { id, label, locale, artistUrl, sheets, paginated = false, chronological = false, searchable = false } = Astro.props;
 const copy = useMessages(locale).mymusic5;
 const formatLocale = languages[locale].formatLocale;
 const number = new Intl.NumberFormat(formatLocale);
@@ -29,28 +28,18 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
     : new Intl.NumberFormat(formatLocale, { style: "currency", currency: sheet.currency, currencyDisplay: "code" }).format(sheet.price);
 ---
 
-<div class="mymusic5-sheets" style={{
+<ol id={id} aria-label={label} class="sheet-list mymusic5-sheets" data-paginated={paginated || undefined} style={{
     "--sheet-wide-height": `${mymusic5SheetLayout.itemHeight}px`,
     "--sheet-mobile-height": `${mymusic5SheetLayout.mobileItemHeight}px`,
-    "--sheet-visible-items": visibleItems,
     "--sheet-title-lines": mymusic5SheetLayout.titleLines,
     "--sheet-description-lines": mymusic5SheetLayout.descriptionLines,
 }}>
-    <TimelineViewport
-        id={id}
-        label={label}
-        locale={locale}
-        visibleItems={visibleItems}
-        height="calc(var(--sheet-item-height) * var(--sheet-visible-items))"
-        chronological={chronological}
-    >
-        <ol class="sheet-list">
             {sheets.map((sheet, index) => {
                 const url = mymusic5Url(artistUrl, sheet.sheetId);
                 const title = sheet.metaSong || sheet.title;
                 const attributes = mymusic5SheetAttributes(sheet, locale);
                 return (
-                    <li class="focus-item" data-sheet-id={sheet.sheetId} data-search={searchable ? mymusic5SearchText(sheet) : undefined}>
+                    <li class="focus-item" data-page-item={paginated || undefined} data-sheet-id={sheet.sheetId} data-search={searchable ? mymusic5SearchText(sheet) : undefined}>
                         {chronological ? (
                             <time datetime={sheet.createdAt}><span class="sr-only">{copy.uploaded} </span>{sheet.createdAt.slice(0, 10)}</time>
                         ) : <span class="sheet-number" aria-hidden="true">{formatSequenceNumber(index + 1, sheets.length)}</span>}
@@ -77,10 +66,8 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
                     </li>
                 );
             })}
-        </ol>
-        <slot />
-    </TimelineViewport>
-</div>
+</ol>
+<slot />
 
 <style>
     .mymusic5-sheets {
@@ -103,12 +90,17 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
         height: var(--sheet-item-height);
     }
 
+    .sheet-list[data-paginated] li {
+        height: auto;
+        min-height: var(--sheet-item-height);
+    }
+
     .sheet-list li:not(:has(> time)) {
         display: grid;
         grid-template-columns: 2ch minmax(0, 1fr);
         gap: 1.25rem;
         padding-block: 1rem;
-        border-bottom: 1px solid var(--line);
+        border-bottom: var(--content-divider-width) solid var(--line);
     }
 
     .sheet-details {
