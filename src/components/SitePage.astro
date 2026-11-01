@@ -24,8 +24,8 @@ const description = context.section === "feeds" ? context.description : t(page.d
 
 <BaseLayout title={t(page.title)} description={description} locale={locale} route={route} noindex={route === "search"}>
     {context.section !== "profile" && <header class="page-heading">
-        <h1>{t(page.title)}</h1>
-        <p class="page-description">{description}</p>
+        <h1 data-reveal-item>{t(page.title)}</h1>
+        <p class="page-description" data-reveal-item>{description}</p>
     </header>}
     {context.section === "search" && <SearchResults locale={locale} />}
     {context.section === "profile" && (
@@ -33,9 +33,9 @@ const description = context.section === "feeds" ? context.description : t(page.d
             {context.items.length > 0 ? <ContentList locale={locale} items={context.items} placement={route} /> : (
                 <dl class="profile-fields">
                     {context.fields.map((heading) => (
-                        <div>
-                            <dt>{t(heading)}</dt>
-                            <dd>{copy.unpublished}</dd>
+                        <div class="focus-item">
+                            <dt data-reveal-item>{t(heading)}</dt>
+                            <dd data-reveal-item>{copy.unpublished}</dd>
                         </div>
                     ))}
                 </dl>

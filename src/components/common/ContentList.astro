@@ -19,7 +19,7 @@ const copy = useMessages(locale).content;
 <div data-paginated-list>
     <ol class="post-list">
         {items.map((item) => (
-            <li data-page-item>
+            <li class="focus-item" data-page-item data-reveal-item>
                 <p class="post-meta">
                     <a href={categoryPath(item.data.category, locale, placement)}>{item.data.category}</a> · {copy.updated}
                     <time datetime={item.data.updated ?? item.data.date}>{item.data.updated ?? item.data.date}</time>

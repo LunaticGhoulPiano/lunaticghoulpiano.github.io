@@ -37,7 +37,7 @@ const components = renderers[section];
         {sources.map((source, index) => (
             <div data-page-turner-heading data-current={index === 0 ? "" : undefined} inert={index !== 0} aria-hidden={index !== 0}>
                 {sources.length > 1 && <h2>{source.title}</h2>}
-                <SnapshotNotice locale={locale} snapshot={source.data.notice} showMissingTimestamp />
+                <SnapshotNotice locale={locale} snapshot={source.data.notice} period={"period" in source.data ? source.data.period : undefined} showMissingTimestamp />
             </div>
         ))}
     </Fragment>

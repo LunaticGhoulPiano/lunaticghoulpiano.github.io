@@ -14,12 +14,12 @@ const { locale, route, navigation } = Astro.props;
 const t = useTranslations(locale);
 ---
 
-<div class="profile-layout" data-profile-page>
+<div class="profile-layout" data-profile-page data-entrance="all">
     <header class="profile-header">
         <ProfileHeader locale={locale} route={route} navigation={navigation} />
     </header>
     <section id="profile-content" class:list={["section-stack", { "profile-detail": route !== "profile" }]} aria-label={t(routes[route].title)}>
-        {route !== "profile" && <h1>{t(routes[route].title)}</h1>}
+        {route !== "profile" && <h1 data-reveal-item>{t(routes[route].title)}</h1>}
         <slot />
     </section>
 </div>

@@ -36,6 +36,7 @@ interface Props {
 
 const { title, locale, description, route, noindex = false, pagePath, languagePaths, article, filters } = Astro.props;
 const isProfile = !!route && routes[route].section === "profile";
+const isFeeds = !!route && routes[route].section === "feeds";
 const t = useTranslations(locale);
 const discovery = discoveryIndex(await getSearchDocuments(), locale);
 const pageTitle = route === "profile" ? site.name : `${title} | ${site.name}`;
@@ -89,7 +90,7 @@ const translations =
         {description && <meta property="og:description" content={description} />}
         {canonical && <meta property="og:url" content={canonical} />}
     </head>
-    <body class:list={{ "profile-page": isProfile }}>
+    <body class:list={{ "profile-page": isProfile, "feeds-page": isFeeds }}>
         <Wallpaper />
         <a class="skip-link" href="#main-content">{t("nav.skip")}</a>
         <SiteHeader locale={locale} route={route} languagePaths={translations} />
@@ -100,12 +101,13 @@ const translations =
             <Discovery locale={locale} index={discovery} filters={filters} />
         </Panel>
         <div class="container site-frame">
-            <main class="main-content" id="main-content" tabindex="-1">
+            <main class="main-content" id="main-content" tabindex="-1" data-entrance={isFeeds || undefined}>
                 <slot />
             </main>
         </div>
         <SiteFooter locale={locale} />
         <script>
+            import "../scripts/entrance";
             import { initializeSearch } from "../scripts/search";
             initializeSearch();
             document.addEventListener("astro:page-load", initializeSearch);

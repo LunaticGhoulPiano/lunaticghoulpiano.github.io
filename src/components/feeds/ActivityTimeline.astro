@@ -8,16 +8,15 @@ import type { ActivityEntry } from "../../services/feeds/github";
 interface Props {
     locale: Locale;
     entries: ActivityEntry[];
-    compact?: boolean;
 }
 
-const { locale, entries, compact = false } = Astro.props;
+const { locale, entries } = Astro.props;
 const copy = useMessages(locale);
 ---
 
-<ol class:list={["activity-list", { "activity-list-compact": compact }]}>
+<ol class="activity-list">
     {entries.map((entry) => (
-        <li data-private-contributions={entry.type === "PrivateContribution" || undefined}>
+        <li class="focus-item" data-private-contributions={entry.type === "PrivateContribution" || undefined}>
             <time datetime={entry.occurredAt}>{entry.occurredAt.slice(0, 10)}</time>
             <div>
                 <p class="activity-action">
@@ -40,3 +39,27 @@ const copy = useMessages(locale);
         </li>
     ))}
 </ol>
+
+<style>
+    .activity-list > li {
+        height: var(--activity-item-height);
+        line-height: 1.5;
+    }
+
+    .activity-list > li > div { min-width: 0; }
+
+    .activity-repository {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: var(--activity-repository-lines);
+        line-clamp: var(--activity-repository-lines);
+        overflow: hidden;
+        max-width: 100%;
+        font-size: 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    @media print {
+        .activity-list > li { height: auto; }
+    }
+</style>

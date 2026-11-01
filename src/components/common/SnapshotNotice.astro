@@ -1,6 +1,6 @@
 ---
 import { useMessages } from "../../i18n/ui";
-import { displayTimestamp } from "../../utils/dates";
+import { displayDate, displayTimestamp } from "../../utils/dates";
 import { type Locale } from "../../config/site";
 import { snapshotStatus } from "../../data/snapshot";
 
@@ -10,8 +10,9 @@ interface Props {
         lastSuccessfulFetchAt: string;
     } | null;
     showMissingTimestamp?: boolean;
+    period?: { from: string; to: string } | null;
 }
-const { locale, snapshot, showMissingTimestamp = false } = Astro.props;
+const { locale, snapshot, showMissingTimestamp = false, period } = Astro.props;
 const copy = useMessages(locale).content;
 const status = snapshotStatus(snapshot);
 const time = snapshot && displayTimestamp(snapshot.lastSuccessfulFetchAt, locale);
@@ -20,6 +21,7 @@ const time = snapshot && displayTimestamp(snapshot.lastSuccessfulFetchAt, locale
 <div class="snapshot-notice">
     {snapshot ? (
         <>
+            {period && <p><time datetime={period.from}>{displayDate(period.from)}</time> ~ <time datetime={period.to}>{displayDate(period.to)}</time></p>}
             <p>{copy.snapshot}: <time datetime={snapshot.lastSuccessfulFetchAt}>{time}</time></p>
             {status === "stale" && <p>{copy.stale}</p>}
         </>

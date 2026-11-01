@@ -11,12 +11,12 @@ const t = useTranslations(locale);
 const Title = route === "profile" ? "h1" : "p";
 ---
 <div class="profile-introduction">
-    <Title class="profile-name">{site.name}</Title>
+    <Title class="profile-name" data-reveal-item>{site.name}</Title>
     <div class="profile-identity">
-        <p class="name-alias">{site.secondaryName}</p>
+        <p class="name-alias" data-reveal-item>{site.secondaryName}</p>
         <nav class="profile-nav" aria-label={t("nav.profile")}>
             {navigation.map((item) => (
-                <a href={getRoutePath(item, locale)} data-profile-link aria-current={route === item ? "page" : undefined}>
+                <a href={getRoutePath(item, locale)} data-profile-link data-reveal-item aria-current={route === item ? "page" : undefined}>
                     {item === "profile" ? t("common.overview") : t(routes[item].title)}
                 </a>
             ))}

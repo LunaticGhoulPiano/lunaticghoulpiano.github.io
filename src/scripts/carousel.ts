@@ -1,4 +1,5 @@
 import { carouselState, carouselWidths } from "../utils/carousel.ts";
+import { createMotion } from "./motion.ts";
 
 export function initializeCarousels() {
     document.querySelectorAll<HTMLElement>("[data-carousel]").forEach((carousel) => {
@@ -26,6 +27,8 @@ export function initializeCarousels() {
         let naturalWidths: number[] = [];
         let selected = Math.max(0, cards.findIndex((card) => card.getAttribute("aria-pressed") === "true"));
         let state = carouselState(cards.length, columns, 0, loop);
+        const motion = createMotion();
+        let destination = 0;
         function selectionState() {
             return carouselState(cards.length, 1, selected, loop);
         }
@@ -49,6 +52,15 @@ export function initializeCarousels() {
             track.style.height = `${height}px`;
         }
 
+        function navigationWidths(index: number) {
+            const current = carouselState(cards.length, columns, index, loop).indices;
+            const available = track.clientWidth - Math.max(0, current.length - 1) * gap;
+            const fitted = carouselWidths(current.map((item) => naturalWidths[item]), available);
+            const widths = [...naturalWidths];
+            current.forEach((item, position) => { widths[item] = fitted[position]; });
+            return widths;
+        }
+
         function render(requestedOffset: number, updateScrollbar = true) {
             offset = loop && maximum > 0
                 ? ((requestedOffset % cards.length) + cards.length) % cards.length
@@ -63,16 +75,19 @@ export function initializeCarousels() {
             }
             if (navigation) {
                 const current = carouselState(cards.length, columns, base, loop).indices;
-                const available = track.clientWidth - Math.max(0, current.length - 1) * gap;
-                const widths = carouselWidths(current.map((index) => naturalWidths[index]), available);
+                const fraction = offset - base;
+                const startWidths = navigationWidths(base);
+                const endWidths = fraction > 0 ? navigationWidths(base + 1) : startWidths;
+                // Both width and position converge on the next window before
+                // rotating the DOM, so crossing an integer never changes layout abruptly.
+                const widths = startWidths.map((width, index) => width + (endWidths[index] - width) * fraction);
                 for (let index = 0; index < cards.length; index++) {
-                    const card = cards[(base + index) % cards.length];
-                    let width = naturalWidths[(base + index) % cards.length];
-                    if (index < current.length) width = widths[index];
-                    card.style.width = `${width}px`;
+                    const cardIndex = (base + index) % cards.length;
+                    const card = cards[cardIndex];
+                    card.style.width = `${widths[cardIndex]}px`;
                     card.inert = index >= current.length;
                 }
-                track.scrollLeft = 0;
+                track.scrollLeft = fraction * ((widths[base] ?? 0) + gap);
             }
             else {
                 track.scrollLeft = (offset - base) * step;
@@ -94,16 +109,29 @@ export function initializeCarousels() {
         }
 
         function move(direction: number, changeSelection = true) {
-            const target = direction < 0 ? state.previous : state.next;
+            const requested = motion.active ? carouselState(cards.length, columns, destination, loop) : state;
+            const target = direction < 0 ? requested.previous : requested.next;
             const selection = navigation && changeSelection ? selectionState() : null;
             const selectedTarget = selection ? direction < 0 ? selection.previous : selection.next : null;
             if (target === null && selectedTarget === null) return;
             position.setAttribute("aria-live", "polite");
             if (selectedTarget !== null) select(selectedTarget);
-            render(target ?? offset);
+            animateTo(target ?? offset, direction);
+        }
+
+        function animateTo(target: number, direction = Math.sign(target - offset)) {
+            const start = offset;
+            destination = target;
+            let end = target;
+            if (loop && maximum > 0) {
+                if (direction > 0 && end < start) end += cards.length;
+                if (direction < 0 && end > start) end -= cards.length;
+            }
+            motion.run((progress) => render(start + (end - start) * progress));
         }
 
         function interact(requestedOffset: number, updateScrollbar = true) {
+            motion.cancel();
             position.setAttribute("aria-live", "polite");
             render(requestedOffset, updateScrollbar);
         }
@@ -128,6 +156,7 @@ export function initializeCarousels() {
                 return;
             }
             if (Math.abs(track.scrollLeft - trackOffset) <= 1) return;
+            motion.cancel();
             if (navigation) {
                 track.scrollLeft = trackOffset;
                 return;
@@ -168,7 +197,7 @@ export function initializeCarousels() {
             }
             else if (["Home", "End"].includes(event.key)) {
                 event.preventDefault();
-                interact(event.key === "Home" ? 0 : maximum);
+                animateTo(event.key === "Home" ? 0 : maximum);
             }
         });
         track.addEventListener("keydown", (event) => {
@@ -177,6 +206,7 @@ export function initializeCarousels() {
             move(event.key === "ArrowLeft" ? -1 : 1);
         });
         function resize() {
+            motion.cancel();
             const changed = geometryChanged();
             const style = getComputedStyle(track);
             columns = Number.parseInt(style.getPropertyValue("--carousel-columns"), 10) || 1;
@@ -203,11 +233,17 @@ export function initializeCarousels() {
             render(offset);
         }
         let resizeFrame = 0;
+        for (const target of [track, scrollbar]) {
+            for (const type of ["pointerdown", "touchstart"]) {
+                target?.addEventListener(type, () => motion.cancel(), { passive: true });
+            }
+        }
         const observer = new ResizeObserver(() => {
             if (resizeFrame) return;
             resizeFrame = requestAnimationFrame(() => {
                 resizeFrame = 0;
-                resize();
+                if (geometryChanged()) resize();
+                else syncHeight();
             });
         });
         observer.observe(track);

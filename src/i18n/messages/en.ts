@@ -210,7 +210,7 @@ export default {
         publicVideos: "Public videos",
         views: "Total views",
         videos: "Public videos",
-        latestVideos: "Latest {count} videos",
+        latestVideos: "Latest {count} Videos",
         noVideos: "No public videos yet.",
         duration: "Duration",
         videoViews: "Views",

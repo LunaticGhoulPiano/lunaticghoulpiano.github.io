@@ -18,7 +18,7 @@ const paths = {
 <nav class="social-links-container" aria-label={useMessages(locale).design.elsewhere}>
     <ul class="social-links">
         {socialLinks.map((link) => (
-            <li>
+            <li data-reveal-item>
                 <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d={paths[link.platform]} fill="currentColor" fill-rule="evenodd" />
                 </svg>

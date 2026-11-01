@@ -16,7 +16,7 @@ const { locale, title, available, empty, emptyMessage } = Astro.props;
 
 {available ? (
     <div class="recent-feed" style={{ "--feed-heading-height": `${feedHeadingHeight}px` }}>
-        <header class="feed-category-heading">
+        <header class="feed-category-heading" data-reveal-item>
             <h3>{title}</h3>
         </header>
         {empty ? <p class="empty-message">{emptyMessage}</p> : <slot />}

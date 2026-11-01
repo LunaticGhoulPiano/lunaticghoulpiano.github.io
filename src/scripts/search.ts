@@ -124,6 +124,7 @@ export function initializeSearch() {
         const terms = searchTerms(state.query);
         const nodes = matches.map(({ document: item }) => {
             const row = document.createElement("li");
+            row.className = "focus-item";
             row.dataset.pageItem = "";
             const heading = document.createElement("h2");
             const link = document.createElement("a");

@@ -244,6 +244,8 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.doesNotMatch(profile, /home-intro/);
             const overview = await page("feeds", locale);
             const feed = await page("feeds/github", locale);
+            assert.match(overview.match(/<main\b[^>]*>/)[0], /data-entrance/);
+            assert.doesNotMatch(profile.match(/<main\b[^>]*>/)[0], /data-entrance/);
             assert.deepEqual(headings(main(overview), 1), [copy.ui["route.feeds"]]);
             assert.deepEqual(headings(main(feed), 1), [copy.ui["route.github"]]);
             assert.deepEqual(headings(main(overview), 2), Object.values(feedSources).map((source) => source.title));
@@ -300,7 +302,7 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.ok(text(youtubeFeed).includes("Description 15"));
             assert.ok(text(youtubeFeed).includes("1:02:03"));
             assert.doesNotMatch(youtubeFeed, /fixture_youtube_key/);
-            const description = feed.match(/<p class="page-description">([\s\S]*?)<\/p>/)[1];
+            const description = feed.match(/<p class="page-description"[^>]*>([\s\S]*?)<\/p>/)[1];
             assert.equal(text(description), copy.ui["description.activityPeriod"]
                 .replace("{from}", "2026 / 09 / 17")
                 .replace("{to}", "2026 / 10 / 17"));
@@ -313,7 +315,7 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.doesNotMatch(commitBlock, /data-private-contributions/);
             const privateBlock = feed.match(/data-activity-category="private_repo_contribution"[\s\S]*?<\/section>/)[0];
             assert.match(privateBlock, /class="activity-count">82<\/span>/);
-            const privateEntries = [...privateBlock.matchAll(/<li data-private-contributions[^>]*>[\s\S]*?<\/li>/g)].map((match) => match[0]);
+            const privateEntries = [...privateBlock.matchAll(/<li\b[^>]*data-private-contributions[^>]*>[\s\S]*?<\/li>/g)].map((match) => match[0]);
             assert.equal(privateEntries.length, 2);
             assert.ok(text(privateEntries[0]).includes(formatMessage(copy.activity.privateCount, { count: 80 }, testLanguages[locale].formatLocale)));
             assert.match(privateEntries[0], /datetime="2026-10-03"/);
@@ -329,7 +331,9 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.doesNotMatch(html, /contribution-stats|contribution-calendar|github-summary|account-snapshot|data-timeline-toggle/);
                 assert.equal([...html.matchAll(/data-source="github"/g)].length, 1);
                 const notice = html.match(/<div class="snapshot-notice">([\s\S]*?)<\/div>/)[1];
-                assert.ok(text(notice).startsWith(`${copy.content.snapshot}:`));
+                const noticeLines = [...notice.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)].map((match) => text(match[1]));
+                assert.equal(noticeLines[0], "2026 / 09 / 17 ~ 2026 / 10 / 17");
+                assert.ok(noticeLines[1].startsWith(`${copy.content.snapshot}:`));
                 assert.ok(html.includes(`data-timeline-window data-visible-items="${githubTimelineCategorySize}"`));
                 for (const category of html.matchAll(/<section[^>]*data-activity-category="[^"]+"[^>]*>([\s\S]*?)<\/section>/g)) {
                     const window = category[1].match(/<div\b[^>]*data-timeline-window[^>]*>/);
@@ -423,7 +427,20 @@ test("isolated builds cover every configured language plus an additional locale,
             for (const html of [mymusic5Feed, main(mymusic5FeedPage)]) {
                 const title = formatMessage(copy.mymusic5.latestSheets, { count: mymusic5FeedSheetLimit }, testLanguages[locale].formatLocale);
                 assert.equal(headings(html, 3)[0], title);
-                assert.deepEqual(sheetRows(html), projectSheets.slice(0, 10).map((row) => row.replace(/ data-search="[^"]*"/g, "")));
+                const feedRows = sheetRows(html);
+                assert.deepEqual(feedRows.map((row) => attributes(row)["data-sheet-id"]),
+                    projectSheets.slice(0, 10).map((row) => attributes(row)["data-sheet-id"]));
+                assert.doesNotMatch(html, /class="sheet-number"/);
+                for (const [index, row] of feedRows.entries()) {
+                    const sheet = mymusic5Data.snapshot.sheets[index];
+                    assert.match(row, /class="focus-item"/);
+                    assert.ok(row.indexOf(`<time datetime="${sheet.createdAt}"`) < row.indexOf('class="sheet-details"'));
+                    assert.equal([...row.matchAll(new RegExp(`datetime="${sheet.createdAt}"`, "g"))].length, 1);
+                    // Same cover, content and actions; only the leading date/number differs.
+                    const details = (value) => value.slice(value.indexOf('class="sheet-details"')).replace(/>\s+</g, "><");
+                    const projectDetails = projectSheets[index].replace(/<span\b[^>]*>[^<]*<time\b[^>]*>[^<]*<\/time><\/span>/, "");
+                    assert.equal(details(row), details(projectDetails));
+                }
                 assert.equal(sheetRows(html).length, 10);
                 assert.ok(html.includes('id="mymusic5-feed-timeline"'));
                 assert.ok(html.includes(`data-visible-items="${mymusic5FeedTimelineSize}"`));
@@ -443,6 +460,8 @@ test("isolated builds cover every configured language plus an additional locale,
             for (const [route, definition] of Object.entries(routes)) {
                 const { path, section } = definition;
                 const html = await page(path, locale);
+                if (section === "feeds") assert.match(html, /<body class="feeds-page"/);
+                assert.doesNotMatch(html, /data-curved|timeline-curved/);
                 assert.deepEqual(headings(main(html), 1), [route === "profile" ? site.name : copy.ui[definition.title]]);
                 const navigation = html.match(/<nav class="site-nav"[^>]*>([\s\S]*?)<\/nav>/)[1];
                 const active = [...navigation.matchAll(/<a\b[^>]*>/g)]

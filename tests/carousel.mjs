@@ -31,7 +31,7 @@ function element() {
     };
 }
 
-function fixture(context, loop = true, { navigation = false, count = 10 } = {}) {
+function fixture(context, loop = true, { navigation = false, count = 10, reduced = true } = {}) {
     context.mock.timers.enable({ apis: ["setTimeout"] });
     let columns = navigation ? 4 : 3;
     let resizeCallback;
@@ -122,6 +122,7 @@ function fixture(context, loop = true, { navigation = false, count = 10 } = {}) 
         querySelectorAll: () => [root],
     });
     const window = element();
+    window.matchMedia = () => Object.assign(new EventTarget(), { matches: reduced });
     const environment = {
         document,
         window,
@@ -141,6 +142,7 @@ function fixture(context, loop = true, { navigation = false, count = 10 } = {}) 
             frames.set(++frameId, callback);
             return frameId;
         },
+        cancelAnimationFrame(id) { frames.delete(id); },
     };
     installGlobals(context, environment, true);
     initializeCarousels();
@@ -295,7 +297,7 @@ test("carousel advances one item across either boundary and stops when looping i
     assert.throws(() => carouselState(9, 0), /positive integer/);
 });
 
-test("carousel remains stationary while idle and responds immediately without animation frames", (context) => {
+test("carousel remains stationary while idle and reduced-motion controls respond immediately", (context) => {
     const view = fixture(context);
     for (const event of ["mouseenter", "mouseleave", "focusin"]) view.root.dispatch(event);
     view.document.hidden = true;
@@ -312,6 +314,77 @@ test("carousel remains stationary while idle and responds immediately without an
     assert.equal(view.pendingFrames(), 0);
     view.tick();
     assert.deepEqual(view.visible(), [1, 2, 3]);
+});
+
+test("carousel scrolls through intermediate positions, wraps without clones and yields to manual input", (context) => {
+    const view = fixture(context, true, { reduced: false });
+    view.next.dispatch("click");
+    view.frame();
+    view.frame(280);
+    assert.ok(view.track.scrollLeft > 0 && view.track.scrollLeft < 104);
+    view.frame(280);
+    assert.deepEqual(view.visible(), [1, 2, 3]);
+    view.previous.dispatch("click");
+    view.previous.dispatch("click");
+    view.frame();
+    view.frame(560);
+    assert.deepEqual(view.visible(), [9, 0, 1]);
+    assert.equal(new Set(view.track.children).size, view.cards.length);
+    view.next.dispatch("click");
+    view.frame();
+    view.frame(200);
+    view.track.dispatch("pointerdown");
+    const stopped = view.track.scrollLeft;
+    view.frame(1000);
+    assert.equal(view.track.scrollLeft, stopped);
+    assert.equal(view.pendingFrames(), 0);
+});
+
+test("playlist labels also scroll between positions and settle into their final widths", (context) => {
+    const view = fixture(context, true, { navigation: true, reduced: false });
+    view.next.dispatch("click");
+    view.frame();
+    view.frame(280);
+    assert.ok(view.track.scrollLeft > 0);
+    view.frame(280);
+    assert.deepEqual(view.visible(), [1, 2, 3, 4]);
+    assert.equal(view.selected(), 1);
+});
+
+test("unequal playlist labels keep their bounds continuous at either end of a move and across wraps", (context) => {
+    const view = fixture(context, true, { navigation: true, reduced: false });
+    function bounds() {
+        return view.cards.map((card) => card.getBoundingClientRect());
+    }
+    function continuous(before, after) {
+        before.forEach((rect, index) => {
+            const next = after[index];
+            if (rect.right > 1 && rect.left < view.track.clientWidth - 1 && next.right > 1 && next.left < view.track.clientWidth - 1) {
+                assert.ok(Math.abs(next.left - rect.left) < 0.01, `label ${index} position jumped`);
+                assert.ok(Math.abs(next.width - rect.width) < 0.01, `label ${index} width jumped`);
+            }
+        });
+    }
+    for (const control of [view.previous, view.next, view.next, view.previous]) {
+        const start = bounds();
+        control.dispatch("click");
+        view.frame();
+        view.frame(1);
+        continuous(start, bounds());
+        view.frame(558);
+        const almost = bounds();
+        view.frame(1);
+        continuous(almost, bounds());
+    }
+    view.next.dispatch("click");
+    view.frame();
+    view.frame(280);
+    const middle = bounds();
+    view.previous.dispatch("click");
+    continuous(middle, bounds());
+    view.frame();
+    view.frame(560);
+    assert.equal(new Set(view.track.children).size, view.cards.length);
 });
 
 test("playlist selection wraps manually even when every label fits and never advances on a timer", (context) => {

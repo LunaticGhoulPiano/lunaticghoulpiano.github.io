@@ -4,18 +4,27 @@ import { readFile } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
 import { runInNewContext } from "node:vm";
 
-const script = stripTypeScriptTypes(await readFile(new URL("../src/scripts/profile-motion.ts", import.meta.url), "utf8"));
+const helpers = stripTypeScriptTypes(await readFile(new URL("../src/scripts/motion.ts", import.meta.url), "utf8")).replaceAll("export ", "");
+const entrance = stripTypeScriptTypes(await readFile(new URL("../src/scripts/entrance.ts", import.meta.url), "utf8"))
+    .replace(/^import .*motion\.ts.*;$/m, "").replaceAll("export ", "");
+const script = helpers + "\n" + entrance + "\n" + stripTypeScriptTypes(await readFile(new URL("../src/scripts/profile-motion.ts", import.meta.url), "utf8"))
+    .replace(/^import .*motion\.ts.*;$/m, "");
 
 function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations = false } = {}) {
     const listeners = new Map();
     const effects = [];
     const animations = [];
-    const element = (name) => ({
+    const element = (name) => Object.assign(new EventTarget(), {
         name,
+        dataset: { entrance: "all" },
+        closest: () => null,
         style: { removeProperty(key) { delete this[key]; } },
+        attributes: new Set(),
+        setAttribute(key) { this.attributes.add(key); },
+        removeAttribute(key) { this.attributes.delete(key); },
         getClientRects: () => [{}],
         animate(frames, options) {
-            effects.push([name, "fade", frames[0].opacity, frames[1].opacity]);
+            effects.push([name, "fade", frames[0].opacity ?? Number(frames[0]["--entrance-progress"]), frames[1].opacity ?? Number(frames[1]["--entrance-progress"])]);
             let reject;
             let resolve;
             const animation = {
@@ -31,22 +40,21 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
     const itemNames = ["name", "alias", "overview", "resume", "social"];
     if (detail) itemNames.push("heading");
     itemNames.push("label-1", "value-1", "label-2", "value-2");
-    const page = (name) => ({
-        ...element(name),
+    const page = (name) => Object.assign(element(name), {
         items: itemNames.map((item) => element(`${name}:${item}`)),
         querySelectorAll() { return this.items; },
     });
     const oldPage = page("old");
     const newPage = page("new");
     let current = oldPage;
-    const window = {
+    const window = Object.assign(new EventTarget(), {
         scrollY,
-        matchMedia: () => ({ matches: reduced }),
+        matchMedia: () => Object.assign(new EventTarget(), { matches: reduced }),
         scrollTo({ top }) {
             this.scrollY = top;
             effects.push(["scroll", top]);
         },
-    };
+    });
     const focus = (id) => (options) => {
         assert.equal(options?.preventScroll, true);
         effects.push(["focus", id]);
@@ -61,7 +69,7 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
         readyState: "loading",
         querySelector: () => current,
         getElementById: (id) => ({ "profile-content": content, "main-content": main })[id],
-        addEventListener: (name, listener) => listeners.set(name, listener),
+        addEventListener(name, listener) { listeners.set(name, [...(listeners.get(name) ?? []), listener]); },
     };
     runInNewContext(script, { document, window, AbortController });
     const controller = new AbortController();
@@ -72,11 +80,12 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
         newDocument: { querySelector: () => newPage },
         loader: async () => { effects.push(["load"]); },
     };
+    const dispatch = (name, event) => Promise.all((listeners.get(name) ?? []).map((listener) => listener(event)));
     return { event, effects, animations, window, oldPage, newPage, controller,
-        ready() { return listeners.get("DOMContentLoaded")(); },
-        load() { return listeners.get("astro:page-load")(); },
-        prepare() { listeners.get("astro:before-preparation")(event); return event.loader(); },
-        reveal() { current = newPage; return listeners.get("astro:page-load")(); },
+        ready() { return dispatch("DOMContentLoaded"); },
+        load() { return dispatch("astro:page-load"); },
+        prepare() { void dispatch("astro:before-preparation", event); return event.loader(); },
+        reveal() { current = newPage; return dispatch("astro:page-load"); },
     };
 }
 
@@ -91,13 +100,13 @@ test("DOM readiness reveals items before window.load and page-load does not repl
     assert.equal(delays[0], 0);
     assert.ok(delays.every((delay, index) => index === 0 || delay > delays[index - 1]));
     for (const animation of page.animations) {
-        assert.equal(animation.frames[0].opacity, 0);
-        assert.match(animation.frames[0].transform, /translate\([\d.]+px, -[\d.]+px\)/);
-        assert.equal(animation.frames[1].opacity, 1);
-        assert.equal(animation.frames[1].transform, "translate(0, 0)");
+        assert.equal(animation.frames[0]["--entrance-progress"], "0");
+        assert.equal(animation.frames[1]["--entrance-progress"], "1");
+        assert.equal(animation.frames[0].transform, undefined, "Entrance must not replace the timeline or focus transform.");
         assert.equal(animation.options.fill, "backwards");
         assert.equal(animation.cancelled, true);
     }
+    assert.ok(visible.every((item) => !item.attributes.has("data-entering")));
     assert.equal(page.effects.some((effect) => ["focus", "scroll"].includes(effect[0])), false);
     await page.load();
     assert.equal(page.animations.length, visible.length, "The same document must not animate twice.");
@@ -107,12 +116,12 @@ test("Overview and Resume fade and focus the main content without scrolling past
     for (const detail of [true, false]) {
         const page = browser({ detail });
         await page.prepare();
-        assert.equal(page.newPage.style.opacity, "0");
+        assert.equal(page.newPage.style.opacity, undefined);
         await page.reveal();
         assert.deepEqual(page.effects, [
             ["load"], ["old", "fade", 1, 0],
-            ["focus", "main-content"],
             ...page.newPage.items.map((item) => [item.name, "fade", 0, 1]),
+            ["focus", "main-content"],
         ]);
         assert.equal(page.window.scrollY, 0);
         assert.equal(page.newPage.style.opacity, undefined);
@@ -180,5 +189,5 @@ test("cancelling an entrance cannot clear the opacity owned by the next exit", a
     page.animations.find((animation) => animation.name === "old").finish();
     await leaving;
     assert.equal(page.oldPage.style.opacity, "0");
-    assert.equal(page.newPage.style.opacity, "0");
+    assert.equal(page.newPage.style.opacity, undefined);
 });

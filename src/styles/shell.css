@@ -32,10 +32,12 @@ button, select {
 }
 
 .profile-page { overflow-x: clip; }
-.profile-page .header-inner { border-bottom: 0; }
+:is(.profile-page, .feeds-page) .header-inner { border-bottom: 0; }
+
+.feeds-page .main-content :is(.page-turner-header, .feed-category-heading, .post-list > li) { border: 0; }
 
 @media (width > 48rem) {
-    .profile-page .site-nav { border-inline-start: 0; }
+    :is(.profile-page, .feeds-page) .site-nav { border-inline-start: 0; }
 }
 
 .brand {

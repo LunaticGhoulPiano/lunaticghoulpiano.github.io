@@ -1,14 +1,14 @@
-const lightHighlight = { "highlight-background": "#174b8a", "highlight-text": "#ffffff" };
-const darkHighlight = { "highlight-background": "#ffe066", "highlight-text": "#171b20" };
+const lightEffects = { "highlight-background": "#174b8a", "highlight-text": "#ffffff", "focus-glow": "rgb(100 85 65 / 0.24)" };
+const darkEffects = { "highlight-background": "#ffe066", "highlight-text": "#171b20", "focus-glow": "rgb(255 255 255 / 0.32)" };
 
 export const themePresets = {
     piano: {
-        light: { background: "#f2f0eb", text: "#292723", muted: "#656058", accent: "#785333", line: "#d5d0c7", subtle: "#e9e5dd", field: "#faf9f6", surface: "#faf9f6", ...lightHighlight },
-        dark: { background: "#161615", text: "#ece9e1", muted: "#b7b1a6", accent: "#dfc59b", line: "#3b3a36", subtle: "#2b2a26", field: "#20201e", surface: "#1c1c1a", ...darkHighlight },
+        light: { background: "#f2f0eb", text: "#292723", muted: "#656058", accent: "#785333", line: "#d5d0c7", subtle: "#e9e5dd", field: "#faf9f6", surface: "#faf9f6", ...lightEffects },
+        dark: { background: "#161615", text: "#ece9e1", muted: "#b7b1a6", accent: "#dfc59b", line: "#3b3a36", subtle: "#2b2a26", field: "#20201e", surface: "#1c1c1a", ...darkEffects },
     },
     aviation: {
-        light: { background: "#edf2f5", text: "#21313d", muted: "#526574", accent: "#245e7e", line: "#cbd6de", subtle: "#e0e9ee", field: "#f7fafc", surface: "#f7fafc", ...lightHighlight },
-        dark: { background: "#121a20", text: "#e5edf2", muted: "#a9bac7", accent: "#e3bf7e", line: "#33434e", subtle: "#22313b", field: "#1a252d", surface: "#18232b", ...darkHighlight },
+        light: { background: "#edf2f5", text: "#21313d", muted: "#526574", accent: "#245e7e", line: "#cbd6de", subtle: "#e0e9ee", field: "#f7fafc", surface: "#f7fafc", ...lightEffects },
+        dark: { background: "#121a20", text: "#e5edf2", muted: "#a9bac7", accent: "#e3bf7e", line: "#33434e", subtle: "#22313b", field: "#1a252d", surface: "#18232b", ...darkEffects },
     },
 } as const;
 
@@ -27,6 +27,7 @@ const printTheme = {
     subtle: "#fff",
     "highlight-background": "#fff",
     "highlight-text": "#111",
+    "focus-glow": "transparent",
 };
 
 function variables(colors: Record<string, string>) {

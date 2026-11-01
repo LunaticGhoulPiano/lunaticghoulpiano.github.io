@@ -40,7 +40,7 @@ const copy = useMessages(locale).design;
     <ol class="repository-list">
         {repositories.map((repository, index) => (
             <li
-                class="repository-row"
+                class="repository-row focus-item"
                 data-page-item
                 data-repository
                 data-type={repository.fork ? "fork" : "original"}
