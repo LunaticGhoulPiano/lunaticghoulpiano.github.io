@@ -66,9 +66,12 @@ test("API pipeline retrieves all four contribution types, follows cursors and ex
     assert.equal(result.client.restRequests, 3);
     assert.deepEqual(calls[2].variables, {
         login: fixtureLogin,
-        ...result.snapshots.contributions.period,
+        from: "2026-09-16T00:00:00.000Z",
+        to: "2026-10-18T23:59:59.999Z",
         cursor: "second_page",
     });
+    assert.equal(calls[0].variables.privateFrom, result.snapshots.contributions.period.from);
+    assert.equal(calls[0].variables.privateTo, result.snapshots.contributions.period.to);
     assert.ok(calls[1].query.includes(`issueContributions(first: ${githubToolPolicy.pageSize}, after: $cursor, excludeFirst: false, excludePopular: false)`));
     assert.ok(calls[3].query.includes(`pullRequestContributions(first: ${githubToolPolicy.pageSize}, after: $cursor, excludeFirst: false, excludePopular: false)`));
     assert.ok(calls[4].query.includes(`pullRequestReviewContributions(first: ${githubToolPolicy.pageSize}, after: $cursor)`));
@@ -88,6 +91,31 @@ test("API pipeline retrieves all four contribution types, follows cursors and ex
         savedDatasets: [],
     });
     assert.doesNotMatch(JSON.stringify(report), /fixture_only/);
+});
+
+test("padded queries recover UTC boundary contributions and discard adjacent-day records after pagination", async (context) => {
+    const result = await snapshots(context, {
+        transformGraphql(body, query, variables) {
+            if (query.includes("entries: pullRequestContributions")) {
+                const entries = body.data.user.contributionsCollection.entries;
+                const template = entries.nodes[0];
+                entries.nodes = [
+                    { ...template, occurredAt: "2026-09-16T17:41:11Z" },
+                    ...(variables.from.slice(0, 10) <= "2026-09-16" ? [{
+                        ...template, occurredAt: "2026-09-17T00:30:00Z", resource: { ...template.resource, id: "boundary" },
+                    }] : []),
+                    { ...template, occurredAt: "2026-10-18T00:00:00Z", resource: { ...template.resource, id: "after" } },
+                ];
+                entries.totalCount = entries.nodes.length;
+            }
+            return body;
+        },
+    });
+    assert.deepEqual(result.failures, []);
+    assert.equal(result.snapshots.contributions.data.pullRequests, 1);
+    assert.equal(result.snapshots.contributions.data.calendar.find((day) => day.date === "2026-09-17").count, 1);
+    assert.equal(result.snapshots.contributions.data.privateContributions, 82);
+    assert.equal(refreshReadiness(result.snapshots, result.updated, fixtureNow.valueOf()).ready, true);
 });
 
 test("a valid empty contribution period is zero rather than unavailable", async (context) => {

@@ -4,6 +4,7 @@
     const root = document.documentElement;
     let preference = "system";
     let toggle = null;
+    const boundToggles = new WeakSet();
 
     try {
         const saved = localStorage.getItem("site-theme");
@@ -35,6 +36,8 @@
         if (! toggle) return;
         toggle.hidden = false;
         applyTheme();
+        if (boundToggles.has(toggle)) return;
+        boundToggles.add(toggle);
         toggle.addEventListener("click", () => {
             preference = preferences[(preferences.indexOf(preference) + 1) % preferences.length];
             applyTheme();
@@ -54,6 +57,8 @@
     document.addEventListener("DOMContentLoaded", bindToggle, {
         once: true,
     });
+    document.addEventListener("astro:after-swap", applyTheme);
+    document.addEventListener("astro:page-load", bindToggle);
     document.addEventListener("site:reset", () => {
         preference = "system";
         applyTheme();

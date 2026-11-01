@@ -36,12 +36,14 @@
         },
         {
             "label": "Build selected content and website",
+            "detail": "Build changed selected targets, reuse other existing outputs, and fill missing outputs before assembling the website.",
             "type": "shell",
             "command": "pnpm",
             "args": ["run", "build", "--item=${input:contentId}", "--locale=${input:contentLocale}"]
         },
         {
             "label": "Build section content and website",
+            "detail": "Build changed targets in the selected section, reuse other existing outputs, and fill missing outputs before assembling the website.",
             "type": "shell",
             "command": "pnpm",
             "args": ["run", "build", "--section=${input:contentSection}", "--locale=${input:contentLocale}"]

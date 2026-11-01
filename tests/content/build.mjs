@@ -85,6 +85,22 @@ test("item, section and locale selection share one builder and multiple placemen
     });
 });
 
+test("filtered website builds fill missing targets without rebuilding existing unselected content", async () => {
+    await withTemporaryDirectory(async (root) => {
+        await fixture(root);
+        const second = await fixture(root, "second", ["playground"]);
+        const options = { root, item: "first", locale: "en", includeMissing: true, ...quiet };
+        assert.deepEqual(built(await buildContents(options)), ["first/en", "first/zh-tw", "second/en", "second/zh-tw"]);
+        await writeFile(join(second.directory, "source/en.txt"), "Unselected edit");
+        assert.deepEqual(built(await buildContents(options)), []);
+        assert.equal(await readFile(join(second.directory, "build/en/index.html"), "utf8"), "<h1>English</h1>");
+        await rm(join(second.directory, "build/zh-tw"), { recursive: true });
+        const restored = await buildContents(options);
+        assert.deepEqual(restored.find(({ id, locale }) => id === "second" && locale === "zh-tw"), { id: "second", locale: "zh-tw", built: false });
+        assert.deepEqual(built(await buildContents({ ...options, force: true })), ["first/en"]);
+    });
+});
+
 for (const native of [false, true]) {
     test(`CI runs ${native ? "native" : "JavaScript"} pnpm once per changed project and never for cache hits`, async (context) => {
         const previous = process.env.npm_execpath;

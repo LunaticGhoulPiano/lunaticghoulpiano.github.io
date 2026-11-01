@@ -35,4 +35,5 @@ const copy = useMessages(locale).pagination;
 <script>
     import { initializePagination } from "../../scripts/pagination";
     initializePagination();
+    document.addEventListener("astro:page-load", initializePagination);
 </script>

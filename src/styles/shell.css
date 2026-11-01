@@ -31,6 +31,13 @@ button, select {
     border-bottom: 1px solid var(--chrome-line);
 }
 
+.profile-page { overflow-x: clip; }
+.profile-page .header-inner { border-bottom: 0; }
+
+@media (width > 48rem) {
+    .profile-page .site-nav { border-inline-start: 0; }
+}
+
 .brand {
     font-size: 0.875rem;
     font-weight: 600;
@@ -207,10 +214,6 @@ button, select {
 .footer-inner a:hover {
     color: var(--accent);
 }
-.home-page .site-frame {
-    padding-block: 0 0.75rem;
-}
-
 .global-search {
     width: 100%;
     border-radius: 2px;
@@ -354,7 +357,7 @@ button, select {
         padding: 0;
     }
 
-    .main-content, .home-page .main-content {
+    .main-content {
         padding: 0;
         border: 0;
         box-shadow: none;

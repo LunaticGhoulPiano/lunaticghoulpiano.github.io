@@ -133,6 +133,35 @@ test("contributions count commits, not daily nodes, and exclude private totals",
     });
 });
 
+test("UTC calendar boundaries filter all public contribution types and keep totals consistent", () => {
+    const window = { from: "2026-10-02T08:29:11Z", to: "2026-11-01T08:29:11Z" };
+    const times = [
+        "2026-10-02T01:41:11+08:00", // GitHub's local Oct 2 contribution is UTC Oct 1.
+        "2026-10-02T08:00:00+08:00",
+        "2026-11-01T00:00:00Z",
+        "2026-11-01T23:30:00-01:00", // UTC Nov 2.
+    ];
+    const group = commits("public_repo", [2, 3, 5, 7]);
+    group.contributions.nodes.forEach((node, index) => { node.occurredAt = times[index]; });
+    const outsideOnly = commits("outside_repo", [100]);
+    outsideOnly.contributions.nodes[0].occurredAt = times[0];
+    const nodes = Object.fromEntries(["issues", "pullRequests", "reviews"].map((kind) => [kind,
+        times.map((occurredAt, index) => ({ ...contribution(`${kind}${index}`), occurredAt })),
+    ]));
+    const result = normalizeContributions([group, outsideOnly], nodes, window);
+    assert.equal(result.coverage, "complete");
+    assert.deepEqual([result.data.commits, result.data.issues, result.data.pullRequests, result.data.reviews], [8, 2, 2, 2]);
+    assert.equal(result.data.repositories, 1);
+    assert.deepEqual(result.data.commitDays.map(({ date, count }) => [date, count]), [["2026-11-01", 5], ["2026-10-02", 3]]);
+    assert.equal(result.data.calendar.reduce((sum, day) => sum + day.count, 0), 14);
+    contributionsSnapshotSchema.parse({
+        schemaVersion: 1, source: "github", visibility: "public", dataset: "contributions",
+        lastSuccessfulFetchAt: window.to, period: window, ...result,
+    });
+    group.contributions.nodes[0].occurredAt = "invalid date";
+    assert.throws(() => normalizeContributions([group], nodes, window));
+});
+
 test("truncated or inconsistent daily contributions are explicitly partial", () => {
     const group = commits("public_repo", [2]);
     group.contributions.totalCount = 7;
@@ -146,7 +175,7 @@ test("truncated or inconsistent daily contributions are explicitly partial", () 
         period,
     );
     assert.equal(result.coverage, "partial");
-    assert.equal(result.data.commits, 7);
+    assert.equal(result.data.commits, 2);
 });
 
 test("events enforce the public window and whitelist fields without counting pushes as commits", () => {

@@ -1,11 +1,10 @@
-import { profileSections } from "../../config/profile.ts";
+import { profileNavigation, profileSections } from "../../config/profile.ts";
 import type { RouteKey } from "../../config/routes.ts";
-import { getSectionRoutes } from "../../routing.ts";
 
 export function getProfilePage(route: RouteKey) {
     return {
         section: "profile" as const,
-        navigation: getSectionRoutes("profile"),
+        navigation: profileNavigation,
         fields: profileSections[route] ?? [],
     };
 }

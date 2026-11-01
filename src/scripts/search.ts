@@ -8,6 +8,7 @@ import { getRoutePath, getRouteTitle } from "../routing.ts";
 
 type DiscoveryFilters = Pick<SearchState, "category" | "tags">;
 const discoveryControllers = new WeakMap<HTMLElement, { sync: (filters: DiscoveryFilters) => void; readonly filters: DiscoveryFilters }>();
+let historyListener: AbortController | undefined;
 
 export function filterDiscoveryOptions(group: HTMLElement) {
     const input = group.querySelector<HTMLInputElement>("[data-filter-search]")!;
@@ -85,11 +86,13 @@ export function initializeSearch() {
     const header = document.querySelector<HTMLFormElement>("[data-global-search]");
     const result = document.querySelector<HTMLElement>("[data-search-results]");
     const context = result ?? header;
+    if (context?.hasAttribute("data-search-ready")) return;
+    historyListener?.abort();
+    historyListener = undefined;
     if (! context) {
         rails.forEach((rail) => initializeDiscovery(rail));
         return;
     }
-    if (context.hasAttribute("data-search-ready")) return;
     context.dataset.searchReady = "";
     const locale = context.dataset.locale as Locale;
     const formatLocale = languages[locale].formatLocale;
@@ -178,10 +181,11 @@ export function initializeSearch() {
             if (control.reportValidity()) navigate({ ...state, [control.name]: control.value });
         });
     });
+    historyListener = new AbortController();
     window.addEventListener("popstate", () => {
         state = readSearchState(new URLSearchParams(location.search));
         render();
-    });
+    }, { signal: historyListener.signal });
     sync();
     if (result && messages) {
         const copy = messages.search;

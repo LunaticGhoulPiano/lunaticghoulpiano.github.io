@@ -152,6 +152,48 @@ test("standalone discovery navigation preserves query and other filters without 
     assert.deepEqual(readSearchState(destination.searchParams), state({ query: "piano", section: "projects", source: "external:NAS", sort: "oldest", category: "health" }));
 });
 
+test("page swaps replace the search history listener and release detached page controls", (context) => {
+    const header = () => {
+        let value = "";
+        let writes = 0;
+        const input = { get value() { return value; }, set value(next) { value = next; writes++; } };
+        const form = Object.assign(new EventTarget(), {
+            dataset: { locale: defaultLocale },
+            querySelector: () => input,
+            hasAttribute: () => Object.hasOwn(form.dataset, "searchReady"),
+        });
+        return { form, input, writes: () => writes };
+    };
+    const first = header();
+    const second = header();
+    let current = first.form;
+    const events = new EventTarget();
+    const url = { href: "https://example.test/profile/", search: "?q=first" };
+    installGlobals(context, {
+        document: { querySelector: (selector) => selector === "[data-global-search]" ? current : null, querySelectorAll: () => [] },
+        window: events, location: url,
+    });
+    initializeSearch();
+    initializeSearch();
+    assert.equal(first.writes(), 1);
+    current = second.form;
+    url.search = "?q=second";
+    initializeSearch();
+    initializeSearch();
+    assert.equal(second.writes(), 1);
+    url.search = "?q=back";
+    events.dispatchEvent(new Event("popstate"));
+    assert.equal(first.input.value, "first", "Detached controls must not receive history updates.");
+    assert.equal(first.writes(), 1);
+    assert.equal(second.input.value, "back");
+    assert.equal(second.writes(), 2, "The active page must receive exactly one history update.");
+    current = null;
+    initializeSearch();
+    url.search = "?q=unrelated";
+    events.dispatchEvent(new Event("popstate"));
+    assert.equal(second.writes(), 2, "Pages without search must release the previous listener too.");
+});
+
 test("section and source options follow published data and intersect all other filters", () => {
     const items = [
         document("A", { sources: ["Gitea"], placements: ["projects", "feeds"], title: "needle", tags: ["a", "b", "c"] }),

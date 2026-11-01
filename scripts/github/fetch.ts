@@ -62,15 +62,23 @@ async function fetchPrivateContributionDays(client: GithubClient, login: string,
 }
 
 async function fetchContributions(client: GithubClient, login: string, period: Period) {
+    // GitHub groups contributions by local calendar days, while our snapshots use UTC dates.
+    // Fetch the adjacent days too, then normalize all public counts to the requested calendar.
+    const days = utcDayWindows(period);
+    const publicPeriod = {
+        from: new Date(Date.parse(`${days[0].date}T00:00:00Z`) - dayMilliseconds).toISOString(),
+        to: new Date(Date.parse(`${days.at(-1)!.date}T00:00:00Z`) + 2 * dayMilliseconds - 1).toISOString(),
+    };
     const variables = {
         login,
-        ...period,
+        ...publicPeriod,
     };
     const { body } = await client.request(
         "/graphql",
-        `query($login: String!, $from: DateTime!, $to: DateTime!) {
-        user(login: $login) { contributionsCollection(from: $from, to: $to) {
-            restrictedContributionsCount
+        `query($login: String!, $from: DateTime!, $to: DateTime!, $privateFrom: DateTime!, $privateTo: DateTime!) {
+        user(login: $login) {
+          privateTotals: contributionsCollection(from: $privateFrom, to: $privateTo) { restrictedContributionsCount }
+          contributionsCollection(from: $from, to: $to) {
             totalRepositoriesWithContributedCommits
             commitContributionsByRepository(maxRepositories: ${githubToolPolicy.commitRepositories}) {
                 repository { ${repositoryFields} }
@@ -81,22 +89,23 @@ async function fetchContributions(client: GithubClient, login: string, period: P
             }
         } } ${rateFields}
     }`,
-        variables,
+        { ...variables, privateFrom: period.from, privateTo: period.to },
     );
     const summary = z
         .object({
             user: z.object({
+                privateTotals: z.object({ restrictedContributionsCount: count }),
                 contributionsCollection: z.object({
-                    restrictedContributionsCount: count,
                     totalRepositoriesWithContributedCommits: count,
                     commitContributionsByRepository: commitGroupsSchema,
                 }),
             }),
         })
-        .parse(body).user.contributionsCollection;
+        .parse(body).user;
+    const { contributionsCollection: publicSummary, privateTotals } = summary;
     let truncated =
-        summary.totalRepositoriesWithContributedCommits
-        > summary.commitContributionsByRepository.length;
+        publicSummary.totalRepositoriesWithContributedCommits
+        > publicSummary.commitContributionsByRepository.length;
     const nodes = Object.fromEntries(contributionKinds.map((kind) => [kind, [] as ContributionNode[]])) as Record<ContributionKind, ContributionNode[]>;
     for (const kind of contributionKinds) {
         let cursor: string | null = null;
@@ -144,12 +153,12 @@ async function fetchContributions(client: GithubClient, login: string, period: P
         }
     }
     return normalizeContributions(
-        summary.commitContributionsByRepository,
+        publicSummary.commitContributionsByRepository,
         nodes,
         period,
         truncated,
-        summary.restrictedContributionsCount,
-        await fetchPrivateContributionDays(client, login, period, summary.restrictedContributionsCount),
+        privateTotals.restrictedContributionsCount,
+        await fetchPrivateContributionDays(client, login, period, privateTotals.restrictedContributionsCount),
     );
 }
 

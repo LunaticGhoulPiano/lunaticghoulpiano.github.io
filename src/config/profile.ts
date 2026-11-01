@@ -1,11 +1,13 @@
 import type { RouteKey } from "./routes";
 import type { TranslationKey } from "../i18n/ui";
 
+export const profileNavigation = ["profile", "cv"] as const satisfies readonly RouteKey[];
+
 export const profileSections: Partial<Record<RouteKey, readonly TranslationKey[]>> = {
     profile: [
         "profile.about",
-        "profile.focus",
         "cv.education",
+        "profile.currentPosition",
         "route.studying",
         "route.interests",
     ],

@@ -1,7 +1,8 @@
 ---
 import { themes, themeStyles } from "../config/theme";
 import { languages, site, type Locale } from "../config/site";
-import { type RouteKey } from "../config/routes";
+import { routes, type RouteKey } from "../config/routes";
+import { ClientRouter } from "astro:transitions";
 import { getRoutePath } from "../routing";
 import { useMessages, useTranslations } from "../i18n/ui";
 import SiteHeader from "../components/navigation/SiteHeader.astro";
@@ -34,6 +35,7 @@ interface Props {
 }
 
 const { title, locale, description, route, noindex = false, pagePath, languagePaths, article, filters } = Astro.props;
+const isProfile = !!route && routes[route].section === "profile";
 const t = useTranslations(locale);
 const discovery = discoveryIndex(await getSearchDocuments(), locale);
 const pageTitle = route === "profile" ? site.name : `${title} | ${site.name}`;
@@ -53,6 +55,7 @@ const translations =
 <!doctype html>
 <html lang={languages[locale].htmlLang} data-light-color={themes.light.background} data-dark-color={themes.dark.background} data-appearance-config={JSON.stringify(appearanceConfiguration)}>
     <head>
+        {isProfile && <ClientRouter fallback="swap" />}
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="dark light" />
@@ -86,7 +89,7 @@ const translations =
         {description && <meta property="og:description" content={description} />}
         {canonical && <meta property="og:url" content={canonical} />}
     </head>
-    <body class:list={{ "cv-page": route === "cv", "home-page": route === "profile" }}>
+    <body class:list={{ "profile-page": isProfile }}>
         <Wallpaper />
         <a class="skip-link" href="#main-content">{t("nav.skip")}</a>
         <SiteHeader locale={locale} route={route} languagePaths={translations} />
@@ -105,6 +108,7 @@ const translations =
         <script>
             import { initializeSearch } from "../scripts/search";
             initializeSearch();
+            document.addEventListener("astro:page-load", initializeSearch);
         </script>
     </body>
 </html>

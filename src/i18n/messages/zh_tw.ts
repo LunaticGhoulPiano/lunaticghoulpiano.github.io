@@ -50,7 +50,7 @@ export default {
         "empty.blog": "尚未發布文章。",
         "empty.documentations": "尚未發布文件。",
         "profile.about": "關於我",
-        "profile.focus": "關注方向",
+        "profile.currentPosition": "現職",
         "cv.experience": "工作經歷",
         "cv.education": "教育背景",
         "cv.projects": "專案經歷",

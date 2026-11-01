@@ -50,7 +50,7 @@ export default {
         "empty.blog": "No articles published yet.",
         "empty.documentations": "No documentation published yet.",
         "profile.about": "About",
-        "profile.focus": "Focus",
+        "profile.currentPosition": "Current Position",
         "cv.experience": "Experience",
         "cv.education": "Education",
         "cv.projects": "Projects",

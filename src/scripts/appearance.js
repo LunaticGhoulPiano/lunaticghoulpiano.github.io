@@ -23,7 +23,8 @@
         catch { /* Keep this page's choices when storage is unavailable. */ }
     };
     apply();
-    document.addEventListener("DOMContentLoaded", () => {
+    const boundControls = new WeakSet();
+    const bindControls = () => {
         const controls = [...document.querySelectorAll("[data-appearance-setting]")];
         const sync = () => controls.forEach((control) => {
             const value = preferences[control.dataset.appearanceSetting];
@@ -31,6 +32,8 @@
             else control.value = value;
         });
         for (const control of controls) {
+            if (boundControls.has(control)) continue;
+            boundControls.add(control);
             control.addEventListener("change", () => {
                 const key = control.dataset.appearanceSetting;
                 if (control.type === "radio" && ! control.checked) return;
@@ -41,13 +44,20 @@
                 sync();
             });
         }
-        document.querySelector("[data-appearance-reset]")?.addEventListener("click", () => {
-            preferences = { ...defaults };
-            apply();
-            save();
-            sync();
-            document.dispatchEvent(new Event("site:reset"));
-        });
+        const reset = document.querySelector("[data-appearance-reset]");
+        if (reset && !boundControls.has(reset)) {
+            boundControls.add(reset);
+            reset.addEventListener("click", () => {
+                preferences = { ...defaults };
+                apply();
+                save();
+                sync();
+                document.dispatchEvent(new Event("site:reset"));
+            });
+        }
         sync();
-    }, { once: true });
+    };
+    document.addEventListener("DOMContentLoaded", bindControls, { once: true });
+    document.addEventListener("astro:after-swap", apply);
+    document.addEventListener("astro:page-load", bindControls);
 })();

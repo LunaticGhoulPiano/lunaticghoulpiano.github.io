@@ -16,6 +16,7 @@ const { id, title, locale } = Astro.props;
 <script>
     import { initializePanels } from "../../scripts/panels";
     initializePanels();
+    document.addEventListener("astro:page-load", initializePanels);
 </script>
 
 <style>

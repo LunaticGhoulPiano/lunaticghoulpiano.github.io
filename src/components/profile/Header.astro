@@ -1,0 +1,90 @@
+---
+import { site, type Locale } from "../../config/site";
+import { routes, type RouteKey } from "../../config/routes";
+import { getRoutePath } from "../../routing";
+import { useTranslations } from "../../i18n/ui";
+import SocialLinks from "../common/SocialLinks.astro";
+
+interface Props { locale: Locale; route: RouteKey; navigation: readonly RouteKey[]; }
+const { locale, route, navigation } = Astro.props;
+const t = useTranslations(locale);
+const Title = route === "profile" ? "h1" : "p";
+---
+<div class="profile-introduction">
+    <Title class="profile-name">{site.name}</Title>
+    <div class="profile-identity">
+        <p class="name-alias">{site.secondaryName}</p>
+        <nav class="profile-nav" aria-label={t("nav.profile")}>
+            {navigation.map((item) => (
+                <a href={getRoutePath(item, locale)} data-profile-link aria-current={route === item ? "page" : undefined}>
+                    {item === "profile" ? t("common.overview") : t(routes[item].title)}
+                </a>
+            ))}
+        </nav>
+    </div>
+    <SocialLinks locale={locale} />
+</div>
+
+<style>
+    .profile-name {
+        margin: 0;
+        font-size: clamp(3.5rem, 7vw, 7.5rem);
+        font-weight: 400;
+        line-height: 1.05;
+        letter-spacing: -0.06em;
+    }
+
+    :global(:root[data-preset="piano"]) .profile-name {
+        font-family: Georgia, "Times New Roman", serif;
+    }
+
+    :global(:root[data-preset="aviation"]) .profile-name {
+        font-weight: 300;
+        font-style: normal;
+        letter-spacing: -0.055em;
+    }
+
+    .profile-identity {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem 2rem;
+        margin-top: 1rem;
+    }
+
+    .name-alias {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1rem;
+    }
+
+    .profile-nav {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .profile-nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        border-bottom: 2px solid transparent;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .profile-nav a:hover, .profile-nav [aria-current="page"] {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+    }
+
+    @media (max-width: 48rem) {
+        .profile-name { font-size: clamp(3.5rem, 16vw, 6.5rem); }
+        .name-alias { font-size: 0.85rem; }
+    }
+
+    @media print {
+        .profile-nav { display: none; }
+    }
+</style>

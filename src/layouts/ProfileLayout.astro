@@ -1,8 +1,8 @@
 ---
 import type { Locale } from "../config/site";
 import { routes, type RouteKey } from "../config/routes";
-import { getRoutePath } from "../routing";
 import { useTranslations } from "../i18n/ui";
+import ProfileHeader from "../components/profile/Header.astro";
 
 interface Props {
     locale: Locale;
@@ -14,27 +14,68 @@ const { locale, route, navigation } = Astro.props;
 const t = useTranslations(locale);
 ---
 
-<div class:list={["profile-layout", { "profile-published": route === "profile" }]}>
-    {navigation.length > 0 && <nav class="profile-nav" aria-label={t("nav.profile")}>
-        <ul>
-            {navigation.map((item) => (
-                <li>
-                    <a href={getRoutePath(item, locale)} aria-current={route === item ? "page" : undefined}>
-                        {item === "profile" ? t("common.overview") : t(routes[item].title)}
-                    </a>
-                </li>
-            ))}
-        </ul>
-    </nav>}
-    <div class="section-stack">
+<div class="profile-layout" data-profile-page>
+    <header class="profile-header">
+        <ProfileHeader locale={locale} route={route} navigation={navigation} />
+    </header>
+    <section id="profile-content" class:list={["section-stack", { "profile-detail": route !== "profile" }]} aria-label={t(routes[route].title)}>
+        {route !== "profile" && <h1>{t(routes[route].title)}</h1>}
         <slot />
-    </div>
+    </section>
 </div>
 
+<script>
+    import "../scripts/profile-motion";
+</script>
+
 <style>
-    .profile-published {
-        margin-top: 3rem;
-        padding-block: var(--page-padding);
-        border-top: 1px solid var(--chrome-line);
+    .profile-header {
+        padding-block: 1.5rem 2.5rem;
+    }
+
+    #profile-content {
+        padding-top: 1.5rem;
+    }
+
+    #profile-content > :global(.profile-fields) { margin-block: 0; }
+    #profile-content :global(.profile-fields > div) {
+        display: grid;
+        grid-template-columns: 12rem 1fr;
+        gap: 1rem;
+        padding-block: 1.3rem;
+        font-size: 1rem;
+    }
+    #profile-content :global(.profile-fields dd) {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+    }
+    #profile-content :global(.post-list > li) { border-bottom: 0; }
+    .profile-detail > h1 { margin-bottom: 1.5rem; }
+
+    /* The profile controller handles fading; suppress the router's crossfade. */
+    :global(html:active-view-transition::view-transition-old(root)),
+    :global(html:active-view-transition::view-transition-new(root)) {
+        animation: none;
+        mix-blend-mode: normal;
+    }
+    :global(html:active-view-transition::view-transition-old(root)) { display: none; }
+
+    @media (max-width: 68rem) {
+        .profile-header {
+            padding-block: 0.5rem 1.5rem;
+        }
+    }
+
+    @media print {
+        .profile-header { display: block; padding: 0; }
+        .profile-layout:has(.profile-detail) .profile-header { display: none; }
+        #profile-content :global(.profile-fields > div) { break-inside: avoid; }
+    }
+
+    @media (max-width: 46rem) {
+        #profile-content :global(.profile-fields > div) {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
     }
 </style>

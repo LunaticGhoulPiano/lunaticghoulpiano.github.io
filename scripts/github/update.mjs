@@ -64,11 +64,11 @@ export async function runGithubRefresh({
         graphqlPoints: client.graphqlPoints,
         retries: client.retries,
         elapsedMs: Date.now() - client.startedAt,
-        updated: result.updated,
+        fetched: result.updated,
         reused: readiness.reused,
     }));
     try {
-        if (! readiness.ready) throw new Error(`GitHub refresh cannot be deployed. Missing datasets: ${readiness.missing.join(", ") || "none"}; unusable: ${readiness.unusable.join(", ") || "none"}; updated: ${result.updated.length}.`);
+        if (! readiness.ready) throw new Error(`GitHub snapshots were not saved. Missing datasets: ${readiness.missing.join(", ") || "none"}; unusable: ${readiness.unusable.join(", ") || "none"}; fetched: ${result.updated.length}.`);
         await writeSnapshot(outputDirectory, githubPolicy.snapshotFilename, result.snapshots, {
             validate,
             onStage: (stage) => { execution.stage = stage; },

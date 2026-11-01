@@ -8,7 +8,6 @@ import ProfileLayout from "../layouts/ProfileLayout.astro";
 import ContentList from "./common/ContentList.astro";
 import SourcePages from "./common/SourcePages.astro";
 import SearchResults from "./common/SearchResults.astro";
-import Overview from "./profile/Overview.astro";
 
 interface Props {
     locale: Locale;
@@ -24,13 +23,13 @@ const description = context.section === "feeds" ? context.description : t(page.d
 ---
 
 <BaseLayout title={t(page.title)} description={description} locale={locale} route={route} noindex={route === "search"}>
-    {route === "profile" ? <Overview locale={locale} /> : <header class="page-heading">
+    {context.section !== "profile" && <header class="page-heading">
         <h1>{t(page.title)}</h1>
-        {context.section !== "profile" && <p class="page-description">{description}</p>}
+        <p class="page-description">{description}</p>
     </header>}
     {context.section === "search" && <SearchResults locale={locale} />}
     {context.section === "profile" && (
-        <ProfileLayout locale={locale} route={route} navigation={route === "profile" ? [] : context.navigation}>
+        <ProfileLayout locale={locale} route={route} navigation={context.navigation}>
             {context.items.length > 0 ? <ContentList locale={locale} items={context.items} placement={route} /> : (
                 <dl class="profile-fields">
                     {context.fields.map((heading) => (

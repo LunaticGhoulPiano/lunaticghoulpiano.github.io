@@ -116,9 +116,9 @@ async function replaceDirectory(source, target, root) {
     }
 }
 
-/** @param {{ root?: string, item?: string, locale?: string, section?: string, force?: boolean, install?: boolean,
+/** @param {{ root?: string, item?: string, locale?: string, section?: string, force?: boolean, install?: boolean, includeMissing?: boolean,
  * run?: (command: string[], cwd: string) => void | Promise<void>, log?: (message: string) => void }} options */
-export async function buildContents({ root = projectRoot, item, locale, section, force = false, install = false, run = runCommand, log = console.log } = {}) {
+export async function buildContents({ root = projectRoot, item, locale, section, force = false, install = false, includeMissing = false, run = runCommand, log = console.log } = {}) {
     root = resolve(root);
     const configurations = await readContentConfigurations(root);
     if (item && ! configurations.some(({ config }) => config.id === item)) throw new Error(`Unknown content: ${item}`);
@@ -139,7 +139,8 @@ export async function buildContents({ root = projectRoot, item, locale, section,
     }
     const results = [];
     const tool = await readFile(new URL(import.meta.url), "utf8");
-    for (const { directory, config } of selected) {
+    for (const entry of includeMissing ? configurations : selected) {
+        const { directory, config } = entry;
         if (! config.build) continue;
         let installed = false;
         const outputs = Object.values(config.locales).filter(({ entry }) => entry.type === "site").map(({ entry }) => resolve(directory, entry.root));
@@ -147,9 +148,22 @@ export async function buildContents({ root = projectRoot, item, locale, section,
             throw new Error(`Build outputs overlap: ${config.id}`);
         }
         for (const [language, value] of Object.entries(config.locales)) {
-            if (value.draft || value.entry.type !== "site" || (locale && locale !== language)) continue;
+            if (value.draft || value.entry.type !== "site") continue;
+            const chosen = selected.includes(entry) && (! locale || locale === language);
+            if (! chosen && ! includeMissing) continue;
             const output = resolve(directory, value.entry.root);
             await managedPath(directory, output);
+            if (! chosen) {
+                // Astro mounts every published site, even during a filtered content build.
+                // Keep existing unselected outputs; only restore/build those that are missing.
+                try {
+                    await resolveItemFile(output, "./index.html");
+                    continue;
+                }
+                catch (error) {
+                    if (error.code !== "ENOENT") throw error;
+                }
+            }
             const inputs = [join(directory, "configs.json")];
             for (const [base, paths] of [[directory, config.build.inputs], [root, config.build.sharedInputs]]) {
                 for (const path of paths) {
@@ -166,7 +180,7 @@ export async function buildContents({ root = projectRoot, item, locale, section,
             await managedPath(cache, saved);
             const state = await readState(join(saved, "manifest.json"));
             const cachedOutput = join(saved, "output");
-            if (! force && state?.inputHash === inputHash && typeof state.outputHash === "string" && state.outputHash === await outputFingerprint(cachedOutput)) {
+            if (! (force && chosen) && state?.inputHash === inputHash && typeof state.outputHash === "string" && state.outputHash === await outputFingerprint(cachedOutput)) {
                 if (await outputFingerprint(output) !== state.outputHash) await replaceDirectory(cachedOutput, output, directory);
                 log(`[Content] Reused ${config.id} (${language}).`);
                 results.push({ id: config.id, locale: language, built: false });

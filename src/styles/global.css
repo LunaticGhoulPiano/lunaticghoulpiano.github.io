@@ -460,50 +460,6 @@ h3 {
     text-underline-offset: 0.25em;
 }
 
-.profile-nav ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 1.4rem;
-    list-style: none;
-    margin: 0 0 2rem;
-    padding: 0;
-    border-bottom: 1px solid var(--line);
-}
-
-.profile-nav a {
-    display: flex;
-    align-items: center;
-    min-height: 48px;
-    border-bottom: 2px solid transparent;
-    color: var(--muted);
-    font-size: 0.875rem;
-    text-decoration: none;
-}
-
-.profile-nav [aria-current="page"] {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-}
-
-.profile-fields {
-    margin-block: 1.5rem;
-}
-
-.profile-fields > div {
-    display: grid;
-    grid-template-columns: 12rem 1fr;
-    gap: 1rem;
-    padding-block: 1.3rem;
-    border-bottom: 1px solid var(--line);
-    font-size: 1rem;
-}
-
-.profile-fields dd {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.875rem;
-}
-
 .activity-list {
     list-style: none;
     padding: 0;
@@ -612,10 +568,6 @@ h3 {
         font-size: 0.875rem;
     }
 
-    .profile-fields > div {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-
     .activity-list li {
         grid-template-columns: minmax(0, 1fr);
         gap: 0.65rem;
@@ -634,11 +586,11 @@ h3 {
         font-size: 11pt;
     }
 
-    .profile-nav, .skip-link, .repository-controls, .pagination, .carousel-controls {
+    .skip-link, .repository-controls, .pagination, .carousel-controls {
         display: none;
     }
 
-    .profile-fields > div, .repository-row, .activity-list li {
+    .repository-row, .activity-list li {
         break-inside: avoid;
     }
 
@@ -646,9 +598,6 @@ h3 {
         font-size: 26pt;
     }
 
-    .cv-page .page-heading {
-        margin-bottom: 1.25rem;
-    }
 }
 
 .empty-message {

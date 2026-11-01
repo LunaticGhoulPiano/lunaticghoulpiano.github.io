@@ -4,7 +4,7 @@ import { astroArguments } from "./astro/run.mjs";
 
 try {
     const options = buildOptions();
-    await buildContents(options);
+    await buildContents({ ...options, includeMissing: true });
     runCommand(["node", ...astroArguments("build", ...(options.force ? ["--force"] : []))], projectRoot);
 }
 catch (error) {

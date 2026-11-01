@@ -200,21 +200,24 @@ export function normalizeContributions(
     }[] = [];
     const addDay = (time: string, value: number) => {
         const day = time.slice(0, 10);
-        if (! calendar.has(day)) throw new Error("Contribution outside requested calendar window.");
+        if (! calendar.has(day)) return false;
         calendar.set(day, calendar.get(day)! + value);
+        return true;
     };
     const byRepository = groups
         .filter((group) => group.repository.visibility === "PUBLIC")
         .map((group) => {
             const dates = new Set<string>();
             let dailyTotal = 0;
+            let includedTotal = 0;
             for (const node of group.contributions.nodes) {
                 if (node.isRestricted) throw new Error("Unexpected restricted contribution in a public repository.");
                 const date = node.occurredAt.slice(0, 10);
                 if (dates.has(date)) throw new Error("Duplicate daily commit contribution.");
                 dates.add(date);
                 dailyTotal += node.commitCount;
-                addDay(node.occurredAt, node.commitCount);
+                if (! addDay(node.occurredAt, node.commitCount)) continue;
+                includedTotal += node.commitCount;
                 if (node.commitCount > 0) {
                     commitDays.push({
                         date,
@@ -229,7 +232,7 @@ export function normalizeContributions(
                 id: group.repository.id,
                 name: group.repository.nameWithOwner,
                 url: group.repository.url,
-                commits: group.contributions.totalCount,
+                commits: includedTotal,
             };
         })
         .filter((repo) => repo.commits > 0)
@@ -242,8 +245,8 @@ export function normalizeContributions(
             if (node.isRestricted) continue;
             if (! node.resource) throw new Error("Missing public contribution resource.");
             if (node.resource.repository.visibility !== "PUBLIC" || seen.has(node.resource.id)) continue;
+            if (! addDay(node.occurredAt, 1)) continue;
             seen.add(node.resource.id);
-            addDay(node.occurredAt, 1);
             totals[kind]++;
         }
     }

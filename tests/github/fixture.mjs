@@ -124,6 +124,9 @@ export function fixtureFetch({ calls = [], transformGraphql = (data) => data, em
             data: {
                 user: privateDays ?? {
                     contributionsCollection: collection,
+                    ...(query.includes("privateTotals:") ? {
+                        privateTotals: { restrictedContributionsCount: empty ? 0 : 82 },
+                    } : {}),
                 },
                 rateLimit: {
                     cost: 1,
