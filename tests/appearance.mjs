@@ -25,14 +25,13 @@ function appearance(saved, blocked = false) {
 }
 
 test("appearance validates storage before first paint and persists changes and resets", () => {
-    for (const saved of ["bad json", "null", '{"preset":"missing","dock":"invalid"}']) {
+    for (const saved of ["bad json", "null", '{"preset":"missing"}']) {
         const page = appearance(saved);
         for (const [key, value] of Object.entries(appearanceConfiguration.defaults)) assert.equal(page.dataset[key], value);
         page.ready();
     }
-    const page = appearance('{"preset":"aviation","motion":"off","dock":"labels"}');
+    const page = appearance('{"preset":"aviation"}');
     assert.equal(page.dataset.preset, "aviation");
-    assert.equal(page.dataset.motion, "off");
     page.ready();
     assert.equal(page.controls.find((control) => control.checked).value, "aviation");
     const piano = page.controls.find((control) => control.value === "piano");
@@ -54,21 +53,32 @@ test("appearance validates storage before first paint and persists changes and r
 test("appearance remains usable when browser storage is unavailable", () => {
     const page = appearance(null, true);
     page.ready();
-    const control = page.controls.find((control) => control.dataset.appearanceSetting === "density");
-    control.value = "compact";
+    const control = page.controls.find((control) => control.value === "aviation");
+    control.checked = true;
     control.dispatchEvent(new Event("change"));
-    assert.equal(page.dataset.density, "compact");
+    assert.equal(page.dataset.preset, "aviation");
     page.reset.dispatchEvent(new Event("click"));
-    assert.equal(page.dataset.density, "comfortable");
+    assert.equal(page.dataset.preset, appearanceConfiguration.defaults.preset);
 });
 
-test("retired presets fall back without losing the remaining appearance preferences", () => {
-    const page = appearance('{"preset":"cs","wallpaper":"plain","dock":"labels","motion":"off"}');
+test("retired presets fall back to the default appearance", () => {
+    const page = appearance('{"preset":"cs"}');
     page.ready();
     assert.equal(page.dataset.preset, "piano");
-    assert.equal(page.dataset.wallpaper, "plain");
-    assert.equal(page.dataset.dock, "labels");
-    assert.equal(page.dataset.motion, "off");
     assert.equal(page.controls.some((control) => control.value === "cs"), false);
     assert.equal(page.controls.find((control) => control.checked).value, "piano");
+});
+
+test("removed appearance settings cannot override the fixed presentation on returning visits", () => {
+    const page = appearance('{"preset":"aviation","wallpaper":"plain","shade":"deep","dock":"icons","motion":"off","density":"compact"}');
+    page.ready();
+    assert.equal(page.dataset.preset, "aviation");
+    for (const key of ["wallpaper", "shade", "dock", "motion", "density"]) {
+        assert.equal(page.dataset[key], undefined);
+        assert.equal(page.controls.some((control) => control.dataset.appearanceSetting === key), false);
+    }
+    const piano = page.controls.find((control) => control.value === "piano");
+    piano.checked = true;
+    piano.dispatchEvent(new Event("change"));
+    assert.deepEqual(JSON.parse(page.saved()), { preset: "piano" });
 });

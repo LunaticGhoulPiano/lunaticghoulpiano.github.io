@@ -50,14 +50,6 @@ const wallpaperStyles = `:root { ${variables(defaultThemePreset)} }` +
             color-mix(in srgb, var(--background) var(--wallpaper-wash), transparent);
     }
 
-    :global(:root[data-wallpaper="plain"]) .wallpaper-image {
-        display: none;
-    }
-
-    :global(:root[data-shade="deep"]) .wallpaper-shade {
-        --wallpaper-wash: 98%;
-    }
-
     @media (max-width: 48rem) {
 
         .wallpaper-image {

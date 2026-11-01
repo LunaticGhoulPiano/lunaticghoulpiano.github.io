@@ -3,12 +3,7 @@ export default {
         system: "跟隨系統", light: "淺色", dark: "深色",
         controls: "控制中心", filters: "篩選", close: "關閉",
         preset: "外觀主題", piano: "鋼琴", aviation: "航空",
-        wallpaper: "背景", scene: "攝影", plain: "純色背景",
-        shade: "背景遮罩", soft: "輕", deep: "深",
-        motion: "動效", subtle: "輕微", off: "關閉",
-        dock: "導覽", icons: "圖示", labels: "圖示與名稱",
-        density: "內容間距", comfortable: "寬鬆", compact: "緊湊",
-        theme: "明暗模式", reset: "恢復預設", credits: "背景攝影來源",
+        theme: "明暗模式", reset: "恢復預設",
         language: "語言", desktop: "工作區",
     },
     ui: {

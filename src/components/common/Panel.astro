@@ -63,7 +63,7 @@ const { id, title, locale } = Astro.props;
 
     @media (prefers-reduced-motion: no-preference) {
 
-        :global(:root[data-motion="subtle"]) .shell-panel[open] {
+        .shell-panel[open] {
             animation: panel-enter 180ms ease-out both;
         }
 

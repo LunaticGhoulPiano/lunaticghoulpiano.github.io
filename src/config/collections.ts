@@ -6,7 +6,6 @@ export const feedHeadingHeight = 65;
 export const githubTimelineCategorySize = 4;
 const githubCategoryItemHeight = 130;
 export const githubActivityCategoryLayout = {
-    height: 680,
     timelineHeight: githubTimelineCategorySize * githubCategoryItemHeight,
     itemHeight: githubCategoryItemHeight,
     repositoryLines: 2,

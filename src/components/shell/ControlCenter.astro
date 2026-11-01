@@ -9,16 +9,18 @@ import Icon from "../common/Icon.astro";
 interface Props { locale: Locale; languagePaths: Partial<Record<Locale, string>>; }
 const { locale, languagePaths } = Astro.props;
 const { shell: copy, design } = useMessages(locale);
-const settings = Object.keys(appearanceOptions).filter((key) => key !== "preset") as Exclude<keyof typeof appearanceOptions, "preset">[];
 ---
 <Panel id="controls" title={copy.controls} locale={locale}>
     <fieldset class="preset-options">
         <legend>{copy.preset}</legend>
         {appearanceOptions.preset.map((preset) => (
-            <label class="preset-choice" style={`--preset-preview: url('${wallpapers[preset].image.src}')`}>
-                <input type="radio" name="appearance-preset" value={preset} data-appearance-setting="preset" checked={preset === appearanceDefaults.preset} />
-                <span>{copy[preset]}</span>
-            </label>
+            <div class="preset-option">
+                <label class="preset-choice" style={`--preset-preview: url('${wallpapers[preset].image.src}')`}>
+                    <input type="radio" name="appearance-preset" value={preset} data-appearance-setting="preset" checked={preset === appearanceDefaults.preset} />
+                    <span>{copy[preset]}</span>
+                </label>
+                <p class="preset-credit"><a href={wallpapers[preset].credit.source} target="_blank" rel="noreferrer">© {wallpapers[preset].credit.photographer} / Unsplash ↗</a></p>
+            </div>
         ))}
     </fieldset>
     <div class="control-row">
@@ -27,20 +29,10 @@ const settings = Object.keys(appearanceOptions).filter((key) => key !== "preset"
             <Icon name="contrast" /><span data-theme-value>{copy.system}</span>
         </button>
     </div>
-    {settings.map((key) => (
-        <label class="control-row"><span>{copy[key]}</span>
-            <select data-appearance-setting={key} aria-label={copy[key]}>
-                {appearanceOptions[key].map((value) => <option value={value} selected={value === appearanceDefaults[key]}>{copy[value]}</option>)}
-            </select>
-        </label>
-    ))}
     <div class="control-row"><span>{copy.language}</span><LanguageSwitcher locale={locale} languagePaths={languagePaths} /></div>
     <div class="control-footer">
         <button class="text-link" type="button" data-appearance-reset><Icon name="reset" />{copy.reset}</button>
     </div>
-    <details class="wallpaper-credits"><summary>{copy.credits}</summary>
-        {appearanceOptions.preset.map((preset) => <p><a href={wallpapers[preset].credit.source} target="_blank" rel="noreferrer">{wallpapers[preset].credit.photographer} / Unsplash ↗</a></p>)}
-    </details>
 </Panel>
 
 <style>
@@ -110,19 +102,6 @@ const settings = Object.keys(appearanceOptions).filter((key) => key !== "preset"
         flex-shrink: 0;
     }
 
-    .control-row select {
-        width: 11.5rem;
-        min-width: 0;
-        max-width: 65%;
-        min-height: 38px;
-        padding: 0.35rem 0.5rem;
-        border: 1px solid var(--line);
-        border-radius: 2px;
-        background: var(--field);
-        color: var(--text);
-        font-size: 0.75rem;
-    }
-
     .theme-toggle {
         display: flex;
         align-items: center;
@@ -155,19 +134,15 @@ const settings = Object.keys(appearanceOptions).filter((key) => key !== "preset"
         font-size: 0.75rem;
     }
 
-    .wallpaper-credits {
+    .preset-option {
+        min-width: 0;
+    }
+
+    .preset-credit {
         font-size: 0.65rem;
+        line-height: 1.5;
         color: var(--muted);
-        margin-top: 0.5rem;
-    }
-
-    .wallpaper-credits summary {
-        min-height: 36px;
-        display: flex;
-        align-items: center;
-    }
-
-    .wallpaper-credits p {
-        margin-block: 0.5rem;
+        margin: 0.6rem 0 0;
+        overflow-wrap: anywhere;
     }
 </style>

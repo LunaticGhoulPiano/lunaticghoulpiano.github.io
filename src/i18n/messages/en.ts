@@ -3,12 +3,7 @@ export default {
         system: "System", light: "Light", dark: "Dark",
         controls: "Control center", filters: "Filters", close: "Close",
         preset: "Appearance", piano: "Piano", aviation: "Aviation",
-        wallpaper: "Wallpaper", scene: "Photograph", plain: "Plain background",
-        shade: "Background shade", soft: "Soft", deep: "Deep",
-        motion: "Motion", subtle: "Subtle", off: "Off",
-        dock: "Navigation", icons: "Icons", labels: "Icons & names",
-        density: "Content spacing", comfortable: "Comfortable", compact: "Compact",
-        theme: "Color mode", reset: "Restore defaults", credits: "Wallpaper credits",
+        theme: "Color mode", reset: "Restore defaults",
         language: "Language", desktop: "Workspace",
     },
     ui: {

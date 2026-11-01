@@ -14,7 +14,6 @@ const t = useTranslations(locale);
         {mainNavigation.map((item) => <li>
             <a href={getRoutePath(item, locale)} class:list={{ "is-active": isSectionActive(route, item) }} aria-label={t(routes[item].title)} aria-current={route === item ? "page" : undefined}>
                 <Icon name={item} /><span class="dock-label">{t(routes[item].title)}</span>
-                <span class="dock-tooltip" aria-hidden="true">{t(routes[item].title)}</span>
             </a>
         </li>)}
     </ul>
