@@ -282,7 +282,7 @@ h3 {
     --item-glow: color-mix(in srgb, var(--focus-glow) calc(100% * var(--item-focused)), transparent);
     position: relative;
     z-index: var(--item-focused);
-    transform-origin: center;
+    transform-origin: left center;
     filter: drop-shadow(0 0 2px var(--item-glow)) drop-shadow(0 0 6px var(--item-glow));
     transition: filter 180ms ease;
 }
@@ -302,8 +302,11 @@ h3 {
 
 @media screen and (prefers-reduced-motion: no-preference) {
     .focus-item {
+        --focus-scale: 1.07;
+        /* Reserve the enlarged width before focus so adjacent content stays put. */
+        max-inline-size: calc(100% / var(--focus-scale));
         translate: 0 calc(-9px * var(--item-focused));
-        scale: calc(1 + 0.07 * var(--item-focused));
+        scale: calc(1 + (var(--focus-scale) - 1) * var(--item-focused));
         filter: drop-shadow(0 0 2px var(--item-glow)) drop-shadow(0 0 6px var(--item-glow))
             drop-shadow(0 calc(14px * var(--item-focused)) calc(18px * var(--item-focused)) rgb(0 0 0 / 0.35));
         transition: translate 180ms ease, scale 180ms ease, filter 180ms ease;

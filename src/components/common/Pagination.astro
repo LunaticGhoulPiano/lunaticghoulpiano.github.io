@@ -6,9 +6,10 @@ import { useMessages } from "../../i18n/ui";
 interface Props {
     locale: Locale;
     pageSize?: number;
+    animatePages?: boolean;
 }
 
-const { locale, pageSize = collectionPageSize } = Astro.props;
+const { locale, pageSize = collectionPageSize, animatePages } = Astro.props;
 const copy = useMessages(locale).pagination;
 ---
 
@@ -16,6 +17,8 @@ const copy = useMessages(locale).pagination;
     class="pagination"
     aria-label={copy.label}
     data-pagination
+    data-animate-pages={animatePages || undefined}
+    data-reveal-last={animatePages || undefined}
     data-page-size={pageSize}
     data-format-locale={languages[locale].formatLocale}
     data-page-label={copy.page}

@@ -98,13 +98,12 @@ const end = chronological ? copy.oldest : copy.last;
     .timeline-scroll > :global(ol) {
         list-style: none;
         margin: 0;
-        /* Reserve space for both the arc and the shared focus lift. */
-        padding: 2rem calc(var(--timeline-arc-width, 2rem) + max(1.5rem, 8%)) 2rem 1rem;
+        /* The row reserves its focus scale; the viewport reserves the arc. */
+        padding: 2rem calc(var(--timeline-arc-width, 2rem) + 1rem) 2rem 1rem;
     }
 
     .timeline-scroll :global(ol > li) {
         position: relative;
-        transform-origin: left center;
         transform: translate(calc(var(--timeline-x, 0px) + var(--entrance-x, 0px)), var(--entrance-y, 0px)) scale(max(var(--item-focused, 0), var(--timeline-scale, 1)));
         opacity: calc(max(var(--item-focused, 0), var(--timeline-opacity, 1)) * var(--entrance-opacity, 1));
     }

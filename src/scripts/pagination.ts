@@ -1,6 +1,7 @@
 import { formatMessage } from "../i18n/format.ts";
 import { paginationState } from "../utils/pagination.ts";
 import { formatSequenceNumber } from "../utils/numbering.ts";
+import { createContentTransition } from "./motion.ts";
 
 interface Controller {
     setItems: (items: HTMLElement[]) => void;
@@ -18,10 +19,15 @@ export function paginationFor(root: HTMLElement) {
     const buttons = [...navigation.querySelectorAll<HTMLButtonElement>("[data-page-control]")];
     const gaps = [...navigation.querySelectorAll<HTMLElement>("[data-page-gap]")];
     const status = navigation.querySelector<HTMLElement>("[data-page-status]");
+    const transition = navigation.dataset.animatePages !== undefined
+        ? createContentTransition(root.querySelector<HTMLElement>("[data-content-transition]")!)
+        : undefined;
     let filtered = items;
+    let currentPage = 1;
 
     const render = (requestedPage: number) => {
         const state = paginationState(filtered.length, pageSize, requestedPage);
+        currentPage = state.page;
         const visible = new Set(filtered.slice(state.start, state.end));
         for (const item of items) item.hidden = ! visible.has(item);
         navigation.hidden = state.totalPages === 0;
@@ -56,14 +62,19 @@ export function paginationFor(root: HTMLElement) {
 
     for (const button of buttons) {
         button.addEventListener("click", () => {
-            render(Number(button.dataset.targetPage));
-            navigation.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus({
-                preventScroll: true,
-            });
+            const target = Number(button.dataset.targetPage);
+            if (target === currentPage) {
+                transition?.cancel();
+                return;
+            }
+            if (transition) transition.run(() => render(target), Math.sign(target - currentPage));
+            else render(target);
+            navigation.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus({ preventScroll: true });
         });
     }
     const controller = {
         setItems(next: HTMLElement[]) {
+            transition?.cancel();
             items = [...root.querySelectorAll<HTMLElement>("[data-page-item]")];
             filtered = next;
             render(1);

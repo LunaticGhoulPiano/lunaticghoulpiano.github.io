@@ -10,7 +10,7 @@ export function readSnapshotFile(filename, { parse, onError }) {
         return parse(JSON.parse(readFileSync(filename, "utf8")));
     }
     catch (error) {
-        onError(error);
+        if (error?.code !== "ENOENT") onError(error);
         return null;
     }
 }
@@ -30,8 +30,6 @@ export function readValidatedSnapshot(filename, schema, matches, messages) {
             console.warn(messages.invalid);
             return null;
         },
-        onError: (error) => {
-            if (error.code !== "ENOENT") console.warn(messages.unreadable);
-        },
+        onError: () => console.warn(messages.unreadable),
     });
 }

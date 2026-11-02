@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { paginationState } from "../src/utils/pagination.ts";
 import { paginationFor } from "../src/scripts/pagination.ts";
+import { contentTransitionFixture, installGlobals } from "./fixture.mjs";
 
 const template = await readFile(new URL("../src/components/common/Pagination.astro", import.meta.url), "utf8");
 
-function fixture(totalItems) {
+function fixture(totalItems, transition) {
     const controls = [...template.matchAll(/<(button|span)\b[^>]*data-page-(control|gap)="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)].map((match) => {
         const attributes = new Map();
         return Object.assign(new EventTarget(), {
@@ -25,7 +26,8 @@ function fixture(totalItems) {
         querySelector: (selector) => selector === "[data-page-status]" ? status : controls.find((control) => control.dataset.pageControl === "current"),
     };
     let items = Array.from({ length: totalItems }, () => ({ hidden: false }));
-    const root = { querySelector: () => navigation, querySelectorAll: () => items };
+    if (transition) navigation.dataset.animatePages = "";
+    const root = { querySelector: (selector) => selector === "[data-pagination]" ? navigation : transition, querySelectorAll: () => items };
     const controller = paginationFor(root);
     return {
         controls, navigation, status,
@@ -112,4 +114,35 @@ test("filtering or replacing results updates pagination totals without duplicate
     page.replace(303);
     assert.equal(page.navigation.hidden, false);
     assert.equal(page.visible(), "01 02 ... 31");
+});
+
+test("animated pagination swaps at the fade midpoint and discards superseded page requests", (context) => {
+    const motion = contentTransitionFixture(false);
+    installGlobals(context, motion.environment);
+    const page = fixture(31, motion.root);
+    page.click("next");
+    motion.frame(0);
+    motion.frame(140);
+    assert.equal(page.visibleItems()[0], 0);
+    assert.ok(Number.parseFloat(motion.body.style.translate) < 0);
+    motion.frame(280);
+    assert.equal(motion.body.style.opacity, "0");
+    assert.equal(page.visibleItems()[0], 10);
+    motion.frame(560);
+    page.click("previous");
+    motion.frame(600);
+    motion.frame(740);
+    assert.ok(Number.parseFloat(motion.body.style.translate) > 0);
+    page.click("current");
+    motion.frame(1300);
+    assert.equal(page.visibleItems()[0], 10);
+    page.click("last-page");
+    page.replace(2);
+    motion.frame(2000);
+    assert.deepEqual(page.visibleItems(), [0, 1]);
+    motion.preference.matches = true;
+    page.replace(31);
+    page.click("last-page");
+    assert.deepEqual(page.visibleItems(), [30]);
+    assert.equal(motion.pending(), 0);
 });

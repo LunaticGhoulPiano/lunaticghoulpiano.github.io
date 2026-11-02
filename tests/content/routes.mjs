@@ -186,7 +186,7 @@ test("isolated builds cover every configured language plus an additional locale,
             links: [{ label: "Source", url: "https://example.test/source" }],
             locales: pairedLocales,
         }, { "body.md": "## Validation heading\n\nThis test content must never appear in the real website build." });
-        await item("fixture-docs", { id: "fixture-docs", kind: "documentation", category: "development", locales: docsLocales });
+        await item("fixture-docs", { id: "fixture-docs", kind: "documentation", category: "development", placements: ["documentations"], locales: docsLocales });
         await item("fixture-game", { id: "fixture-game", kind: "game", category: "games", locales: gameLocales });
 
         const build = (snapshotDirectory) => buildSiteFixture(fixtureRoot, snapshotDirectory);
@@ -476,8 +476,12 @@ test("isolated builds cover every configured language plus an additional locale,
                 const bodyClasses = attributes(html.match(/<body\b[^>]*>/)[0]).class?.split(/\s+/) ?? [];
                 assert.equal(bodyClasses.includes("borderless-page"), section === "profile" || sourcePage);
                 const mainTag = html.match(/<main\b[^>]*>/)[0];
-                assert.equal(/\sdata-entrance[\s=>]/.test(mainTag), sourcePage);
-                assert.equal(/\sdata-entrance-controls[\s=>]/.test(mainTag), section === "feeds");
+                assert.equal(/\sdata-entrance[\s=>]/.test(mainTag), sourcePage || route === "documentations");
+                assert.equal(/\sdata-entrance-controls[\s=>]/.test(mainTag), section === "feeds" || route === "documentations");
+                if (route === "documentations") {
+                    assert.match(main(html), /<li\b[^>]*data-reveal-item/);
+                    assert.match(main(html), /<nav\b[^>]*data-animate-pages[^>]*data-reveal-last/);
+                }
                 assert.doesNotMatch(html, /data-curved|timeline-curved/);
                 assert.deepEqual(headings(main(html), 1), [route === "profile" ? site.name : copy.ui[definition.title]]);
                 const navigation = html.match(/<nav class="site-nav"[^>]*>([\s\S]*?)<\/nav>/)[1];

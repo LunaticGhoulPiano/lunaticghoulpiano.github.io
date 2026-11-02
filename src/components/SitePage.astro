@@ -18,11 +18,12 @@ const { locale, route } = Astro.props;
 const t = useTranslations(locale);
 const { design: copy, content } = useMessages(locale);
 const page = routes[route];
+const animateList = route === "documentations";
 const context = await getPageContext(route, locale);
 const description = context.section === "feeds" ? context.description : t(page.description);
 ---
 
-<BaseLayout title={t(page.title)} description={description} locale={locale} route={route} noindex={route === "search"}>
+<BaseLayout title={t(page.title)} description={description} locale={locale} route={route} noindex={route === "search"} animateList={animateList}>
     {context.section !== "profile" && <header class="page-heading">
         <h1 data-reveal-item>{t(page.title)}</h1>
         <p class="page-description" data-reveal-item>{description}</p>
@@ -45,10 +46,10 @@ const description = context.section === "feeds" ? context.description : t(page.d
     {context.section === "content" && (
         <>
             {context.items.length > 0 ? (
-                <ContentList locale={locale} items={context.items} placement={route} />
-            ) : <p class="empty-message">{"empty" in page ? t(page.empty) : copy.unpublished}</p>}
+                <ContentList locale={locale} items={context.items} placement={route} animatePages={animateList} />
+            ) : <p class="empty-message" data-reveal-item>{"empty" in page ? t(page.empty) : copy.unpublished}</p>}
             {context.defaultLanguagePath && (
-                <a class="text-link" href={context.defaultLanguagePath}>{content.defaultLanguagePosts} →</a>
+                <a class="text-link" href={context.defaultLanguagePath} data-reveal-item>{content.defaultLanguagePosts} →</a>
             )}
         </>
     )}

@@ -1,9 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile, access } from "node:fs/promises";
+import { readFile, writeFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { writeSnapshot } from "../../scripts/snapshots/files.mjs";
+import { readSnapshotFile } from "../../src/data/snapshot_file.mjs";
+
+test("an absent snapshot on a clean checkout is optional, but corrupt snapshots are reported", async () => {
+    await withTemporaryDirectory(async (root) => {
+        const path = join(root, "snapshot.json");
+        const errors = [];
+        const read = () => readSnapshotFile(path, { parse: (value) => value, onError: (error) => errors.push(error) });
+        assert.equal(read(), null);
+        assert.equal(errors.length, 0);
+        await writeFile(path, "{");
+        assert.equal(read(), null);
+        assert.equal(errors.length, 1);
+        assert.ok(errors[0] instanceof SyntaxError);
+    });
+});
 
 test("snapshot validation sees staged data while failure retains the previous file and removes staging", async () => {
     await withTemporaryDirectory(async (root) => {

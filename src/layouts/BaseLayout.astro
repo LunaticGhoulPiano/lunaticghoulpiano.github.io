@@ -30,12 +30,13 @@ interface Props {
     description?: string;
     route?: RouteKey;
     noindex?: boolean;
+    animateList?: boolean;
     pagePath?: string;
     languagePaths?: Partial<Record<Locale, string>>;
     filters?: { category?: string; tags?: string[] };
 }
 
-const { title, locale, description, route, noindex = false, pagePath, languagePaths, article, filters } = Astro.props;
+const { title, locale, description, route, noindex = false, animateList = false, pagePath, languagePaths, article, filters } = Astro.props;
 const section = route ? routes[route].section : null;
 const isProfile = section === "profile";
 const hasSources = section === "feeds" || section === "projects";
@@ -110,7 +111,7 @@ const translations =
             <Discovery locale={locale} index={discovery} filters={filters} />
         </Panel>
         <div class="container site-frame">
-            <main class="main-content" id="main-content" tabindex="-1" data-entrance={hasSources || undefined} data-entrance-controls={section === "feeds" || undefined}>
+            <main class="main-content" id="main-content" tabindex="-1" data-entrance={hasSources || animateList || undefined} data-entrance-controls={section === "feeds" || animateList || undefined}>
                 <slot />
             </main>
         </div>
