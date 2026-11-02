@@ -28,7 +28,7 @@ const copy = useMessages(locale).carousel;
     <div class:list={["carousel-track", { "filter-options": navigation }]} id={id} data-carousel-track tabindex="0" role="region" aria-label={label}>
         <slot />
     </div>
-    <div class="carousel-controls" data-carousel-controls hidden>
+    <div class="carousel-controls" data-carousel-controls data-reveal-last={!navigation || undefined} hidden>
         <button type="button" data-carousel-previous aria-label={copy.previous} aria-controls={id}>←</button>
         {! navigation && <div
             class="carousel-scrollbar"

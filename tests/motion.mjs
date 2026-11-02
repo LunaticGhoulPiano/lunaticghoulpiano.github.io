@@ -141,19 +141,26 @@ function entranceItem() {
 test("entrance staggers whole items with a bounded delay and leaves no styles or markers", async (context) => {
     fixture(context);
     const items = Array.from({ length: 8 }, entranceItem);
-    const entering = revealItems(items, new AbortController().signal, 270);
+    const controls = [entranceItem(), entranceItem()];
+    const entering = revealItems(items, new AbortController().signal, 270, controls);
     const delays = items.map((item) => item.animations[0].options.delay);
     assert.equal(delays[0], 0);
     assert.ok(delays[1] > 0 && delays[1] <= 45);
     assert.ok(delays.every((delay, index) => index === 0 || delay > delays[index - 1]));
     assert.equal(delays.at(-1), 270);
-    for (const item of items) {
+    for (const control of controls) {
+        const { delay, duration, fill } = control.animations[0].options;
+        assert.equal(delay, delays.at(-1) + delays[1]);
+        assert.ok(delay < delays.at(-1) + duration, "controls enter while the last row is still moving");
+        assert.equal(fill, "backwards", "delayed controls are concealed from the first frame");
+    }
+    for (const item of [...items, ...controls]) {
         assert.equal(item.animations[0].frames[0].transform, undefined);
         assert.equal(item.animations[0].frames[0].opacity, undefined);
         item.finish();
     }
     await entering;
-    assert.ok(items.every((item) => item.attributes.size === 0));
+    assert.ok([...items, ...controls].every((item) => item.attributes.size === 0));
 });
 
 test("aborted entrances and changing reduced motion reveal all pending items immediately", async (context) => {
@@ -161,7 +168,8 @@ test("aborted entrances and changing reduced motion reveal all pending items imm
     for (const reason of ["abort", "preference"]) {
         const controller = new AbortController();
         const items = [entranceItem(), entranceItem()];
-        const entering = revealItems(items, controller.signal);
+        const control = entranceItem();
+        const entering = revealItems(items, controller.signal, 270, [control]);
         if (reason === "abort") controller.abort();
         else {
             view.preference.matches = true;
@@ -169,6 +177,7 @@ test("aborted entrances and changing reduced motion reveal all pending items imm
         }
         await entering;
         assert.ok(items.every((item) => item.attributes.size === 0));
+        assert.equal(control.attributes.size, 0);
     }
     const item = entranceItem();
     await revealItems([item], new AbortController().signal);

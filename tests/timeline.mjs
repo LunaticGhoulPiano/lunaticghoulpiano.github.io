@@ -104,6 +104,7 @@ test("scroll, jump controls and reduced-motion changes keep entries visible with
     assert.equal(view.opacity(7), 0);
     assert.equal(view.newest.disabled, true);
     assert.equal(view.oldest.disabled, false);
+    assert.ok(view.viewport.attributes.has("data-reveal-last"));
     view.scroll(66);
     assert.equal(view.opacity(0), 0.5);
     view.scroll(0);
@@ -146,6 +147,7 @@ test("all timelines receive arc styles without an opt-in, including short projec
     const view = fixture(context, { count: 2 });
     assert.equal(view.newest.hidden, true);
     assert.equal(view.oldest.hidden, true);
+    assert.equal(view.viewport.attributes.has("data-reveal-last"), false);
     assert.equal(view.pending(), 0);
     assert.ok(Number.parseFloat(view.items[0].style["--timeline-x"]) > 0);
     assert.equal(view.opacity(0), 1);

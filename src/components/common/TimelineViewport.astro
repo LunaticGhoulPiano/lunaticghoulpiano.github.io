@@ -22,6 +22,7 @@ const end = chronological ? copy.oldest : copy.last;
         class="timeline-jump"
         type="button"
         data-timeline-newest
+        data-reveal-last
         aria-label={start}
         title={start}
         aria-controls={id}
@@ -43,6 +44,7 @@ const end = chronological ? copy.oldest : copy.last;
         class="timeline-jump"
         type="button"
         data-timeline-oldest
+        data-reveal-last
         aria-label={end}
         title={end}
         aria-controls={id}
@@ -52,6 +54,7 @@ const end = chronological ? copy.oldest : copy.last;
 
 <style>
     .timeline-window {
+        --timeline-scrollbar-width: 15px;
         display: grid;
         grid-template-columns: minmax(0, 1fr) var(--scroll-control-size);
         grid-template-rows: var(--scroll-control-size) auto var(--scroll-control-size);
@@ -65,7 +68,7 @@ const end = chronological ? copy.oldest : copy.last;
     }
 
     .timeline-scroll {
-        margin-inline-end: max(0px, calc((var(--scroll-control-size) - var(--timeline-scrollbar-width, 15px)) / 2));
+        margin-inline-end: max(0px, calc((var(--scroll-control-size) - var(--timeline-scrollbar-width)) / 2));
         grid-column: 1 / -1;
         grid-row: 2;
         height: 35rem;
@@ -77,6 +80,19 @@ const end = chronological ? copy.oldest : copy.last;
 
     .timeline-scroll:focus-visible {
         outline: none;
+    }
+
+    /* Keep the content opaque and stationary; reveal only the scrollbar gutter from the top right. */
+    .timeline-scroll[data-entering] {
+        --entrance-x: 0px;
+        --entrance-y: 0px;
+        --entrance-opacity: 1;
+        --timeline-mask-width: max(0.75rem, var(--timeline-scrollbar-width));
+        transform: none;
+        mask:
+            linear-gradient(black 0 0) left / calc(100% - var(--timeline-mask-width)) 100% no-repeat,
+            linear-gradient(rgb(0 0 0 / var(--entrance-progress)) 0 0) right top /
+                calc(var(--timeline-mask-width) * var(--entrance-progress)) calc(100% * var(--entrance-progress)) no-repeat;
     }
 
     .timeline-scroll > :global(ol) {

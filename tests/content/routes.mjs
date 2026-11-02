@@ -475,7 +475,9 @@ test("isolated builds cover every configured language plus an additional locale,
                 const sourcePage = section === "feeds" || section === "projects";
                 const bodyClasses = attributes(html.match(/<body\b[^>]*>/)[0]).class?.split(/\s+/) ?? [];
                 assert.equal(bodyClasses.includes("borderless-page"), section === "profile" || sourcePage);
-                assert.equal(/data-entrance/.test(html.match(/<main\b[^>]*>/)[0]), sourcePage);
+                const mainTag = html.match(/<main\b[^>]*>/)[0];
+                assert.equal(/\sdata-entrance[\s=>]/.test(mainTag), sourcePage);
+                assert.equal(/\sdata-entrance-controls[\s=>]/.test(mainTag), section === "feeds");
                 assert.doesNotMatch(html, /data-curved|timeline-curved/);
                 assert.deepEqual(headings(main(html), 1), [route === "profile" ? site.name : copy.ui[definition.title]]);
                 const navigation = html.match(/<nav class="site-nav"[^>]*>([\s\S]*?)<\/nav>/)[1];

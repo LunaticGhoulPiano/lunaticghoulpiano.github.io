@@ -74,6 +74,7 @@ export function initializeTimelines() {
             oldest.disabled = viewport.scrollTop >= maximum - 1;
             newest.hidden = maximum <= 1;
             oldest.hidden = maximum <= 1;
+            viewport.toggleAttribute("data-reveal-last", maximum > 1);
         }
 
         function resize() {

@@ -23,19 +23,43 @@ function fixture({ hold = false } = {}) {
     const window = Object.assign(new EventTarget(), { innerWidth: 800, innerHeight: 600 });
     const root = element("page", 0, 0, 800, 900);
     const items = [];
+    const controls = [];
     const calls = [];
-    root.querySelectorAll = () => items;
+    root.querySelectorAll = (selector) => selector.includes("[data-reveal-last]") ? new Set([...items, ...controls]) : items;
     document.querySelector = () => root;
     const api = runInNewContext(script + "\n({entranceItems, initializeEntrances})", {
         document, window, AbortController,
         getComputedStyle: (item) => item.styles,
-        revealItems(items, signal, maxDelay) {
-            calls.push({ items, signal, maxDelay });
+        revealItems(items, signal, maxDelay, lastGroup) {
+            calls.push({ items, signal, maxDelay, lastGroup });
             return hold ? new Promise((resolve) => signal.addEventListener("abort", resolve, { once: true })) : Promise.resolve();
         },
     });
-    return { ...api, root, items, calls, document, window };
+    return { ...api, root, items, controls, calls, document, window };
 }
+
+test("feed controls share the last beat, including controls below the fold but excluding inactive columns", async () => {
+    const view = fixture();
+    view.root.dataset.entranceControls = "";
+    const track = element("categories", 0, 0, 500, 850, view.root);
+    track.styles.overflowX = "auto";
+    const header = element("header with source arrows", 0, 10);
+    const row = element("last visible row", 0, 510, 100, 40, track);
+    const top = element("up", 400, 120, 32, 32, track);
+    const bottom = element("down", 400, 720, 32, 32, track);
+    const inactive = element("next column", 550, 120, 32, 32, track);
+    for (const control of [top, bottom, inactive]) control.dataset.revealLast = "";
+    view.items.push(header, row, top); // A control can also match a content selector.
+    view.controls.push(top, bottom, inactive);
+    let measurements = 0;
+    const bounds = track.getBoundingClientRect;
+    track.getBoundingClientRect = () => { measurements++; return bounds(); };
+    await view.initializeEntrances();
+    assert.deepEqual(Array.from(view.calls[0].items), [header, row]);
+    assert.equal(measurements, 1);
+    assert.equal(view.calls.length, 1);
+    assert.deepEqual(Array.from(view.calls[0].lastGroup), [top, bottom]);
+});
 
 test("entrance includes only visible rows in nested clips, ordered by row then column", () => {
     const view = fixture();
@@ -54,7 +78,7 @@ test("entrance includes only visible rows in nested clips, ordered by row then c
     invisible.styles.visibility = "hidden";
     view.items.push(third, second, clipped, outside, hidden, first, invisible,
         element("below screen", 20, 650), element("empty", 20, 120, 0));
-    assert.deepEqual(Array.from(view.entranceItems(view.root), (item) => item.name), ["left row 1", "right row 1", "left row 2"]);
+    assert.deepEqual(Array.from(view.entranceItems(view.root).items, (item) => item.name), ["left row 1", "right row 1", "left row 2"]);
 });
 
 test("each document enters once; carousel changes and newly visible items do not replay", async () => {

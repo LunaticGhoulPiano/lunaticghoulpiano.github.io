@@ -110,7 +110,7 @@ const translations =
             <Discovery locale={locale} index={discovery} filters={filters} />
         </Panel>
         <div class="container site-frame">
-            <main class="main-content" id="main-content" tabindex="-1" data-entrance={hasSources || undefined}>
+            <main class="main-content" id="main-content" tabindex="-1" data-entrance={hasSources || undefined} data-entrance-controls={section === "feeds" || undefined}>
                 <slot />
             </main>
         </div>

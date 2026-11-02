@@ -259,6 +259,11 @@ h3 {
     initial-value: 1;
 }
 
+[data-entrance-controls] {
+    overflow-x: clip;
+    overflow-clip-margin: 0.5rem;
+}
+
 [data-entering] {
     --entrance-x: calc((1 - var(--entrance-progress)) * 40px);
     --entrance-y: calc((var(--entrance-progress) - 1) * 10px);
@@ -821,7 +826,7 @@ h3 {
 }
 
 .carousel-controls button:disabled, .timeline-jump:disabled {
-    opacity: 0.35;
+    opacity: calc(0.35 * var(--entrance-progress, 1));
     cursor: default;
 }
 

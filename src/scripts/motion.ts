@@ -118,15 +118,16 @@ export async function animateElement(element: HTMLElement, frames: Keyframe[], o
 }
 
 /** Animate only entrance progress; CSS composes it with scrolling and focus. */
-export async function revealItems(items: HTMLElement[], signal: AbortSignal, maxDelay = Infinity) {
+export async function revealItems(items: HTMLElement[], signal: AbortSignal, maxDelay = Infinity, lastGroup: HTMLElement[] = []) {
     const stagger = Math.min(45, maxDelay / Math.max(1, items.length - 1));
-    await Promise.all(items.map(async (item, index) => {
+    // The final group shares the beat immediately after the last individual item.
+    await Promise.all([...items, ...lastGroup].map(async (item, index) => {
         item.setAttribute("data-entering", "");
         try {
             await animateElement(item, [
                 { "--entrance-progress": "0" }, { "--entrance-progress": "1" },
             ], {
-                duration: 420, delay: index * stagger,
+                duration: 420, delay: Math.min(index, items.length) * stagger,
                 easing: "cubic-bezier(0.2, 0.7, 0.3, 1)", fill: "backwards",
             }, signal);
         }
