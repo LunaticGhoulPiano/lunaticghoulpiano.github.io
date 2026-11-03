@@ -28,11 +28,22 @@ export function initializeTimelines() {
         const motion = createMotion();
         let frame = 0;
         let arcWidth = 0;
+        let visualFocus: HTMLElement | undefined;
+
+        function select(item?: HTMLElement) {
+            if (item === visualFocus) return;
+            visualFocus?.toggleAttribute("data-visual-focus", false);
+            item?.toggleAttribute("data-visual-focus", true);
+            visualFocus = item;
+        }
 
         function draw() {
             frame = 0;
+            if (!viewport.clientWidth) {
+                select();
+                return;
+            }
             const items = [...list.children] as HTMLElement[];
-            const visible = viewport.clientWidth > 0;
             const height = viewport.clientHeight;
             const top = list.offsetTop - viewport.scrollTop;
             // Read all layout before writing styles; transforms never affect sizing.
@@ -44,7 +55,7 @@ export function initializeTimelines() {
             // Explicit keyboard focus takes precedence over automatic touch selection.
             let centered = -1;
             let closest = Infinity;
-            if (visible && touchInput.matches && !list.querySelector(":focus-visible")) {
+            if (touchInput.matches && !list.querySelector(":focus-visible")) {
                 bounds.forEach((item, index) => {
                     if (item.height <= 0 || item.top >= height || item.top + item.height <= 0) return;
                     const distance = Math.abs(item.top + item.height / 2 - height / 2);
@@ -54,9 +65,8 @@ export function initializeTimelines() {
                     }
                 });
             }
+            select(items[centered]);
             items.forEach((item, index) => {
-                item.toggleAttribute("data-visual-focus", index === centered);
-                if (!visible) return;
                 const position = positions[index];
                 item.style.setProperty("--timeline-x", `${position.x.toFixed(2)}px`);
                 item.style.setProperty("--timeline-scale", String(position.scale));

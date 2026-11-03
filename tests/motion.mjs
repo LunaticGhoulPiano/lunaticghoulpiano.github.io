@@ -122,14 +122,16 @@ function entranceItem() {
     let finish;
     let reject;
     return {
-        attributes: new Set(), animations: [],
+        attributes: new Set(), animations: [], dataset: {},
         setAttribute(name) { this.attributes.add(name); },
         removeAttribute(name) { this.attributes.delete(name); },
         animate(frames, options) {
             const animation = {
-                frames, options,
+                frames, options, playState: "running",
+                pause() { this.playState = "paused"; },
+                play() { this.playState = "running"; },
                 finished: new Promise((done, fail) => { finish = done; reject = fail; }),
-                cancel() { reject(new Error("cancelled")); },
+                cancel() { this.playState = "idle"; reject(new Error("cancelled")); },
             };
             this.animations.push(animation);
             return animation;
@@ -139,10 +141,18 @@ function entranceItem() {
 }
 
 test("entrance staggers whole items with a bounded delay and leaves no styles or markers", async (context) => {
-    fixture(context);
+    const view = fixture(context);
     const items = Array.from({ length: 8 }, entranceItem);
     const controls = [entranceItem(), entranceItem()];
+    controls[1].dataset.revealEffect = "gutter";
     const entering = revealItems(items, new AbortController().signal, 270, controls);
+    const group = [...items, ...controls].map((item) => item.animations[0]);
+    assert.ok(group.every((animation) => animation.playState === "paused" && animation.currentTime === 0));
+    assert.equal(view.pending(), 1, "one shared start frame, regardless of the number of rows");
+    view.frame(100);
+    assert.ok(group.every((animation) => animation.playState === "paused"), "the initial layout gets its own paint");
+    view.frame(117);
+    assert.ok(group.every((animation) => animation.playState === "running"));
     const delays = items.map((item) => item.animations[0].options.delay);
     assert.equal(delays[0], 0);
     assert.ok(delays[1] > 0 && delays[1] <= 45);
@@ -154,11 +164,13 @@ test("entrance staggers whole items with a bounded delay and leaves no styles or
         assert.ok(delay < delays.at(-1) + duration, "controls enter while the last row is still moving");
         assert.equal(fill, "backwards", "delayed controls are concealed from the first frame");
     }
-    for (const item of [...items, ...controls]) {
+    for (const item of [...items, controls[0]]) {
         assert.equal(item.animations[0].frames[0].transform, undefined);
-        assert.equal(item.animations[0].frames[0].opacity, undefined);
-        item.finish();
+        assert.equal(item.animations[0].frames[0].opacity, 0);
+        assert.equal(item.animations[0].frames[1].opacity, undefined, "finish at the row's underlying opacity");
     }
+    assert.equal(controls[1].animations[0].frames[0].opacity, undefined, "revealing the gutter never hides its content");
+    for (const item of [...items, ...controls]) item.finish();
     await entering;
     assert.ok([...items, ...controls].every((item) => item.attributes.size === 0));
 });
@@ -176,6 +188,7 @@ test("aborted entrances and changing reduced motion reveal all pending items imm
             view.preference.dispatchEvent(new Event("change"));
         }
         await entering;
+        assert.equal(view.pending(), 0, "cancelling before first paint must not restart the group");
         assert.ok(items.every((item) => item.attributes.size === 0));
         assert.equal(control.attributes.size, 0);
     }

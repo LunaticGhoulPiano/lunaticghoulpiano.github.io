@@ -1,4 +1,8 @@
-/* Documentation keeps its chapter navigation and shares the site's palette. */
+@import "../../../../styles/liquid-glass.css";
+@import "../../../../styles/wallpaper.css";
+@import "../../../../styles/reading.css";
+
+/* Map the same materials onto Docusaurus' native controls and reading surfaces. */
 :root, html[data-theme] {
     --ifm-color-primary: var(--accent);
     --ifm-background-color: var(--background);
@@ -7,12 +11,18 @@
     --ifm-color-content: var(--text);
     --ifm-color-content-secondary: var(--muted);
     --ifm-heading-color: var(--text);
+    --ifm-pre-background: var(--code-bg);
+    --ifm-code-background: var(--field);
+    --ifm-table-border-color: var(--line);
     --ifm-menu-color: var(--muted);
     --ifm-navbar-background-color: var(--surface);
     --ifm-navbar-link-color: var(--text);
     --ifm-toc-border-color: var(--line);
     --ifm-color-emphasis-300: var(--line);
-    --ifm-menu-color-background-active: var(--subtle);
+    --ifm-menu-color-background-active: transparent;
+    --ifm-menu-color-background-hover: transparent;
+    --ifm-breadcrumb-item-background-active: transparent;
+    --ifm-dropdown-hover-background-color: transparent;
     --ifm-breadcrumb-color-active: var(--accent);
     --ifm-font-family-base: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
     --ifm-font-family-monospace: "Cascadia Code", Consolas, monospace;
@@ -21,8 +31,30 @@
     --ifm-navbar-shadow: none;
 }
 
-.navbar { border-bottom: 1px solid var(--line); }
+body { isolation: isolate; }
+.docs-wrapper body::before { content: ""; }
+
+/* Blur the background independently so the mobile sidebar stays viewport-fixed. */
+.navbar[data-glass="surface"] { backdrop-filter: none; }
+.navbar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    backdrop-filter: var(--glass-frost);
+}
+
+.dropdown__menu, .navbar-sidebar {
+    background-color: color-mix(in srgb, var(--surface) 80%, var(--glass-surface));
+    backdrop-filter: var(--glass-frost);
+}
+.navbar-sidebar__backdrop { background-color: var(--glass-scrim); }
+.menu__link--active, .tabs__item--active, .breadcrumbs__item--active .breadcrumbs__link, .dropdown__link--active {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: .3em;
+}
 .markdown { line-height: 1.85; }
 .markdown h1 { letter-spacing: -0.04em; }
-.pagination-nav__link { border-color: var(--line); }
-.pagination-nav__link:hover { border-color: var(--accent); }
+.pagination-nav__link:hover { color: var(--accent); }

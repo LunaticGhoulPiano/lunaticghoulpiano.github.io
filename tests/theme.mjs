@@ -5,11 +5,31 @@ import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 
 const script = await readFile(new URL("../src/scripts/theme.js", import.meta.url), "utf8");
+const migration = await readFile(new URL("../src/scripts/migrate-theme.js", import.meta.url), "utf8");
+
+test("existing site preferences migrate once to the shared documentation key", () => {
+    for (const [previous, expected] of [["dark", "dark"], ["light", "light"], ["system", null], ["invalid", "dark"], [null, "dark"]]) {
+        const values = new Map([["theme", "dark"]]);
+        if (previous !== null) values.set("site-theme", previous);
+        const localStorage = {
+            getItem: key => values.get(key) ?? null,
+            setItem: (key, value) => values.set(key, value),
+            removeItem: key => values.delete(key),
+        };
+        runInNewContext(migration, { localStorage });
+        assert.equal(localStorage.getItem("theme"), expected);
+        assert.equal(values.has("site-theme"), false);
+        localStorage.setItem("theme", "light");
+        runInNewContext(migration, { localStorage });
+        assert.equal(localStorage.getItem("theme"), "light");
+    }
+});
 
 function browser({ dark = false, saved = null, storageBlocked = false } = {}) {
     const mediaListeners = new Map();
     const documentListeners = new Map();
     const buttonListeners = new Map();
+    const windowListeners = new Map();
     const attributes = new Map();
     const dataset = {
         lightColor: themes.light.background,
@@ -31,14 +51,20 @@ function browser({ dark = false, saved = null, storageBlocked = false } = {}) {
         addEventListener: (name, listener) => buttonListeners.set(name, listener),
     };
     const storage = {
-        getItem: () => {
+        getItem: (key) => {
             if (storageBlocked) throw new Error("Storage blocked");
+            assert.equal(key, "theme");
             return saved;
         },
         setItem: (key, value) => {
             if (storageBlocked) throw new Error("Storage blocked");
-            assert.equal(key, "site-theme");
+            assert.equal(key, "theme");
             saved = value;
+        },
+        removeItem: (key) => {
+            if (storageBlocked) throw new Error("Storage blocked");
+            assert.equal(key, "theme");
+            saved = null;
         },
     };
     const document = {
@@ -59,6 +85,7 @@ function browser({ dark = false, saved = null, storageBlocked = false } = {}) {
     };
     runInNewContext(script, {
         window: {
+            addEventListener: (name, listener) => windowListeners.set(name, listener),
             matchMedia: (query) => {
                 assert.equal(query, "(prefers-color-scheme: dark)");
                 return media;
@@ -76,6 +103,7 @@ function browser({ dark = false, saved = null, storageBlocked = false } = {}) {
         saved: () => saved,
         ready: () => documentListeners.get("DOMContentLoaded")(),
         click: () => buttonListeners.get("click")(),
+        storage: (newValue) => windowListeners.get("storage")({ key: "theme", newValue }),
         system: (value) => {
             media.matches = value;
             mediaListeners.get("change")();
@@ -132,7 +160,7 @@ test("the toggle cycles through light, dark and system and restores live system 
     page.click();
     assert.equal(page.dataset.themePreference, "system");
     assert.equal(page.dataset.theme, "light");
-    assert.equal(page.saved(), "system");
+    assert.equal(page.saved(), null);
     page.system(true);
     assert.equal(page.dataset.theme, "dark");
     const nextPage = browser({
@@ -140,6 +168,16 @@ test("the toggle cycles through light, dark and system and restores live system 
     });
     assert.equal(nextPage.dataset.themePreference, "system");
     assert.equal(nextPage.dataset.theme, "light");
+});
+
+test("changes in an open documentation tab update the main site including System", () => {
+    const page = browser({ dark: false });
+    page.ready();
+    page.storage("dark");
+    assert.equal(page.dataset.theme, "dark");
+    page.storage(null);
+    assert.equal(page.dataset.themePreference, "system");
+    assert.equal(page.dataset.theme, "light");
 });
 
 test("invalid preferences and blocked storage fall back to the system without breaking the toggle", () => {

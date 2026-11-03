@@ -7,7 +7,7 @@
     const boundToggles = new WeakSet();
 
     try {
-        const saved = localStorage.getItem("site-theme");
+        const saved = localStorage.getItem("theme");
         if (preferences.includes(saved)) preference = saved;
     }
     catch {
@@ -31,6 +31,14 @@
         if (value) value.textContent = toggle.dataset[`${preference}Value`] || label;
     }
 
+    function saveTheme() {
+        try {
+            if (preference === "system") localStorage.removeItem("theme");
+            else localStorage.setItem("theme", preference);
+        }
+        catch { /* Keep the selected theme active for this page. */ }
+    }
+
     function bindToggle() {
         toggle = document.querySelector("[data-theme-toggle]");
         if (! toggle) return;
@@ -41,16 +49,16 @@
         toggle.addEventListener("click", () => {
             preference = preferences[(preferences.indexOf(preference) + 1) % preferences.length];
             applyTheme();
-            try {
-                localStorage.setItem("site-theme", preference);
-            }
-            catch {
-                // Keep the selected theme active for this page.
-            }
+            saveTheme();
         });
     }
 
     applyTheme();
+    window.addEventListener("storage", (event) => {
+        if (event.key !== "theme" && event.key !== null) return;
+        preference = preferences.includes(event.newValue) ? event.newValue : "system";
+        applyTheme();
+    });
     systemTheme.addEventListener("change", () => {
         if (preference === "system") applyTheme();
     });
@@ -62,8 +70,6 @@
     document.addEventListener("site:reset", () => {
         preference = "system";
         applyTheme();
-        try { localStorage.setItem("site-theme", preference); }
-        catch { /* Keep the reset active when storage is unavailable. */ }
+        saveTheme();
     });
-    document.addEventListener("site:appearance", applyTheme);
 })();

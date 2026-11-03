@@ -11,12 +11,12 @@
             "./build.mjs",
             "./docusaurus.config.js",
             "./sidebars.js",
-            "./src/css",
+            "./src",
             "./package.json",
             "./pnpm-lock.yaml",
             "./pnpm-workspace.yaml"
         ],
-        "sharedInputs": ["./src/config", "./src/i18n", "./src/scripts/appearance.js"]
+        "sharedInputs": ["./src/config", "./src/i18n", "./src/scripts/appearance.js", "./src/scripts/migrate-theme.js", "./src/scripts/glass", "./src/styles/liquid-glass.css", "./src/styles/reading.css", "./src/styles/wallpaper.css", "./src/assets/wallpapers"]
     },
     "links": [
         {

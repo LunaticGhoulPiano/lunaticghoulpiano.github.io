@@ -68,8 +68,6 @@ button, select {
 
 .header-tools > a, .header-tools > button {
     color: var(--text);
-    background: transparent;
-    border: 1px solid var(--chrome-line);
 }
 
 .control-trigger {
@@ -78,13 +76,11 @@ button, select {
     gap: 0.75rem;
     min-height: 44px;
     padding: 0.5rem 0.85rem;
-    border-radius: 2px;
     text-decoration: none;
     font-size: 0.75rem;
 }
 
 .header-tools > a:hover, .header-tools > button:hover {
-    background: var(--subtle);
     color: var(--accent);
 }
 
@@ -102,8 +98,9 @@ button, select {
 }
 
 .site-nav {
+    position: relative;
+    border-radius: var(--glass-corner);
     padding: 0.25rem 0.5rem;
-    border-inline-start: var(--content-divider-width) solid var(--chrome-line);
     font-style: normal;
 }
 
@@ -128,14 +125,12 @@ button, select {
     color: var(--muted);
 }
 
-.dock-items a:hover {
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-    color: var(--text);
-}
-
 .dock-items .is-active {
     color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.dock-items a:is(:hover, :focus-visible) {
+    color: var(--text);
 }
 
 .dock-items .is-active::before {
@@ -177,11 +172,6 @@ button, select {
     font-weight: 500;
 }
 
-.main-content .search-field {
-    border-width: 0 0 1px;
-    background: transparent;
-}
-
 .main-content:focus {
     outline: none;
 }
@@ -212,7 +202,6 @@ button, select {
 }
 .global-search {
     width: 100%;
-    border-radius: 2px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -283,9 +272,6 @@ button, select {
 
     .site-nav {
         padding: 0.45rem;
-        border: 1px solid var(--chrome-line);
-        border-radius: 2px;
-        background: var(--surface);
     }
 
     .dock-items {
@@ -367,9 +353,6 @@ button, select {
 .header-tools .global-search {
     width: clamp(12rem, 22vw, 22rem);
     margin: 0;
-    background: transparent;
-    border-width: 0 0 1px;
-    border-color: var(--chrome-line);
     color: var(--text);
 }
 

@@ -1,0 +1,132 @@
+/* One surface profile shapes both the refracted photograph and the reflected light. */
+:root {
+    --glass-corner: 9px;
+    --glass-edge: color-mix(in srgb, var(--muted) 36%, transparent);
+    --glass-surface: color-mix(in srgb, var(--surface) 36%, transparent);
+    --glass-control: color-mix(in srgb, var(--field) 25%, transparent);
+    --glass-frost: blur(3px);
+    --glass-scrim: rgb(0 0 0 / .23);
+    --glass-depth: 0 8px 28px rgb(0 0 0 / .16);
+    --focus-ink: 0 0 4px var(--focus-glow);
+}
+
+/* Resolve these on each illuminated object so its highlight faces the same point in space. */
+:root, [data-glass-lit] {
+    --glass-angle: -125deg;
+    --glass-power: .57;
+    --glass-x: 20%;
+    --glass-y: 0%;
+    --glass-glint: rgb(255 255 255 / var(--glass-power));
+    --glass-divider: radial-gradient(circle 9rem at var(--glass-x) var(--glass-y), var(--glass-glint), var(--glass-edge));
+    --glass-node: radial-gradient(circle at calc(50% + 30% * cos(var(--glass-angle))) calc(50% + 30% * sin(var(--glass-angle))),
+        white, var(--accent) 44%, var(--muted) 92%);
+}
+
+[data-glass="surface"] {
+    --glass-bevel: 9px;
+    isolation: isolate;
+    background: var(--glass-surface);
+    border: 0;
+    box-shadow: var(--glass-depth);
+    backdrop-filter: var(--glass-frost);
+}
+
+:where([data-glass="control"], [data-glass="controls"] > button) {
+    position: relative;
+    isolation: isolate;
+}
+[data-glass="control"], [data-glass="controls"] > button {
+    --glass-bevel: 3.5px;
+    border: 0;
+    border-radius: 5px;
+    background: var(--glass-control);
+    box-shadow: 0 1px 3px rgb(15 24 28 / .14);
+}
+.glass-field {
+    display: inline-grid;
+    min-width: 0;
+    max-width: 100%;
+}
+.glass-field > :is(select, input) {
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+}
+select option { background: var(--field); color: var(--text); }
+
+glass-lens {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    overflow: hidden;
+}
+glass-lens > svg { position: absolute; }
+
+glass-lens > span {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: .81;
+}
+glass-lens > span::before {
+    content: "";
+    position: absolute;
+    left: var(--photo-x);
+    top: var(--photo-y);
+    width: var(--photo-width, 100vw);
+    height: var(--photo-height, 100dvh);
+    background: var(--wallpaper-paint);
+}
+
+/* The mask follows the optical slope down to zero at the flat face. */
+glass-lens::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(from calc(var(--glass-angle) + 90deg),
+        var(--glass-glint), transparent 24%, rgb(26 43 45 / .22) 50%, transparent 76%, var(--glass-glint));
+    mask: var(--glass-reflection, linear-gradient(transparent, transparent)) center / 100% 100% no-repeat;
+}
+
+/* Paint existing separators without adding a border to borderless sections. */
+:where([data-glass-rule], [data-glass-rows] > li) {
+    border-image: var(--glass-divider) 1;
+}
+
+:where(:focus, a:hover, button:enabled:hover, summary:hover) {
+    text-shadow: var(--focus-ink);
+}
+:where(a, button:enabled, summary):is(:focus, :hover) svg {
+    filter: drop-shadow(0 0 2px var(--focus-glow));
+}
+
+/* An opaque backing prevents underlying UI from showing through. The muted
+   wallpaper still gives the bevel a scene to refract. */
+@media (prefers-reduced-transparency: reduce) {
+    glass-lens > span { opacity: .50; }
+    :root, [data-glass-lit] {
+        --glass-surface: var(--surface);
+        --glass-control: var(--field);
+        --glass-frost: none;
+    }
+}
+
+@media print, (forced-colors: active) {
+    glass-lens { display: none; }
+    :root, [data-glass-lit] {
+        --glass-edge: var(--line);
+        --glass-surface: var(--surface);
+        --glass-control: var(--field);
+        --glass-divider: none;
+        --glass-node: var(--accent);
+        --focus-ink: none;
+        --glass-frost: none;
+        --glass-depth: 0 0 transparent;
+    }
+}
+@media (forced-colors: active) {
+    [data-glass="control"], [data-glass="surface"], [data-glass="controls"] > button { outline: 1px solid CanvasText; }
+    :is([data-glass="control"], [data-glass="controls"] > button):is(:focus-visible, :focus-within) { outline: 2px solid Highlight; }
+}

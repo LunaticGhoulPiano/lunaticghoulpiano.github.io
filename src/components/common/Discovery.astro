@@ -21,7 +21,7 @@ const groups = [
 <aside class="discovery-rail" data-discovery data-locale={locale} data-default-filters={JSON.stringify(filters)} data-copy={JSON.stringify(copy)}>
     <form method="get" action={getRoutePath("search", locale)} data-discovery-form>
         {groups.map(({ kind, label, placeholder, empty, entries }) => (
-            <details class="discovery-group" open data-filter-group={kind}>
+            <details class="discovery-group" data-glass-rule open data-filter-group={kind}>
                 <summary>
                     <span>{label}</span>
                     <span class="filter-summary" data-category-summary={kind === "category" ? "" : undefined} data-tags-summary={kind === "tag" ? "" : undefined}>
@@ -29,7 +29,7 @@ const groups = [
                     </span>
                 </summary>
                 <div class="discovery-body">
-                    <label class="search-field discovery-search">
+                    <label class="search-field discovery-search" data-glass="control">
                         <span class="sr-only">{placeholder}</span>
                         <input type="search" placeholder={placeholder} data-filter-search autocomplete="off" />
                     </label>

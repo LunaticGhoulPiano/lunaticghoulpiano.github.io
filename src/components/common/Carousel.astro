@@ -25,10 +25,10 @@ const copy = useMessages(locale).carousel;
         "--carousel-medium": Math.min(2, visibleItems),
     }}
 >
-    <div class:list={["carousel-track", { "filter-options": navigation }]} id={id} data-carousel-track tabindex="0" role="region" aria-label={label}>
+    <div class:list={["carousel-track", { "filter-options": navigation }]} id={id} data-glass-rule={navigation || undefined} data-carousel-track tabindex="0" role="region" aria-label={label}>
         <slot />
     </div>
-    <div class="carousel-controls" data-carousel-controls data-reveal-last={!navigation || undefined} hidden>
+    <div class="carousel-controls" data-glass="controls" data-carousel-controls data-reveal-last={!navigation || undefined} hidden>
         <button type="button" data-carousel-previous aria-label={copy.previous} aria-controls={id}>←</button>
         {! navigation && <div
             class="carousel-scrollbar"

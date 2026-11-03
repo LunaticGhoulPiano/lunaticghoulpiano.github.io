@@ -18,11 +18,11 @@ const { shell: copy, search } = useMessages(locale);
 const t = useTranslations(locale);
 ---
 <header class="site-header" id="top">
-    <div class="header-inner">
+    <div class="header-inner" data-glass-rule>
         <a class="brand" href={getRoutePath("profile", locale)}>{site.brand}</a>
         <span class="workspace-label"><span class="workspace-dot" aria-hidden="true"></span>{route ? t(routes[route].title) : copy.desktop}</span>
-        <div class="header-tools">
-            <form class="global-search search-field" role="search" method="get" action={getRoutePath("search", locale)} data-global-search data-locale={locale}>
+        <div class="header-tools" data-glass="controls">
+            <form class="global-search search-field" data-glass="control" role="search" method="get" action={getRoutePath("search", locale)} data-global-search data-locale={locale}>
                 <label class="sr-only" for="global-search">{search.label}</label>
                 <Icon name="search" />
                 <input id="global-search" name="q" type="search" placeholder={search.placeholder} autocomplete="off" />

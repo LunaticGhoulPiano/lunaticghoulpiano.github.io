@@ -58,11 +58,13 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
                 <p class="youtube-playlist-description" data-youtube-description></p>
                 <div class="youtube-sort" data-youtube-sort-controls hidden>
                     <label for="youtube-sort">{copy.sortBy}</label>
-                    <select id="youtube-sort" data-youtube-sort autocomplete="off">
-                        {youtubeVideoSortOptions.map((option) => (
-                            <option value={option} selected={option === youtubeVideoSortOptions[0]}>{copy[option]}</option>
-                        ))}
-                    </select>
+                    <span class="glass-field" data-glass="control">
+                        <select id="youtube-sort" data-youtube-sort autocomplete="off">
+                            {youtubeVideoSortOptions.map((option) => (
+                                <option value={option} selected={option === youtubeVideoSortOptions[0]}>{copy[option]}</option>
+                            ))}
+                        </select>
+                    </span>
                 </div>
             </div>
             <TimelineViewport
@@ -124,9 +126,7 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
         min-width: 0;
         min-height: 2.25rem;
         padding: 0.25rem 0.5rem;
-        border: 1px solid var(--line);
         color: var(--text);
-        background: var(--surface);
         font: inherit;
     }
 

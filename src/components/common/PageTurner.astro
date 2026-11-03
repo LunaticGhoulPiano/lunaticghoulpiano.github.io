@@ -13,11 +13,11 @@ const copy = useMessages(locale).carousel;
 ---
 
 <div class="page-turner carousel" data-page-turner>
-    <header class="page-turner-header" data-reveal-item>
+    <header class="page-turner-header" data-glass-rule data-reveal-item>
         <div class="page-turner-headings">
             <slot name="heading" />
         </div>
-        <div class="carousel-controls page-turner-controls" data-page-turner-controls hidden>
+        <div class="carousel-controls page-turner-controls" data-glass="controls" data-page-turner-controls hidden>
             <button type="button" data-page-turner-previous aria-label={copy.previous} aria-controls={id}>←</button>
             <button type="button" data-page-turner-next aria-label={copy.next} aria-controls={id}>→</button>
             <span class="sr-only" data-page-turner-position role="status" aria-live="off" aria-atomic="true"></span>

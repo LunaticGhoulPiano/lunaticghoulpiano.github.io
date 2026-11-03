@@ -52,7 +52,7 @@ const toc = headings.filter((heading) => (contentRules.tocDepths as readonly num
             </ul>
         </header>
         {toc.length > 0 && (
-            <details class="article-toc" open>
+            <details class="article-toc" data-glass-rule open>
                 <summary>{copy.contents}</summary>
                 <nav aria-label={copy.articleContents}>
                     <ol>

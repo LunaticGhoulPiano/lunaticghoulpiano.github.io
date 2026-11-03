@@ -35,7 +35,7 @@ const copy = messages.activity;
                 "--activity-repository-lines": githubActivityCategoryLayout.repositoryLines,
             }}
         >
-            <header class="feed-category-heading" data-reveal-item>
+            <header class="feed-category-heading" data-glass-rule data-reveal-item>
                 <h3 id={`category-${category.key}`}>{copy[category.key]}</h3>
                 {category.available && <span class="activity-count">{category.count}</span>}
             </header>

@@ -24,11 +24,13 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
         removeAttribute(key) { this.attributes.delete(key); },
         getClientRects: () => [{}],
         animate(frames, options) {
-            effects.push([name, "fade", frames[0].opacity ?? Number(frames[0]["--entrance-progress"]), frames[1].opacity ?? Number(frames[1]["--entrance-progress"])]);
+            effects.push([name, "fade", frames[0].opacity, frames[1].opacity ?? 1]);
             let reject;
             let resolve;
             const animation = {
                 name, frames, options, cancelled: false,
+                pause() { this.playState = "paused"; },
+                play() { this.playState = "running"; },
                 finished: holdAnimations ? new Promise((done, fail) => { resolve = done; reject = fail; }) : Promise.resolve(),
                 finish() { resolve?.(); },
                 cancel() { this.cancelled = true; reject?.(new Error("cancelled")); },
@@ -39,7 +41,7 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
     });
     const itemNames = ["name", "alias", "overview", "resume", "social"];
     if (detail) itemNames.push("heading");
-    itemNames.push("label-1", "value-1", "label-2", "value-2");
+    itemNames.push("field-1", "field-2");
     const page = (name) => Object.assign(element(name), {
         items: itemNames.map((item) => element(`${name}:${item}`)),
         querySelectorAll() { return this.items; },
@@ -71,7 +73,7 @@ function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations =
         getElementById: (id) => ({ "profile-content": content, "main-content": main })[id],
         addEventListener(name, listener) { listeners.set(name, [...(listeners.get(name) ?? []), listener]); },
     };
-    runInNewContext(script, { document, window, AbortController });
+    runInNewContext(script, { document, window, AbortController, requestAnimationFrame: setImmediate, cancelAnimationFrame: clearImmediate });
     const controller = new AbortController();
     const event = {
         navigationType: "push",
@@ -100,8 +102,7 @@ test("prepared pages reveal items and page-load does not replay the entrance", a
     assert.equal(delays[0], 0);
     assert.ok(delays.every((delay, index) => index === 0 || delay > delays[index - 1]));
     for (const animation of page.animations) {
-        assert.equal(animation.frames[0]["--entrance-progress"], "0");
-        assert.equal(animation.frames[1]["--entrance-progress"], "1");
+        assert.equal(animation.frames[0].opacity, 0);
         assert.equal(animation.frames[0].transform, undefined, "Entrance must not replace the timeline or focus transform.");
         assert.equal(animation.options.fill, "backwards");
         assert.equal(animation.cancelled, true);

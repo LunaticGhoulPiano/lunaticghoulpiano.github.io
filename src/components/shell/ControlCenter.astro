@@ -2,7 +2,7 @@
 import { appearanceOptions, appearanceDefaults } from "../../config/appearance";
 import type { Locale } from "../../config/locales";
 import { useMessages } from "../../i18n/ui";
-import { wallpapers } from "../../assets/wallpapers";
+import credits from "../../assets/wallpapers/credits.json";
 import LanguageSwitcher from "../navigation/LanguageSwitcher.astro";
 import Panel from "../common/Panel.astro";
 import Icon from "../common/Icon.astro";
@@ -15,21 +15,21 @@ const { shell: copy, design } = useMessages(locale);
         <legend>{copy.preset}</legend>
         {appearanceOptions.preset.map((preset) => (
             <div class="preset-option">
-                <label class="preset-choice" style={`--preset-preview: url('${wallpapers[preset].image.src}')`}>
+                <label class="preset-choice" data-wallpaper={preset}>
                     <input type="radio" name="appearance-preset" value={preset} data-appearance-setting="preset" checked={preset === appearanceDefaults.preset} />
                     <span>{copy[preset]}</span>
                 </label>
-                <p class="preset-credit"><a href={wallpapers[preset].credit.source} target="_blank" rel="noreferrer">© {wallpapers[preset].credit.photographer} / Unsplash ↗</a></p>
+                <p class="preset-credit"><a href={credits[`${preset}.webp`].source} target="_blank" rel="noreferrer">© {credits[`${preset}.webp`].photographer} / Unsplash ↗</a></p>
             </div>
         ))}
     </fieldset>
-    <div class="control-row">
+    <div class="control-row" data-glass-rule data-glass="controls">
         <span>{copy.theme}</span>
         <button class="theme-toggle" type="button" data-theme-toggle data-system-label={design.themeSystem} data-dark-label={design.themeDark} data-light-label={design.themeLight} data-system-value={copy.system} data-light-value={copy.light} data-dark-value={copy.dark} aria-label={design.themeSystem} hidden>
             <Icon name="contrast" /><span data-theme-value>{copy.system}</span>
         </button>
     </div>
-    <div class="control-row"><span>{copy.language}</span><LanguageSwitcher locale={locale} languagePaths={languagePaths} /></div>
+    <div class="control-row" data-glass-rule><span>{copy.language}</span><LanguageSwitcher locale={locale} languagePaths={languagePaths} /></div>
     <div class="control-footer">
         <button class="text-link" type="button" data-appearance-reset><Icon name="reset" />{copy.reset}</button>
     </div>
@@ -60,7 +60,7 @@ const { shell: copy, design } = useMessages(locale);
         padding: 0.65rem 0.3rem;
         border: 2px solid transparent;
         border-radius: 2px;
-        background: linear-gradient(#10121120, #101211ee), var(--preset-preview) center 55% / cover;
+        background: linear-gradient(#10121120, #101211ee), var(--wallpaper-photo) var(--wallpaper-position) / cover;
         color: #fff;
         cursor: pointer;
         font-size: 0.7rem;
@@ -69,7 +69,6 @@ const { shell: copy, design } = useMessages(locale);
 
     .preset-choice:has(:checked) {
         border-color: var(--accent);
-        box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent);
     }
 
     .preset-choice input {
@@ -108,10 +107,9 @@ const { shell: copy, design } = useMessages(locale);
         justify-content: end;
         gap: 0.6rem;
         min-height: 44px;
-        padding: 0.4rem 0;
+        padding: 0.4rem 0.7rem;
         max-width: 65%;
         border: 0;
-        background: transparent;
         font-size: 0.72rem;
         text-align: right;
     }

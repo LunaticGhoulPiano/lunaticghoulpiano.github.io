@@ -34,9 +34,9 @@ const description = context.section === "feeds" ? context.description : t(page.d
             {context.items.length > 0 ? <ContentList locale={locale} items={context.items} placement={route} /> : (
                 <dl class="profile-fields">
                     {context.fields.map((heading) => (
-                        <div class="focus-item">
-                            <dt data-reveal-item>{t(heading)}</dt>
-                            <dd data-reveal-item>{copy.unpublished}</dd>
+                        <div class="focus-item" data-reveal-item>
+                            <dt>{t(heading)}</dt>
+                            <dd>{copy.unpublished}</dd>
                         </div>
                     ))}
                 </dl>

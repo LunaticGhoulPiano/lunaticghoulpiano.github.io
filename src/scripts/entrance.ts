@@ -20,10 +20,11 @@ function entranceItems(root: HTMLElement) {
             continue;
         }
         const bounds = item.getBoundingClientRect();
-        if (bounds.width <= 0 || bounds.height <= 0 || getComputedStyle(item).visibility !== "visible") continue;
+        if (bounds.width <= 0 || bounds.height <= 0) continue;
         let left = 0, right = window.innerWidth;
         // Bottom controls of an active column can sit below the fold.
         let top = last ? -Infinity : 0, bottom = last ? Infinity : window.innerHeight;
+        if (bounds.right <= left || bounds.left >= right || bounds.bottom <= top || bounds.top >= bottom) continue;
         for (let parent = item.parentElement; parent; parent = parent.parentElement) {
             let clip = clipping.get(parent);
             if (!clip) {
@@ -35,6 +36,7 @@ function entranceItems(root: HTMLElement) {
             if (clip.y) { top = Math.max(top, clip.bounds.top); bottom = Math.min(bottom, clip.bounds.bottom); }
         }
         if (bounds.right <= left || bounds.left >= right || bounds.bottom <= top || bounds.top >= bottom) continue;
+        if (getComputedStyle(item).visibility !== "visible") continue;
         if (last) controls.push(item);
         else visible.push({ item, bounds });
     }
@@ -67,4 +69,4 @@ document.addEventListener("astro:before-preparation", () => entrance?.abort());
 // The head bootstrap emits this only while the initialized page is concealed.
 // Late modules and timeout fallbacks must not hide already-visible content again.
 document.addEventListener("site:page-ready", initializeEntrances);
-window.addEventListener("pagehide", () => entrance?.abort());
+for (const event of ["pagehide", "beforeprint"]) window.addEventListener(event, () => entrance?.abort());

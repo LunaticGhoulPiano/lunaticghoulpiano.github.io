@@ -17,7 +17,7 @@ function appearance(saved, blocked = false) {
         querySelectorAll: () => controls,
         querySelector: () => reset,
     });
-    runInNewContext(script, { document, Event, localStorage: {
+    runInNewContext(script, { document, window: new EventTarget(), Event, localStorage: {
         getItem() { if (blocked) throw new Error("Blocked"); return saved; },
         setItem(key, value) { if (blocked) throw new Error("Blocked"); assert.equal(key, "site-appearance"); saved = value; },
     } });
@@ -38,7 +38,6 @@ test("appearance validates storage before first paint and persists changes and r
     piano.checked = true;
     piano.dispatchEvent(new Event("change"));
     assert.equal(page.dataset.preset, "piano");
-    assert.equal(page.dataset.darkColor, appearanceConfiguration.colors.piano.dark);
     assert.equal(JSON.parse(page.saved()).preset, "piano");
     assert.equal(page.controls.filter((control) => control.checked).length, 1);
     let resets = 0;

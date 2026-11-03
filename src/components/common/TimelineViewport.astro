@@ -20,6 +20,7 @@ const end = chronological ? copy.oldest : copy.last;
 <div class="timeline-window" data-timeline-window data-visible-items={visibleItems} data-height={height}>
     <button
         class="timeline-jump"
+        data-glass="control"
         type="button"
         data-timeline-newest
         data-reveal-last
@@ -33,6 +34,7 @@ const end = chronological ? copy.oldest : copy.last;
         id={id}
         data-timeline-scroll
         data-reveal-list
+        data-reveal-effect="gutter"
         tabindex="0"
         role="region"
         aria-label={label}
@@ -42,6 +44,7 @@ const end = chronological ? copy.oldest : copy.last;
     </div>
     <button
         class="timeline-jump"
+        data-glass="control"
         type="button"
         data-timeline-oldest
         data-reveal-last
@@ -84,11 +87,7 @@ const end = chronological ? copy.oldest : copy.last;
 
     /* Keep the content opaque and stationary; reveal only the scrollbar gutter from the top right. */
     .timeline-scroll[data-entering] {
-        --entrance-x: 0px;
-        --entrance-y: 0px;
-        --entrance-opacity: 1;
         --timeline-mask-width: max(0.75rem, var(--timeline-scrollbar-width));
-        transform: none;
         mask:
             linear-gradient(black 0 0) left / calc(100% - var(--timeline-mask-width)) 100% no-repeat,
             linear-gradient(rgb(0 0 0 / var(--entrance-progress)) 0 0) right top /
@@ -104,8 +103,8 @@ const end = chronological ? copy.oldest : copy.last;
 
     .timeline-scroll :global(ol > li) {
         position: relative;
-        transform: translate(calc(var(--timeline-x, 0px) + var(--entrance-x, 0px)), var(--entrance-y, 0px)) scale(max(var(--item-focused, 0), var(--timeline-scale, 1)));
-        opacity: calc(max(var(--item-focused, 0), var(--timeline-opacity, 1)) * var(--entrance-opacity, 1));
+        transform: translateX(var(--timeline-x, 0px)) scale(max(var(--item-focused, 0), var(--timeline-scale, 1)));
+        opacity: max(var(--item-focused, 0), var(--timeline-opacity, 1));
     }
 
     .timeline-scroll :global(ol > li:has(> time)) {
@@ -129,10 +128,12 @@ const end = chronological ? copy.oldest : copy.last;
 
     .timeline-scroll :global(ol > li > time::before) {
         content: "";
-        width: 5px;
-        height: 5px;
+        width: 7px;
+        height: 7px;
         flex: none;
-        background: var(--accent);
+        border-radius: 50%;
+        background: var(--glass-node);
+        box-shadow: 0 0 calc(7px * var(--item-focused)) var(--item-glow);
     }
 
     .timeline-jump {

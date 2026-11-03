@@ -24,7 +24,7 @@ const copy = useMessages(locale).design;
     {filterable && (
         <div class="repository-controls" data-list-search-controls data-reveal-item hidden>
             <SearchField id={`${id}-search`} label={copy.search} placeholder={copy.searchPlaceholder} data-list-search />
-            <div class="repository-filter-bar">
+            <div class="repository-filter-bar" data-glass-rule>
                 <div class="filter-options" role="group" aria-label={copy.repositoryType}>
                     {(["all", "original", "fork"] as const).map((type) => (
                         <button type="button" data-repository-filter={type} aria-pressed={type === "all"}>{copy[type]}</button>
@@ -42,7 +42,7 @@ const copy = useMessages(locale).design;
     <ol class="repository-list">
         {repositories.map((repository, index) => (
             <li
-                class="repository-row focus-item"
+                class="repository-row focus-item" data-glass-rule
                 data-page-item
                 data-reveal-item
                 data-repository

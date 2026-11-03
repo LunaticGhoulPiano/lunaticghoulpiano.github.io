@@ -68,15 +68,20 @@ const Title = route === "profile" ? "h1" : "p";
         display: inline-flex;
         align-items: center;
         min-height: 44px;
+        padding-inline: .55rem;
         border-bottom: 2px solid transparent;
         color: var(--muted);
         text-decoration: none;
         font-size: 0.875rem;
     }
 
-    .profile-nav a:hover, .profile-nav [aria-current="page"] {
+    .profile-nav [aria-current="page"] {
         color: var(--accent);
         border-bottom-color: var(--accent);
+    }
+
+    .profile-nav a:is(:hover, :focus-visible) {
+        color: var(--text);
     }
 
     @media (max-width: 48rem) {

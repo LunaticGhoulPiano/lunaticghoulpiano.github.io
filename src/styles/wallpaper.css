@@ -1,0 +1,32 @@
+/* Shared by Astro and the mounted documentation; both bundlers resolve these same assets. */
+:root, [data-wallpaper="piano"] {
+    --wallpaper-photo: url("../assets/wallpapers/piano.webp");
+    --wallpaper-position: center 62%;
+}
+
+:root[data-preset="aviation"], [data-wallpaper="aviation"] {
+    --wallpaper-photo: url("../assets/wallpapers/aviation.webp");
+    --wallpaper-position: center 52%;
+}
+
+:root {
+    --wallpaper-wash: 72%;
+    --wallpaper-alignment: var(--wallpaper-position);
+    --wallpaper-tint: color-mix(in srgb, var(--background) var(--wallpaper-wash), transparent);
+    --wallpaper-paint: linear-gradient(90deg, color-mix(in srgb, var(--background) 50%, transparent), transparent 84%),
+        linear-gradient(0deg, color-mix(in srgb, var(--background) 28%, transparent), transparent 60%),
+        linear-gradient(var(--wallpaper-tint), var(--wallpaper-tint)),
+        var(--wallpaper-photo) var(--wallpaper-alignment) / cover no-repeat var(--background);
+}
+:root[data-theme="dark"] { --wallpaper-wash: 68%; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) { --wallpaper-wash: 68%; } }
+@media (max-width: 48rem) { :root { --wallpaper-alignment: 56% center; } }
+
+.desktop-background, .docs-wrapper body::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--wallpaper-paint);
+}
+@media print, (forced-colors: active) { .desktop-background, .docs-wrapper body::before { display: none; } }

@@ -28,7 +28,7 @@ const price = (sheet: (typeof sheets)[number]) => sheet.isFree ? copy.free
     : new Intl.NumberFormat(formatLocale, { style: "currency", currency: sheet.currency, currencyDisplay: "code" }).format(sheet.price);
 ---
 
-<ol id={id} aria-label={label} class="sheet-list mymusic5-sheets" data-paginated={paginated || undefined} style={{
+<ol id={id} aria-label={label} class="sheet-list mymusic5-sheets" data-glass-rows data-paginated={paginated || undefined} style={{
     "--sheet-wide-height": `${mymusic5SheetLayout.itemHeight}px`,
     "--sheet-mobile-height": `${mymusic5SheetLayout.mobileItemHeight}px`,
     "--sheet-title-lines": mymusic5SheetLayout.titleLines,

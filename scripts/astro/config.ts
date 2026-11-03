@@ -6,6 +6,9 @@ import { itemContent } from "../content/integration.mjs";
 export default defineConfig({
     site: site.url,
     output: "static",
+    markdown: {
+        shikiConfig: { themes: { light: "github-light", dark: "github-dark" }, defaultColor: false },
+    },
     trailingSlash: "always",
     prerenderConflictBehavior: "error",
     integrations: [projectPaths, itemContent()],

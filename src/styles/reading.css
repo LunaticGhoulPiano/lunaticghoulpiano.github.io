@@ -1,0 +1,41 @@
+/* Opaque reading surfaces keep the same contrast over both photographs. */
+:is(.markdown, .prose) table {
+    border-collapse: collapse;
+    color: var(--text);
+}
+:is(.markdown, .prose) table :is(th, td) {
+    border: 1px solid var(--line);
+    background: var(--surface);
+}
+:is(.markdown, .prose) table tbody tr:nth-child(even) td { background: var(--field); }
+:is(.markdown, .prose) table th {
+    background: var(--subtle);
+    font-weight: 650;
+    text-align: start;
+}
+:is(.markdown, .prose) :not(pre) > code {
+    color: var(--text);
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: .2rem;
+    padding: .08em .3em;
+    overflow-wrap: anywhere;
+}
+:is(.markdown, .prose) pre {
+    background: var(--code-bg);
+    color: var(--text);
+    font-style: normal;
+    line-height: 1.65;
+    overflow-x: auto;
+}
+.prose pre, .markdown .theme-code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: .3rem;
+    box-shadow: none;
+}
+.prose pre span { color: var(--shiki-light, inherit); }
+:root[data-theme="dark"] .prose pre span { color: var(--shiki-dark, inherit); }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .prose pre span { color: var(--shiki-dark, inherit); }
+}

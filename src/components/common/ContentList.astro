@@ -21,7 +21,7 @@ const ListFrame = animatePages ? ContentTransition : Fragment;
 
 <div data-paginated-list>
     <ListFrame>
-        <ol class="post-list">
+        <ol class="post-list" data-glass-rows>
             {items.map((item) => (
                 <li class="focus-item" data-page-item data-reveal-item>
                     <p class="post-meta">

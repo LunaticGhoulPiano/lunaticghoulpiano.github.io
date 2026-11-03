@@ -1,20 +1,19 @@
-const lightEffects = { "highlight-background": "#174b8a", "highlight-text": "#ffffff", "focus-glow": "rgb(100 85 65 / 0.24)" };
-const darkEffects = { "highlight-background": "#ffe066", "highlight-text": "#171b20", "focus-glow": "rgb(255 255 255 / 0.32)" };
-
-export const themePresets = {
-    piano: {
-        light: { background: "#f2f0eb", text: "#292723", muted: "#656058", accent: "#785333", line: "#d5d0c7", subtle: "#e9e5dd", field: "#faf9f6", surface: "#faf9f6", ...lightEffects },
-        dark: { background: "#161615", text: "#ece9e1", muted: "#b7b1a6", accent: "#dfc59b", line: "#3b3a36", subtle: "#2b2a26", field: "#20201e", surface: "#1c1c1a", ...darkEffects },
+export const themes = {
+    light: {
+        background: "#f4f3ef", text: "#232729", muted: "#434c50", accent: "#624523", line: "#c6cbca",
+        subtle: "#e2e7e6", field: "#f0f3f1", surface: "#fafbf8",
+        "code-bg": "#e8edec", "syntax-comment": "#4c5c60", "syntax-keyword": "#583d68",
+        "syntax-string": "#245744", "syntax-name": "#27506b", "syntax-value": "#70432b",
+        "highlight-background": "#174b8a", "highlight-text": "#ffffff", "focus-glow": "rgb(77 67 55 / .25)",
     },
-    aviation: {
-        light: { background: "#edf2f5", text: "#21313d", muted: "#526574", accent: "#245e7e", line: "#cbd6de", subtle: "#e0e9ee", field: "#f7fafc", surface: "#f7fafc", ...lightEffects },
-        dark: { background: "#121a20", text: "#e5edf2", muted: "#a9bac7", accent: "#e3bf7e", line: "#33434e", subtle: "#22313b", field: "#1a252d", surface: "#18232b", ...darkEffects },
+    dark: {
+        background: "#171a1b", text: "#f1f1eb", muted: "#c2c8c7", accent: "#e6ca9e", line: "#475052",
+        subtle: "#30383a", field: "#262d2e", surface: "#202627",
+        "code-bg": "#252d30", "syntax-comment": "#adb9b9", "syntax-keyword": "#dcc3e5",
+        "syntax-string": "#a9d5ba", "syntax-name": "#accfe2", "syntax-value": "#e8c1a5",
+        "highlight-background": "#ffe066", "highlight-text": "#171b20", "focus-glow": "rgb(255 255 255 / .32)",
     },
 } as const;
-
-export type ThemePreset = keyof typeof themePresets;
-export const defaultThemePreset = "piano" satisfies ThemePreset;
-export const themes = themePresets[defaultThemePreset];
 
 const printTheme = {
     background: "#fff",
@@ -37,16 +36,11 @@ function variables(colors: Record<string, string>) {
 export const themeStyles = `
     :root { color-scheme: light; ${variables(themes.light)} }
     :root[data-theme="dark"] { color-scheme: dark; ${variables(themes.dark)} }
-    ${Object.entries(themePresets).map(([name, palette]) => `
-        :root[data-preset="${name}"] { color-scheme: light; ${variables(palette.light)} }
-        :root[data-preset="${name}"][data-theme="dark"] { color-scheme: dark; ${variables(palette.dark)} }
-    `).join("")}
     @media screen and (prefers-color-scheme: dark) {
         :root:not([data-theme]) { color-scheme: dark; ${variables(themes.dark)} }
-        ${Object.entries(themePresets).map(([name, palette]) => `:root[data-preset="${name}"]:not([data-theme]) { color-scheme: dark; ${variables(palette.dark)} }`).join("")}
     }
     @media print {
-        :root, :root[data-theme], :root[data-preset], :root[data-preset][data-theme] { color-scheme: light; ${variables(printTheme)} }
+        :root, :root[data-theme] { color-scheme: light; ${variables(themes.light)} ${variables(printTheme)} }
     }
 `;
 

@@ -5,12 +5,14 @@ import Icon from "./Icon.astro";
 interface Props { id: string; title: string; locale: Locale; }
 const { id, title, locale } = Astro.props;
 ---
-<dialog id={id} class="shell-panel" data-panel aria-labelledby={`${id}-title`}>
-    <header class="panel-heading">
-        <h2 id={`${id}-title`}>{title}</h2>
-        <button class="icon-button" type="button" data-panel-close aria-label={useMessages(locale).shell.close}><Icon name="close" /></button>
-    </header>
-    <slot />
+<dialog id={id} class="shell-panel" data-panel data-glass="surface" aria-labelledby={`${id}-title`}>
+    <div class="panel-body">
+        <header class="panel-heading" data-glass="controls">
+            <h2 id={`${id}-title`}>{title}</h2>
+            <button class="icon-button" type="button" data-panel-close aria-label={useMessages(locale).shell.close}><Icon name="close" /></button>
+        </header>
+        <slot />
+    </div>
 </dialog>
 
 <script>
@@ -26,24 +28,28 @@ const { id, title, locale } = Astro.props;
 
     .shell-panel {
         color: var(--text);
-        background: var(--surface);
-        padding: 1.4rem;
-        border: 1px solid var(--chrome-line);
-        border-radius: 4px;
-        box-shadow: 0 20px 100px #0005;
-        overflow: auto;
-        overscroll-behavior: contain;
+        padding: 0;
+        border-radius: var(--glass-corner);
+        overflow: hidden;
         font-size: 0.9rem;
         width: min(25rem, calc(100% - 2rem));
         /* Width is controlled here, including the full-width mobile layout. */
         max-width: none;
-        max-height: calc(100dvh - 6rem);
+        --panel-max-height: calc(100dvh - 6rem);
+        max-height: var(--panel-max-height);
         inset: 5rem 1.5rem auto auto;
         margin: 0;
     }
 
+    .panel-body {
+        padding: 1.4rem;
+        max-height: var(--panel-max-height);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
     .shell-panel::backdrop {
-        background: #0007;
+        background: var(--glass-scrim);
     }
 
     .panel-heading {
@@ -56,10 +62,6 @@ const { id, title, locale } = Astro.props;
 
     .panel-heading h2 {
         font-size: 1rem;
-    }
-
-    .panel-heading .icon-button {
-        border: 0;
     }
 
     @media (prefers-reduced-motion: no-preference) {
@@ -88,12 +90,14 @@ const { id, title, locale } = Astro.props;
         .shell-panel {
             inset: auto 0 0;
             width: 100%;
-            max-height: 90dvh;
+            --panel-max-height: 90dvh;
             margin: 0;
-            padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
-            border-radius: 4px 4px 0 0;
+            border-radius: var(--glass-corner) var(--glass-corner) 0 0;
         }
 
+        .panel-body {
+            padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
+        }
     }
 
     @media print {

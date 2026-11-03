@@ -5,9 +5,21 @@ import { themeStyles } from "../../config/theme.ts";
 import { appearanceConfiguration } from "../../config/appearance.ts";
 
 const appearanceScript = readFileSync(new URL("../../scripts/appearance.js", import.meta.url), "utf8");
+const migrateTheme = readFileSync(new URL("../../scripts/migrate-theme.js", import.meta.url), "utf8");
 
 const content = JSON.parse(readFileSync(new URL("./configs.json", import.meta.url), "utf8"));
 const locale = process.env.DOCUSAURUS_CURRENT_LOCALE ?? site.defaultLocale;
+// Prism writes colors inline. CSS variables keep its first paint and theme switches in sync.
+const codeTheme = {
+    plain: { color: "var(--text)", backgroundColor: "var(--code-bg)" },
+    styles: [
+        { types: ["comment", "prolog", "doctype"], style: { color: "var(--syntax-comment)" } },
+        { types: ["keyword", "atrule", "tag"], style: { color: "var(--syntax-keyword)" } },
+        { types: ["string", "attr-value", "regex"], style: { color: "var(--syntax-string)" } },
+        { types: ["function", "class-name", "property", "attr-name"], style: { color: "var(--syntax-name)" } },
+        { types: ["number", "boolean", "constant", "variable"], style: { color: "var(--syntax-value)" } },
+    ],
+};
 const labels = {
     en: { docs: "Documentation", back: "All documentations" },
     "zh-tw": { docs: "文檔", back: "所有文檔" },
@@ -21,7 +33,7 @@ export default {
     trailingSlash: true,
     headTags: [
         { tagName: "style", attributes: {}, innerHTML: themeStyles },
-        { tagName: "script", attributes: {}, innerHTML: `document.documentElement.dataset.appearanceConfig = ${JSON.stringify(JSON.stringify(appearanceConfiguration))};\n${appearanceScript}` },
+        { tagName: "script", attributes: {}, innerHTML: `${migrateTheme}\ndocument.documentElement.dataset.appearanceConfig = ${JSON.stringify(JSON.stringify(appearanceConfiguration))};\n${appearanceScript}` },
     ],
     onBrokenLinks: "throw",
     markdown: {
@@ -50,11 +62,12 @@ export default {
         }],
     ],
     themeConfig: {
+        prism: { theme: codeTheme, darkTheme: codeTheme },
         navbar: {
             title: "MyMusic5API",
             items: [
                 { type: "docSidebar", sidebarId: "documentation", label: labels[locale].docs, position: "left" },
-                { href: `${site.url}${localizedPath("documentations", locale)}`, label: labels[locale].back, position: "left" },
+                { to: `pathname://${localizedPath("documentations", locale)}`, autoAddBaseUrl: false, target: "_self", label: labels[locale].back, position: "left" },
                 { href: content.links[0].url, label: "GitHub", position: "right" },
                 { type: "localeDropdown", position: "right" },
             ],

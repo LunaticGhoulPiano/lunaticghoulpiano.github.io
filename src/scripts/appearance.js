@@ -3,20 +3,17 @@
     const configuration = JSON.parse(root.dataset.appearanceConfig || "{}");
     if (! configuration.defaults || ! configuration.options) return;
     const { defaults, options } = configuration;
-    let saved = {};
-    try {
-        saved = JSON.parse(localStorage.getItem("site-appearance") || "{}");
+    function readPreferences() {
+        let saved;
+        try { saved = JSON.parse(localStorage.getItem("site-appearance") || "{}"); }
+        catch { /* Use defaults when storage is blocked or malformed. */ }
+        return Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key,
+            options[key].includes(saved?.[key]) ? saved[key] : value,
+        ]));
     }
-    catch {
-        // Appearance remains usable when storage is blocked or malformed.
-    }
-    let preferences = Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key,
-        options[key].includes(saved?.[key]) ? saved[key] : value,
-    ]));
+    let preferences = readPreferences();
     const apply = () => {
         for (const [key, value] of Object.entries(preferences)) root.dataset[key] = value;
-        for (const [mode, color] of Object.entries(configuration.colors?.[preferences.preset] ?? {})) root.dataset[`${mode}Color`] = color;
-        document.dispatchEvent(new Event("site:appearance"));
     };
     const save = () => {
         try { localStorage.setItem("site-appearance", JSON.stringify(preferences)); }
@@ -60,4 +57,10 @@
     document.addEventListener("DOMContentLoaded", bindControls, { once: true });
     document.addEventListener("astro:after-swap", apply);
     document.addEventListener("astro:page-load", bindControls);
+    window.addEventListener("storage", (event) => {
+        if (event.key !== "site-appearance" && event.key !== null) return;
+        preferences = readPreferences();
+        apply();
+        bindControls();
+    });
 })();

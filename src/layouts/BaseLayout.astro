@@ -12,13 +12,16 @@ import Discovery from "../components/common/Discovery.astro";
 import { discoveryIndex } from "../data/search";
 import { getSearchDocuments } from "../services/search";
 import themeScript from "../scripts/theme.js?raw";
+import migrateTheme from "../scripts/migrate-theme.js?raw";
 import appearanceScript from "../scripts/appearance.js?raw";
 import pageReadyScript from "../scripts/page-ready.js?raw";
 import { appearanceConfiguration } from "../config/appearance";
-import Wallpaper from "../components/shell/Wallpaper.astro";
+import "../styles/wallpaper.css";
 import Panel from "../components/common/Panel.astro";
 import "../styles/global.css";
 import "../styles/shell.css";
+import "../styles/liquid-glass.css";
+import "../styles/reading.css";
 
 interface Props {
     article?: {
@@ -72,7 +75,7 @@ const translations =
         </style>
         <script is:inline set:html={pageReadyScript} />
         <style is:inline set:html={themeStyles} />
-        <script is:inline set:html={themeScript} />
+        <script is:inline set:html={migrateTheme + "\n" + themeScript} />
         <script is:inline set:html={appearanceScript} />
         <title>{pageTitle}</title>
         {description && <meta name="description" content={description} />}
@@ -101,7 +104,7 @@ const translations =
         {canonical && <meta property="og:url" content={canonical} />}
     </head>
     <body class:list={{ "profile-page": isProfile, "borderless-page": isProfile || hasSources }}>
-        <Wallpaper />
+        <div class="desktop-background" aria-hidden="true"></div>
         <a class="skip-link" href="#main-content">{t("nav.skip")}</a>
         <SiteHeader locale={locale} route={route} languagePaths={translations} />
         <aside class="site-rail">
@@ -117,8 +120,10 @@ const translations =
         </div>
         <SiteFooter locale={locale} />
         <script>
+            import { illuminateGlass } from "../scripts/glass/lighting.js";
             import "../scripts/entrance";
             import { initializeSearch } from "../scripts/search";
+            illuminateGlass({ rules: ".prose blockquote" });
             initializeSearch();
             document.addEventListener("astro:page-load", initializeSearch);
         </script>
