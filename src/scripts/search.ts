@@ -5,6 +5,7 @@ import type { useMessages } from "../i18n/ui";
 import { paginationFor } from "./pagination.ts";
 import { highlightMatches } from "./highlight.ts";
 import { getRoutePath, getRouteTitle } from "../routing.ts";
+import { createContentTransition, onPageLeave, revealItems } from "./motion.ts";
 
 type DiscoveryFilters = Pick<SearchState, "category" | "tags">;
 const discoveryControllers = new WeakMap<HTMLElement, { sync: (filters: DiscoveryFilters) => void; readonly filters: DiscoveryFilters }>();
@@ -81,7 +82,7 @@ export function initializeDiscovery(rail: HTMLElement, onChange?: (filters: Disc
     return controller;
 }
 
-export function initializeSearch() {
+export function initializeSearch(navigatePage: (href: string) => void = (href) => location.assign(href)) {
     const rails = [...document.querySelectorAll<HTMLElement>("[data-discovery]")];
     const header = document.querySelector<HTMLFormElement>("[data-global-search]");
     const result = document.querySelector<HTMLElement>("[data-search-results]");
@@ -94,6 +95,9 @@ export function initializeSearch() {
         return;
     }
     context.dataset.searchReady = "";
+    const lifetime = new AbortController();
+    onPageLeave(() => lifetime.abort());
+    const transition = result ? createContentTransition(result.querySelector<HTMLElement>("[data-content-transition]")!) : undefined;
     const locale = context.dataset.locale as Locale;
     const formatLocale = languages[locale].formatLocale;
     const messages: ReturnType<typeof useMessages> | undefined = result ? JSON.parse(result.dataset.copy!) : undefined;
@@ -126,6 +130,7 @@ export function initializeSearch() {
             const row = document.createElement("li");
             row.className = "focus-item";
             row.dataset.pageItem = "";
+            row.dataset.revealItem = "";
             const heading = document.createElement("h2");
             const link = document.createElement("a");
             link.href = item.data.href;
@@ -159,11 +164,11 @@ export function initializeSearch() {
         const target = new URL(getRoutePath("search", locale), location.href);
         target.search = searchParameters(state).toString();
         if (! result) {
-            location.assign(target.href);
+            void navigatePage(target.href);
             return;
         }
-        history.pushState(null, "", target);
-        render();
+        history.pushState(history.state, "", target);
+        transition!.run(render, 0, "fade");
     }
     header?.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -185,12 +190,13 @@ export function initializeSearch() {
     historyListener = new AbortController();
     window.addEventListener("popstate", () => {
         state = readSearchState(new URLSearchParams(location.search));
-        render();
+        if (result?.isConnected) transition!.run(render, 0, "fade");
+        else sync();
     }, { signal: historyListener.signal });
     sync();
     if (result && messages) {
         const copy = messages.search;
-        fetch(result.dataset.indexUrl!).then(async (response) => {
+        fetch(result.dataset.indexUrl!, { signal: lifetime.signal }).then(async (response) => {
             if (! response.ok) throw new Error(`Search index: ${response.status}`);
             const documents: SearchDocument[] = await response.json();
             const { sections, sources } = searchFilterOptions(documents);
@@ -204,7 +210,9 @@ export function initializeSearch() {
             }
             search = createSearchIndex(documents);
             render();
+            void revealItems([...result.querySelectorAll<HTMLElement>("[data-page-item]:not([hidden])")], lifetime.signal, 180);
         }).catch(() => {
+            if (lifetime.signal.aborted) return;
             result.querySelector<HTMLElement>("[data-search-count]")!.textContent = copy.failed;
         });
     }

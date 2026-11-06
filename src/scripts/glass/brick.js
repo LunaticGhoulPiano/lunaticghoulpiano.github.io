@@ -1,5 +1,4 @@
-// The same rounded surface determines both the photograph's displacement and
-// how much light it reflects. Lighting the bevel never requires an inset outline.
+// The bevel displaces the live backdrop and reflects the pointer light.
 const maps = new Map();
 const ns = "http://www.w3.org/2000/svg";
 let sequence = 0;
@@ -7,7 +6,7 @@ let sequence = 0;
 export function brickGeometry(width, height, corners, thickness) {
     const half = Math.min(width, height) / 2;
     const bevel = Math.min(thickness, half * .35);
-    return { width, height, corners: corners.map(radius => Math.min(radius, half)), bevel, scale: 3 * bevel };
+    return { width, height, corners: corners.map(radius => Math.min(radius, half)), bevel, scale: 2 * bevel };
 }
 
 const pending = new Map();
@@ -46,7 +45,6 @@ function surfaceMaps(shape, geometry) {
 export function mountBrick(host) {
     const lens = document.createElement("glass-lens");
     lens.setAttribute("aria-hidden", "true");
-    const face = document.createElement("span");
     const svg = document.createElementNS(ns, "svg");
     svg.setAttribute("width", "0");
     svg.setAttribute("height", "0");
@@ -65,11 +63,11 @@ export function mountBrick(host) {
     bend.setAttribute("yChannelSelector", "G");
     filter.append(image, bend);
     svg.append(filter);
-    lens.append(svg, face);
+    lens.append(svg);
     host.prepend(lens);
-    face.hidden = true;
     let lastShape;
     return {
+        get connected() { return lens.isConnected; },
         measure(resized) {
             if (lastShape && !resized) return;
             const width = lens.clientWidth, height = lens.clientHeight;
@@ -82,11 +80,7 @@ export function mountBrick(host) {
             if (shape === lastShape) return;
             return { shape, geometry: brickGeometry(width, height, corners, thickness) };
         },
-        align(box, measurement) {
-            lens.style.setProperty("--photo-x", -box.left + "px");
-            lens.style.setProperty("--photo-y", -box.top + "px");
-            if (!measurement) return;
-            const { shape, geometry } = measurement;
+        update({ shape, geometry }) {
             const { width, height } = geometry;
             lastShape = shape;
             surfaceMaps(shape, geometry)?.then(textures => {
@@ -96,8 +90,7 @@ export function mountBrick(host) {
                 image.setAttribute("href", textures.displacement);
                 lens.style.setProperty("--glass-reflection", `url("${textures.reflection}")`);
                 bend.setAttribute("scale", String(geometry.scale));
-                face.style.filter = `url(#${filter.id})`;
-                face.hidden = false;
+                lens.style.setProperty("--glass-refraction", `url(#${filter.id})`);
             });
         },
         remove() { lens.remove(); },

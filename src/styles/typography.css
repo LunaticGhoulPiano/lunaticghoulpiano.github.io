@@ -1,0 +1,33 @@
+@font-face {
+    font-family: "Source Sans 3";
+    src: url("../assets/fonts/Source-Sans-3/SourceSans3-Regular.woff2") format("woff2");
+    font-weight: 400; font-display: swap;
+}
+@font-face {
+    font-family: "Source Sans 3";
+    src: url("../assets/fonts/Source-Sans-3/SourceSans3-Semibold.woff2") format("woff2");
+    font-weight: 600 900; font-display: swap;
+}
+@font-face {
+    font-family: "Noto Sans TC";
+    src: url("../assets/fonts/Noto-Sans-TC/NotoSansTC.ttf") format("truetype");
+    font-weight: 100 900; font-display: optional;
+}
+@font-face {
+    font-family: "Maple Mono NF CN";
+    src: local("Maple Mono NF CN Regular"), local("MapleMono-NF-CN-Regular"),
+        url("../assets/fonts/Maple-Mono-NF-CN/MapleMono-NF-CN-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-display: swap;
+}
+:root {
+    --font-body: "Source Sans 3", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    --font-display: Georgia, "Times New Roman", serif;
+    --mono: "Cascadia Code", Consolas, monospace;
+    --font-code: "Maple Mono NF CN", var(--mono);
+    font-family: var(--font-body);
+    font-style: normal;
+    font-synthesis: style;
+}
+body, input, select, textarea, button { font-family: var(--font-body); }
+code, pre, kbd, samp { font-family: var(--font-code); }

@@ -12,11 +12,11 @@ const copy = useMessages(locale);
 ---
 
 <section data-search-results data-paginated-list data-locale={locale} data-index-url={searchPolicy.indexPath} data-format-locale={languages[locale].formatLocale} data-copy={JSON.stringify(copy)}>
-    <div class="search-summary">
+    <div class="search-summary" data-reveal-item>
         <p data-search-query></p>
         <p role="status" aria-live="polite" data-search-count>{copy.search.loading}</p>
     </div>
-    <div class="search-result-controls">
+    <div class="search-result-controls" data-reveal-item>
         <label>{copy.search.section}<span class="glass-field" data-glass="control"><select name="section" data-search-section><option value="">{copy.search.allSections}</option></select></span></label>
         <label>{copy.search.source}<span class="glass-field" data-glass="control"><select name="source" data-search-source><option value="">{copy.search.allSources}</option></select></span></label>
         <label>{copy.search.from}<span class="glass-field" data-glass="control"><input type="date" name="from" data-search-date /></span></label>
@@ -25,8 +25,9 @@ const copy = useMessages(locale);
             {searchSorts.map((sort) => <option value={sort}>{copy.search[sort]}</option>)}
         </select></span></label>
     </div>
-    <ol class="post-list" data-glass-rows data-search-list></ol>
-    <p class="empty-message" data-search-empty hidden>{copy.search.empty}</p>
+    <Pagination locale={locale}>
+        <ol class="post-list" data-glass-rows data-search-list></ol>
+        <p class="empty-message" data-search-empty hidden>{copy.search.empty}</p>
+    </Pagination>
     <noscript><p>{copy.search.javascript}</p></noscript>
-    <Pagination locale={locale} />
 </section>

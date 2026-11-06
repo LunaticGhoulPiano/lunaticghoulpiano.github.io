@@ -14,7 +14,7 @@ const { locale, route, navigation } = Astro.props;
 const t = useTranslations(locale);
 ---
 
-<div class="profile-layout" data-profile-page data-entrance="all">
+<div class="profile-layout" data-profile-page>
     <header class="profile-header">
         <ProfileHeader locale={locale} route={route} navigation={navigation} />
     </header>
@@ -23,10 +23,6 @@ const t = useTranslations(locale);
         <slot />
     </section>
 </div>
-
-<script>
-    import "../scripts/profile-motion";
-</script>
 
 <style>
     .profile-header {
@@ -51,14 +47,6 @@ const t = useTranslations(locale);
         font-size: 0.875rem;
     }
     .profile-detail > h1 { margin-bottom: 1.5rem; }
-
-    /* The profile controller handles fading; suppress the router's crossfade. */
-    :global(html:active-view-transition::view-transition-old(root)),
-    :global(html:active-view-transition::view-transition-new(root)) {
-        animation: none;
-        mix-blend-mode: normal;
-    }
-    :global(html:active-view-transition::view-transition-old(root)) { display: none; }
 
     @media (max-width: 68rem) {
         .profile-header {

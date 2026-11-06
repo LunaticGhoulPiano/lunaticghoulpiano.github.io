@@ -1,5 +1,5 @@
 import { carouselState } from "../utils/carousel.ts";
-import { createMotion } from "./motion.ts";
+import { createMotion, onPageLeave } from "./motion.ts";
 
 export function initializePageTurners() {
     document.querySelectorAll<HTMLElement>("[data-page-turner]").forEach((root) => {
@@ -15,6 +15,7 @@ export function initializePageTurners() {
         let offset = 0;
         let destination = 0;
         const motion = createMotion();
+        onPageLeave(() => motion.cancel());
         function render() {
             pages.forEach((page, index) => {
                 const current = index === state.index;

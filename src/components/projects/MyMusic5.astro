@@ -52,20 +52,21 @@ const statistics = [
         </div>
         <Statistics items={statistics} />
         {author && sheets.length > 0 ? (
-            <div data-reveal-list>
-            <Sheets
-                id="mymusic5-sheets"
-                label={copy.sheets}
-                locale={locale}
-                artistUrl={author.artistUrl}
-                sheets={sheets}
-                paginated
-                searchable
-            >
-                <p class="empty-message" data-sheet-empty role="status" hidden>{copy.noResults}</p>
-            </Sheets>
-            <Pagination locale={locale} />
-            </div>
+            <Pagination locale={locale}>
+                <div data-reveal-list>
+                    <Sheets
+                        id="mymusic5-sheets"
+                        label={copy.sheets}
+                        locale={locale}
+                        artistUrl={author.artistUrl}
+                        sheets={sheets}
+                        paginated
+                        searchable
+                    >
+                        <p class="empty-message" data-sheet-empty role="status" hidden>{copy.noResults}</p>
+                    </Sheets>
+                </div>
+            </Pagination>
         ) : <p class="empty-message">{copy.noSheets}</p>}
     </div>
 ) : <p class="empty-message">{messages.content.unavailable}</p>}
@@ -104,4 +105,5 @@ const statistics = [
 <script>
     import { initializeSheetSearch } from "../../scripts/mymusic5";
     initializeSheetSearch();
+    document.addEventListener("astro:page-load", initializeSheetSearch);
 </script>

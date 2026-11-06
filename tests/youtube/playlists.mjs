@@ -122,6 +122,7 @@ test("search during a playlist transition renders the latest selection without a
     view.select(1);
     view.search("collaboration");
     view.transition.frame(1000);
+    view.transition.frame(1240);
     assert.deepEqual(view.visible(), ["collaborator"]);
     assert.equal(view.description.textContent, "<b>Literal description</b>");
     assert.equal(view.transition.pending(), 0);

@@ -144,4 +144,5 @@ const rows = [...videos, ...library.filter((video) => ! uploads.has(video.id))];
 <script>
     import { initializeYoutubePlaylists } from "../../scripts/youtube";
     initializeYoutubePlaylists();
+    document.addEventListener("astro:page-load", initializeYoutubePlaylists);
 </script>

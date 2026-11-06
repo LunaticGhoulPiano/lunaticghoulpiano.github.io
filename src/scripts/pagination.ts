@@ -19,9 +19,8 @@ export function paginationFor(root: HTMLElement) {
     const buttons = [...navigation.querySelectorAll<HTMLButtonElement>("[data-page-control]")];
     const gaps = [...navigation.querySelectorAll<HTMLElement>("[data-page-gap]")];
     const status = navigation.querySelector<HTMLElement>("[data-page-status]");
-    const transition = navigation.dataset.animatePages !== undefined
-        ? createContentTransition(root.querySelector<HTMLElement>("[data-content-transition]")!)
-        : undefined;
+    const frame = root.querySelector<HTMLElement>("[data-content-transition]");
+    const transition = frame ? createContentTransition(frame) : undefined;
     let filtered = items;
     let currentPage = 1;
 
@@ -67,7 +66,7 @@ export function paginationFor(root: HTMLElement) {
                 transition?.cancel();
                 return;
             }
-            if (transition) transition.run(() => render(target), Math.sign(target - currentPage));
+            if (transition) transition.run(() => render(target), Math.sign(target - currentPage), "shatter");
             else render(target);
             navigation.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus({ preventScroll: true });
         });

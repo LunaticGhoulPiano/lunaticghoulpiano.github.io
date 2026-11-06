@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { withTemporaryDirectory } from "../../scripts/temp_dir.mjs";
 import { runMediaRefresh } from "../../scripts/snapshots/update.mjs";
 import { selectSnapshots } from "../../scripts/snapshots/artifact.mjs";
+import { artifactPolicy } from "../../scripts/artifacts.mjs";
 import { snapshotToolPolicy } from "../../scripts/snapshots/config.ts";
 import { youtubePolicy } from "../../src/config/youtube.ts";
 import { mymusic5Policy } from "../../src/config/mymusic5.ts";
@@ -157,7 +158,7 @@ test("artifact migration restores legacy GitHub backups only when no current bun
                             };
                         },
                         getWorkflowRun: async () => ({
-                            data: { id: 10, path: snapshotToolPolicy.workflow, event: "schedule" },
+                            data: { id: 10, path: artifactPolicy.workflow, event: "schedule" },
                         }),
                     },
                 },

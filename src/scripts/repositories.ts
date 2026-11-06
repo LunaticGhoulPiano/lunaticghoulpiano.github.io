@@ -32,11 +32,10 @@ export function initializeRepositories() {
             empty.hidden = matching.length > 0;
             selection();
         };
-        function filterImmediately() {
-            transition.cancel();
-            filter();
+        function updateResults() {
+            transition.run(filter, 0, "fade");
         }
-        const search = createListSearch(browser, rows, filterImmediately);
+        const search = createListSearch(browser, rows, updateResults);
         filter();
         buttons.forEach((button, index) => button.addEventListener("click", () => {
             if (index === selected) return;

@@ -1,6 +1,6 @@
 import { youtubeVideoSortOptions } from "../config/collections.ts";
 import { createListSearch } from "./list_search.ts";
-import { createContentTransition } from "./motion.ts";
+import { createContentTransition, onPageLeave } from "./motion.ts";
 
 export function initializeYoutubePlaylists() {
     document.querySelectorAll<HTMLElement>("[data-youtube-browser]").forEach((root) => {
@@ -16,7 +16,7 @@ export function initializeYoutubePlaylists() {
         const viewport = timeline.querySelector<HTMLElement>("[data-timeline-scroll]")!;
         const duplicates: HTMLElement[] = [];
         const transition = createContentTransition(root.querySelector<HTMLElement>("[data-content-transition]")!);
-        const search = createListSearch(root, [...rows.values()], renderImmediately);
+        const search = createListSearch(root, [...rows.values()], updateResults);
         let selected = 0;
         let ids = [...rows.values()].filter((row) => ! row.hidden).map((row) => row.dataset.videoId!);
         let playlist = false;
@@ -50,7 +50,10 @@ export function initializeYoutubePlaylists() {
             for (const id of sorted) {
                 const original = rows.get(id)!;
                 const row = used.has(id) ? original.cloneNode(true) as HTMLElement : original;
-                if (row !== original) duplicates.push(row);
+                if (row !== original) {
+                    row.querySelectorAll("glass-lens").forEach((lens) => lens.remove());
+                    duplicates.push(row);
+                }
                 used.add(id);
                 row.hidden = false;
                 search.highlight(row);
@@ -64,12 +67,12 @@ export function initializeYoutubePlaylists() {
 
         function resetSort() {
             sort.value = youtubeVideoSortOptions[0];
-            renderImmediately();
-        }
-
-        function renderImmediately() {
             transition.cancel();
             render();
+        }
+
+        function updateResults() {
+            transition.run(render, 0, "fade");
         }
 
         for (const [index, button] of buttons.entries()) {
@@ -82,8 +85,9 @@ export function initializeYoutubePlaylists() {
                 transition.run(render, direction);
             });
         }
-        sort.addEventListener("change", renderImmediately);
+        sort.addEventListener("change", updateResults);
         window.addEventListener("pageshow", resetSort);
+        onPageLeave(() => window.removeEventListener("pageshow", resetSort));
         resetSort();
         root.querySelector<HTMLElement>("[data-youtube-sort-controls]")!.hidden = false;
         if (controls) controls.hidden = false;

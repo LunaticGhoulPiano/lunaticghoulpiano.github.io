@@ -22,15 +22,13 @@ const { id, title, locale } = Astro.props;
 </script>
 
 <style>
-    :global(body:has(dialog[data-panel][open])) {
-        overflow: hidden;
-    }
-
     .shell-panel {
         color: var(--text);
         padding: 0;
         border-radius: var(--glass-corner);
         overflow: hidden;
+        overscroll-behavior: contain;
+        transform-origin: top right;
         font-size: 0.9rem;
         width: min(25rem, calc(100% - 2rem));
         /* Width is controlled here, including the full-width mobile layout. */
@@ -50,6 +48,7 @@ const { id, title, locale } = Astro.props;
 
     .shell-panel::backdrop {
         background: var(--glass-scrim);
+        touch-action: none;
     }
 
     .panel-heading {
@@ -64,30 +63,14 @@ const { id, title, locale } = Astro.props;
         font-size: 1rem;
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-
-        .shell-panel[open] {
-            animation: panel-enter 180ms ease-out both;
-        }
-
-        @keyframes panel-enter {
-            from {
-                opacity: 0;
-                transform: translateY(6px);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
-
-        }
-
-    }
+    /* Keep the bevel, but don't resample the live backdrop on each moving frame. */
+    .shell-panel[data-panel-motion] :global(glass-lens)::after { backdrop-filter: none; }
+    .shell-panel[data-panel-motion="closing"] { pointer-events: none; }
 
     @media (max-width: 48rem) {
 
         .shell-panel {
+            transform-origin: bottom center;
             inset: auto 0 0;
             width: 100%;
             --panel-max-height: 90dvh;

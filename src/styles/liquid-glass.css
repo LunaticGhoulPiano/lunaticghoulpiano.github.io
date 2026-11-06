@@ -1,10 +1,9 @@
-/* One surface profile shapes both the refracted photograph and the reflected light. */
+/* One bevel shapes both the refracted backdrop and the reflected light. */
 :root {
     --glass-corner: 9px;
     --glass-edge: color-mix(in srgb, var(--muted) 36%, transparent);
     --glass-surface: color-mix(in srgb, var(--surface) 36%, transparent);
     --glass-control: color-mix(in srgb, var(--field) 25%, transparent);
-    --glass-frost: blur(3px);
     --glass-scrim: rgb(0 0 0 / .23);
     --glass-depth: 0 8px 28px rgb(0 0 0 / .16);
     --focus-ink: 0 0 4px var(--focus-glow);
@@ -28,7 +27,6 @@
     background: var(--glass-surface);
     border: 0;
     box-shadow: var(--glass-depth);
-    backdrop-filter: var(--glass-frost);
 }
 
 :where([data-glass="control"], [data-glass="controls"] > button) {
@@ -64,27 +62,91 @@ glass-lens {
 }
 glass-lens > svg { position: absolute; }
 
-glass-lens > span {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    opacity: .81;
+[data-glass="item"] {
+    --glass-bevel: 6px;
+    isolation: isolate;
+    border-radius: var(--glass-corner);
+    background: color-mix(in srgb, var(--surface) 12%, transparent);
+    padding-inline: 1rem;
+    box-shadow: 0 3px 14px rgb(0 0 0 / .07);
 }
-glass-lens > span::before {
-    content: "";
-    position: absolute;
-    left: var(--photo-x);
-    top: var(--photo-y);
-    width: var(--photo-width, 100vw);
-    height: var(--photo-height, 100dvh);
-    background: var(--wallpaper-paint);
+:where([data-glass="control"], [data-glass="controls"] > button, [data-focus-control]) {
+    transition: scale 180ms ease, text-shadow 180ms ease;
 }
-
-/* The mask follows the optical slope down to zero at the flat face. */
+:where([data-glass="control"], [data-glass="controls"] > button, [data-focus-control]):is(:focus-visible, :focus-within) {
+    text-shadow: var(--focus-ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+    [data-focus-control]:not(:disabled):is(:focus-visible, :has(:focus-visible)) { scale: 1.035; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    [data-focus-control]:not(:disabled):hover { scale: 1.035; text-shadow: var(--focus-ink); }
+}
+.glass-fragments { position: fixed; inset: 0; z-index: 20; pointer-events: none; overflow: clip; }
+.glass-fragments > span {
+    position: absolute;
+    background: linear-gradient(135deg, rgb(255 255 255 / .42), transparent 40%, rgb(255 255 255 / .16)), var(--glass-surface);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    pointer-events: none;
+}
+/* Give native controls and the browser-painted scrollbar the same hotspot. */
+.ice-pointer {
+    position: fixed; inset: 0 auto auto 0; margin: 0; padding: 0; border: 0;
+    width: 32px; height: 32px; overflow: visible; background: transparent;
+    pointer-events: none;
+}
+.ice-pointer::backdrop { display: none; }
+.ice-pointer > span {
+    position: absolute; inset: 8px;
+    transform-style: preserve-3d;
+}
+.ice-pointer > span > span {
+    position: absolute; inset: 0;
+    transform-style: preserve-3d;
+}
+.ice-pointer > span > span > span {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+}
+.ice-pointer svg { display: block; }
+.ice-pointer[data-pressed] { filter: drop-shadow(0 0 2px #b5efff); }
+@media screen and (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) {
+    :root[data-ice-turn] { --glass-pointer: none !important; }
+    :root, :root *, dialog::backdrop { cursor: var(--glass-pointer, revert) !important; }
+    @supports selector(::-webkit-scrollbar) {
+        .timeline-scroll, .carousel-scrollbar {
+            scrollbar-color: auto;
+            scrollbar-width: auto;
+            --scrollbar-size: 8px;
+        }
+        ::-webkit-scrollbar, ::-webkit-scrollbar-track, ::-webkit-scrollbar-track-piece,
+        ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-button, ::-webkit-scrollbar-corner {
+            cursor: var(--glass-pointer, auto);
+        }
+        ::-webkit-scrollbar-thumb:active, ::-webkit-scrollbar-track-piece:active, ::-webkit-scrollbar-button:active {
+            cursor: var(--glass-pressed-pointer, auto);
+        }
+        ::-webkit-scrollbar { width: var(--scrollbar-size, 14px); height: var(--scrollbar-size, 14px); }
+        ::-webkit-scrollbar-track { background: color-mix(in srgb, var(--surface) 24%, transparent); }
+        ::-webkit-scrollbar-thumb {
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--muted) 75%, transparent) padding-box;
+        }
+    }
+}
+@media print, (forced-colors: active) {
+    .glass-fragments, .ice-pointer { display: none !important; }
+}
+/* Sample the composited scene only through the bevel. The zero-alpha center
+   leaves the original scene visible even during scrolling and animated scale. */
 glass-lens::after {
     content: "";
     position: absolute;
     inset: 0;
+    border-radius: inherit;
+    backdrop-filter: var(--glass-refraction, none);
     background: conic-gradient(from calc(var(--glass-angle) + 90deg),
         var(--glass-glint), transparent 24%, rgb(26 43 45 / .22) 50%, transparent 76%, var(--glass-glint));
     mask: var(--glass-reflection, linear-gradient(transparent, transparent)) center / 100% 100% no-repeat;
@@ -102,14 +164,12 @@ glass-lens::after {
     filter: drop-shadow(0 0 2px var(--focus-glow));
 }
 
-/* An opaque backing prevents underlying UI from showing through. The muted
-   wallpaper still gives the bevel a scene to refract. */
+/* Keep controls and panels opaque and attenuate the narrow optical rim. */
 @media (prefers-reduced-transparency: reduce) {
-    glass-lens > span { opacity: .50; }
+    glass-lens::after { opacity: .5; }
     :root, [data-glass-lit] {
         --glass-surface: var(--surface);
         --glass-control: var(--field);
-        --glass-frost: none;
     }
 }
 
@@ -122,11 +182,52 @@ glass-lens::after {
         --glass-divider: none;
         --glass-node: var(--accent);
         --focus-ink: none;
-        --glass-frost: none;
         --glass-depth: 0 0 transparent;
     }
 }
 @media (forced-colors: active) {
     [data-glass="control"], [data-glass="surface"], [data-glass="controls"] > button { outline: 1px solid CanvasText; }
     :is([data-glass="control"], [data-glass="controls"] > button):is(:focus-visible, :focus-within) { outline: 2px solid Highlight; }
+}
+
+/* Shared content focus: pointer, keyboard and touch selection use the same lift. */
+.focus-item {
+    --item-focused: 0;
+    --item-glow: color-mix(in srgb, var(--focus-glow) calc(100% * var(--item-focused)), transparent);
+    position: relative;
+    z-index: var(--item-focused);
+    /* Growing upward keeps the resting hit area inside the enlarged item. */
+    transform-origin: left bottom;
+    text-shadow: 0 0 2px var(--item-glow), 0 0 6px var(--item-glow);
+}
+
+.focus-item :where(img, svg, .language-dot) {
+    filter: drop-shadow(0 0 4px var(--item-glow));
+}
+
+.focus-item:focus-within, .focus-item[data-visual-focus] { --item-focused: 1; }
+
+/* A link can wrap inside a clipped title; keep its focus cue inside the text. */
+.focus-item a:focus-visible {
+    outline: none;
+    text-decoration: underline solid var(--accent) 2px;
+    text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) {
+    .focus-item:hover:not([data-entering]) { --item-focused: 1; }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+    .focus-item {
+        --focus-scale: 1.07;
+        /* Reserve the enlarged width before focus so adjacent content stays put. */
+        max-inline-size: calc(100% / var(--focus-scale));
+        scale: calc(1 + (var(--focus-scale) - 1) * var(--item-focused));
+        transition: scale 180ms ease, text-shadow 180ms ease;
+    }
+
+    .focus-item :where(img, svg, .language-dot) {
+        transition: filter 180ms ease;
+    }
 }

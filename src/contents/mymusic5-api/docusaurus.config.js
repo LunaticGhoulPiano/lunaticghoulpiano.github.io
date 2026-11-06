@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { site } from "../../config/site.ts";
 import { languages, localizedPath } from "../../config/locales.ts";
+import { getRoutePath } from "../../routing.ts";
 import { themeStyles } from "../../config/theme.ts";
 import { appearanceConfiguration } from "../../config/appearance.ts";
 
 const appearanceScript = readFileSync(new URL("../../scripts/appearance.js", import.meta.url), "utf8");
 const migrateTheme = readFileSync(new URL("../../scripts/migrate-theme.js", import.meta.url), "utf8");
+const pageReadyScript = readFileSync(new URL("../../scripts/page-ready.js", import.meta.url), "utf8");
 
 const content = JSON.parse(readFileSync(new URL("./configs.json", import.meta.url), "utf8"));
 const locale = process.env.DOCUSAURUS_CURRENT_LOCALE ?? site.defaultLocale;
@@ -20,18 +22,20 @@ const codeTheme = {
         { types: ["number", "boolean", "constant", "variable"], style: { color: "var(--syntax-value)" } },
     ],
 };
-const labels = {
-    en: { docs: "Documentation", back: "All documentations" },
-    "zh-tw": { docs: "文檔", back: "所有文檔" },
-};
+const allDocumentations = { en: "All Documentations", "zh-tw": "所有文檔" };
+const title = content.locales[locale].title;
 
 export default {
-    title: "MyMusic5API",
+    title,
+    customFields: { homePath: getRoutePath("profile", locale) },
     tagline: content.locales[locale].description,
     url: site.url,
     baseUrl: localizedPath(content.locales[locale].entry.path, locale),
     trailingSlash: true,
+    clientModules: ["./src/motion.js"],
     headTags: [
+        { tagName: "style", attributes: {}, innerHTML: "html[data-page-pending] main { opacity: 0; }" },
+        { tagName: "script", attributes: {}, innerHTML: pageReadyScript },
         { tagName: "style", attributes: {}, innerHTML: themeStyles },
         { tagName: "script", attributes: {}, innerHTML: `${migrateTheme}\ndocument.documentElement.dataset.appearanceConfig = ${JSON.stringify(JSON.stringify(appearanceConfiguration))};\n${appearanceScript}` },
     ],
@@ -62,12 +66,13 @@ export default {
         }],
     ],
     themeConfig: {
+        footer: { copyright: site.copyright },
         prism: { theme: codeTheme, darkTheme: codeTheme },
         navbar: {
-            title: "MyMusic5API",
+            title: site.brand,
             items: [
-                { type: "docSidebar", sidebarId: "documentation", label: labels[locale].docs, position: "left" },
-                { to: `pathname://${localizedPath("documentations", locale)}`, autoAddBaseUrl: false, target: "_self", label: labels[locale].back, position: "left" },
+                { to: `pathname://${getRoutePath("documentations", locale)}`, autoAddBaseUrl: false, target: "_self", label: allDocumentations[locale], position: "left" },
+                { type: "docSidebar", sidebarId: "documentation", label: title, position: "left" },
                 { href: content.links[0].url, label: "GitHub", position: "right" },
                 { type: "localeDropdown", position: "right" },
             ],

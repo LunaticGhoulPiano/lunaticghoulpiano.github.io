@@ -5,10 +5,6 @@ import { mymusic5Policy } from "../../src/config/mymusic5.ts";
 export const snapshotToolPolicy = {
     artifactName: "site_snapshots",
     legacyArtifactName: "github_profile_snapshots",
-    artifactCandidates: 10,
-    pageSize: 100,
-    workflow: ".github/workflows/deploy.yml",
-    workflowEvents: ["push", "schedule", "workflow_dispatch"],
     filenames: [
         githubPolicy.snapshotFilename,
         youtubePolicy.snapshotFilename,

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { installGlobals, textElement, paginationNavigation } from "../fixture.mjs";
+import { installGlobals, textElement, paginationNavigation, contentTransitionFixture } from "../fixture.mjs";
 import { collectionPageSize } from "../../src/config/collections.ts";
 import { initializeSheetSearch } from "../../src/scripts/mymusic5.ts";
 import { mymusic5SearchText, mymusic5SheetAttributes } from "../../src/data/mymusic5/content.ts";
@@ -28,6 +28,7 @@ test("sheet metadata preserves translated display and shares all difficulty and 
 });
 
 function fixture(context, total = 3) {
+    const transition = contentTransitionFixture();
     const rows = ["Prelude Piano Normal 普通", "Fugue 鋼琴 Expert 專家", "Waltz Description for experts cafe\u0301", ...Array.from({ length: Math.max(0, total - 3) }, (_, index) => `Sheet ${index + 4} Piano`)]
         .map((text, index) => Object.assign(textElement(text), {
             dataset: { sheetId: String(index + 1), search: text },
@@ -44,9 +45,10 @@ function fixture(context, total = 3) {
         "[data-list-search-controls]": controls,
         "[data-sheet-empty]": empty,
         "[data-pagination]": pagination.navigation,
+        "[data-content-transition]": transition.root,
     };
     const root = { dataset: {}, querySelector: (selector) => nodes[selector], querySelectorAll: () => rows };
-    installGlobals(context, { document: { querySelectorAll: () => [root] } });
+    installGlobals(context, { ...transition.environment, document: { querySelectorAll: () => [root] } });
     initializeSheetSearch();
     initializeSheetSearch();
     return {

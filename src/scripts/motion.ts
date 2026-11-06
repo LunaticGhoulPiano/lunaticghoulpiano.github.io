@@ -1,3 +1,5 @@
+import { createShatter } from "./glass/shatter.ts";
+
 /** One cancellable ease-in/out clock for page, carousel and timeline movement. */
 export function createMotion() {
     let cancelCurrent: (() => void) | undefined;
@@ -42,33 +44,74 @@ export function createMotion() {
     };
 }
 
-/** Switch one live result list without copying its rows, IDs or event handlers. */
+/** Resources tied to the current Astro document, released before it is swapped. */
+const pageCleanups = new Set<() => void>();
+let cleanupBound = false;
+export function onPageLeave(cleanup: () => void) {
+    pageCleanups.add(cleanup);
+    if (cleanupBound) return;
+    cleanupBound = true;
+    const dispose = () => { for (const run of pageCleanups) run(); pageCleanups.clear(); };
+    document.addEventListener("astro:before-swap", dispose);
+    window.addEventListener("pagehide", (event) => { if (!event.persisted) dispose(); });
+}
+
+export async function fadeContent(root: HTMLElement, signal: AbortSignal, leavesDocument = false) {
+    const restore = () => root.style.removeProperty("opacity");
+    root.style.opacity = "0";
+    signal.addEventListener("abort", restore, { once: true });
+    // A full navigation can freeze this DOM and restore it without another route update.
+    if (leavesDocument) window.addEventListener("pagehide", restore, { once: true, signal });
+    await animateElement(root, [{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-out" }, signal);
+}
+
+const contentTransitions = new WeakMap<HTMLElement, ReturnType<typeof contentTransition>>();
 export function createContentTransition(root: HTMLElement) {
+    let controller = contentTransitions.get(root);
+    if (!controller) { controller = contentTransition(root); contentTransitions.set(root, controller); }
+    return controller;
+}
+
+/** Switch one live result list without copying its rows, IDs or event handlers. */
+function contentTransition(root: HTMLElement) {
     const body = root.querySelector<HTMLElement>("[data-content-transition-body]")!;
     const motion = createMotion();
     let pending: (() => void) | undefined;
     let x = 0;
     let opacity = 1;
+    let applying = false;
+    let entrance: AbortController | undefined;
     function apply() {
         const update = pending;
         pending = undefined;
-        update?.();
+        applying = true;
+        try { update?.(); } finally { applying = false; }
     }
     function finish() {
         apply();
         motion.cancel();
+        entrance?.abort();
     }
     for (const type of ["wheel", "touchstart", "pointerdown", "keydown"]) {
         root.addEventListener(type, finish, { passive: true, capture: true });
     }
     window.addEventListener("pagehide", finish);
     window.addEventListener("beforeprint", finish);
+    onPageLeave(() => {
+        motion.cancel(); entrance?.abort();
+        window.removeEventListener("pagehide", finish);
+        window.removeEventListener("beforeprint", finish);
+    });
     return {
-        cancel() { motion.cancel(); },
-        run(update: () => void, direction = 1) {
+        cancel() { if (!applying) { motion.cancel(); entrance?.abort(); } },
+        run(update: () => void, direction = 1, effect: "slide" | "fade" | "shatter" = "slide") {
             const startX = x;
             const startOpacity = opacity;
             motion.cancel();
+            entrance?.abort();
+            const controller = new AbortController();
+            entrance = controller;
+            let shards = effect === "shatter" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches ? createShatter(body) : undefined;
             pending = update;
             const wasInert = body.inert;
             root.style.minHeight = `${root.offsetHeight}px`;
@@ -76,16 +119,22 @@ export function createContentTransition(root: HTMLElement) {
             body.inert = true;
             motion.run((progress) => {
                 if (progress < 0.5) {
-                    x = startX + (-direction * 100 - startX) * progress * 2;
+                    shards?.draw(progress * 2);
+                    x = effect === "slide" ? startX + (-direction * 100 - startX) * progress * 2 : 0;
                     opacity = startOpacity * (1 - progress * 2);
                 }
                 else {
                     apply();
-                    x = direction * 100 * (2 - progress * 2);
+                    x = effect === "slide" ? direction * 100 * (2 - progress * 2) : 0;
                     opacity = progress * 2 - 1;
+                    if (shards) {
+                        shards.remove();
+                        shards = undefined;
+                        void revealItems([...body.querySelectorAll<HTMLElement>("[data-page-item]:not([hidden])")], controller.signal, 180);
+                    }
                 }
                 body.style.translate = `${x}% 0`;
-                body.style.opacity = String(opacity);
+                body.style.opacity = String(effect === "shatter" && progress >= .5 ? 1 : opacity);
             }, () => {
                 pending = undefined;
                 x = 0;
@@ -95,7 +144,8 @@ export function createContentTransition(root: HTMLElement) {
                 body.style.removeProperty("opacity");
                 root.style.removeProperty("min-height");
                 root.removeAttribute("data-content-transition-active");
-            });
+                shards?.remove();
+            }, effect === "fade" ? 240 : 560);
         },
     };
 }

@@ -163,4 +163,5 @@ const end = chronological ? copy.oldest : copy.last;
 <script>
     import { initializeTimelines } from "../../scripts/timeline";
     initializeTimelines();
+    document.addEventListener("astro:page-load", initializeTimelines);
 </script>

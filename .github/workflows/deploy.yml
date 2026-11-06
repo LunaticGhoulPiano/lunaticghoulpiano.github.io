@@ -22,6 +22,8 @@ jobs:
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         runs-on: ubuntu-latest
         timeout-minutes: 15
+        outputs:
+            changed: ${{ steps.changes.outputs.changed }}
         permissions:
             contents: read
             actions: read
@@ -54,14 +56,6 @@ jobs:
 
             - name: Install locked dependencies
               run: pnpm install --frozen-lockfile
-
-            - name: Restore reusable content builds
-              uses: actions/cache@v5
-              with:
-                  path: .cache/content-build
-                  key: content-build-${{ runner.os }}-${{ hashFiles('.node-version') }}-${{ github.sha }}
-                  restore-keys: |
-                      content-build-${{ runner.os }}-${{ hashFiles('.node-version') }}-
 
             - name: Run tests
               run: pnpm test
@@ -101,10 +95,44 @@ jobs:
                   GITHUB_PREVIOUS_SNAPSHOT_DIR: ${{ steps.previous_snapshots.outputs.restore_directory }}
               run: pnpm refresh:github
 
+            - name: Find last successful deployment
+              id: previous_deployment
+              uses: actions/github-script@v9
+              with:
+                  script: |
+                      const { pathToFileURL } = await import("node:url");
+                      const moduleUrl = pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/deployment.mjs`);
+                      const { selectDeployment } = await import(moduleUrl.href);
+                      await selectDeployment({ github, context, core });
+
+            - name: Restore deployment baseline
+              if: steps.previous_deployment.outputs.artifact_id != ''
+              uses: actions/download-artifact@v8
+              with:
+                  artifact-ids: ${{ steps.previous_deployment.outputs.artifact_id }}
+                  run-id: ${{ steps.previous_deployment.outputs.run_id }}
+                  github-token: ${{ github.token }}
+                  path: ${{ steps.previous_deployment.outputs.restore_directory }}
+
+            - name: Compare website inputs
+              id: changes
+              run: node scripts/deployment.mjs
+
+            - name: Restore reusable content builds
+              if: steps.changes.outputs.changed == 'true'
+              uses: actions/cache@v5
+              with:
+                  path: .cache/content-build
+                  key: content-build-${{ runner.os }}-${{ hashFiles('.node-version') }}-${{ github.sha }}
+                  restore-keys: |
+                      content-build-${{ runner.os }}-${{ hashFiles('.node-version') }}-
+
             - name: Build changed content and website
+              if: steps.changes.outputs.changed == 'true'
               run: pnpm build --install
 
             - name: Check website
+              if: steps.changes.outputs.changed == 'true'
               run: pnpm check
 
             - name: Save validated snapshots
@@ -116,12 +144,24 @@ jobs:
                   retention-days: 30
 
             - name: Upload website
+              if: steps.changes.outputs.changed == 'true'
               uses: actions/upload-pages-artifact@v3
               with:
                   path: dist
 
+            # This candidate is eligible as a baseline only after this run's deploy succeeds.
+            - name: Save deployment candidate
+              if: steps.changes.outputs.changed == 'true'
+              uses: actions/upload-artifact@v7
+              with:
+                  name: ${{ steps.previous_deployment.outputs.artifact_name }}
+                  path: ${{ steps.previous_deployment.outputs.manifest_file }}
+                  if-no-files-found: error
+                  retention-days: 30
+
     deploy:
         needs: build
+        if: needs.build.outputs.changed == 'true'
         runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:

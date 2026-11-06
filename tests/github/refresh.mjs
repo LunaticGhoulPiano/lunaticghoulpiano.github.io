@@ -15,6 +15,7 @@ import { fetchGithubSnapshots } from "../../scripts/github/fetch.ts";
 import { datasets, mergeSnapshots, refreshReadiness, refreshReport } from "../../scripts/github/refresh.ts";
 import { runGithubRefresh, needsGithubRefresh, refreshInterval } from "../../scripts/github/update.mjs";
 import { selectSnapshots, restoredSnapshotDirectory } from "../../scripts/snapshots/artifact.mjs";
+import { artifactPolicy } from "../../scripts/artifacts.mjs";
 import { snapshotToolPolicy } from "../../scripts/snapshots/config.ts";
 import { githubReadToken, validationEnvironment } from "../../scripts/github/environment.mjs";
 import { site } from "../../src/config/site.ts";
@@ -490,7 +491,7 @@ test("artifact selection rejects other branches, forks, expired artifacts and un
                         return {
                             data: {
                                 id: run_id,
-                                path: run_id === 6 ? ".github/workflows/unrelated.yml" : snapshotToolPolicy.workflow,
+                                path: run_id === 6 ? ".github/workflows/unrelated.yml" : artifactPolicy.workflow,
                                 event: "schedule",
                                 conclusion: "failure",
                             },

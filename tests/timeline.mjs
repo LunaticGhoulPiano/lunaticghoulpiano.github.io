@@ -129,6 +129,22 @@ test("scroll, jump controls and reduced-motion changes keep entries visible with
     assert.equal(view.pending(), 0);
 });
 
+test("scrolling a long timeline only updates rows entering, leaving or inside its viewport", context => {
+    const view = fixture(context, { count: 300 });
+    const writes = new Set();
+    view.items.forEach((item, index) => {
+        Object.defineProperty(item, "offsetTop", { get() { throw new Error("scroll remeasured a row"); } });
+        item.style.setProperty = (key, value) => { writes.add(index); item.style[key] = value; };
+    });
+    view.scroll(66);
+    assert.deepEqual([...writes], [0, 1, 2, 3, 4]);
+    writes.clear();
+    view.scroll(29900);
+    assert.ok(writes.size <= 10, "a long jump must skip the rows between the two viewports");
+    assert.equal(view.opacity(0), 0);
+    assert.equal(view.opacity(299), 1);
+});
+
 test("resize measures untransformed rows, supports initially hidden sources and remains stable", (context) => {
     const view = fixture(context, { fixedHeight: "" });
     assert.equal(view.viewport.style.height, "332px");

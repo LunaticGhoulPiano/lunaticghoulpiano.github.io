@@ -94,4 +94,5 @@ const copy = useMessages(locale).carousel;
 <script>
     import { initializeCarousels } from "../../scripts/carousel";
     initializeCarousels();
+    document.addEventListener("astro:page-load", initializeCarousels);
 </script>

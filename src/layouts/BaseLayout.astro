@@ -22,6 +22,7 @@ import "../styles/global.css";
 import "../styles/shell.css";
 import "../styles/liquid-glass.css";
 import "../styles/reading.css";
+import "../styles/typography.css";
 
 interface Props {
     article?: {
@@ -33,13 +34,12 @@ interface Props {
     description?: string;
     route?: RouteKey;
     noindex?: boolean;
-    animateList?: boolean;
     pagePath?: string;
     languagePaths?: Partial<Record<Locale, string>>;
     filters?: { category?: string; tags?: string[] };
 }
 
-const { title, locale, description, route, noindex = false, animateList = false, pagePath, languagePaths, article, filters } = Astro.props;
+const { title, locale, description, route, noindex = false, pagePath, languagePaths, article, filters } = Astro.props;
 const section = route ? routes[route].section : null;
 const isProfile = section === "profile";
 const hasSources = section === "feeds" || section === "projects";
@@ -62,7 +62,7 @@ const translations =
 <!doctype html>
 <html lang={languages[locale].htmlLang} data-light-color={themes.light.background} data-dark-color={themes.dark.background} data-appearance-config={JSON.stringify(appearanceConfiguration)}>
     <head>
-        {isProfile && <ClientRouter fallback="swap" />}
+        <ClientRouter fallback="swap" />
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="dark light" />
@@ -114,7 +114,7 @@ const translations =
             <Discovery locale={locale} index={discovery} filters={filters} />
         </Panel>
         <div class="container site-frame">
-            <main class="main-content" id="main-content" tabindex="-1" data-entrance={hasSources || animateList || undefined} data-entrance-controls={section === "feeds" || animateList || undefined}>
+            <main class="main-content" id="main-content" tabindex="-1" data-page-content data-entrance={isProfile ? "all" : ""} data-entrance-controls>
                 <slot />
             </main>
         </div>
@@ -122,10 +122,14 @@ const translations =
         <script>
             import { illuminateGlass } from "../scripts/glass/lighting.js";
             import "../scripts/entrance";
+            import "../scripts/page-motion";
             import { initializeSearch } from "../scripts/search";
+            import { navigate } from "astro:transitions/client";
+            // The light observes the document root, which survives Astro body swaps.
             illuminateGlass({ rules: ".prose blockquote" });
-            initializeSearch();
-            document.addEventListener("astro:page-load", initializeSearch);
+            const startSearch = () => initializeSearch(navigate);
+            startSearch();
+            document.addEventListener("astro:page-load", startSearch);
         </script>
     </body>
 </html>

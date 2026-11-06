@@ -1,6 +1,7 @@
 import { createListSearch } from "./list_search.ts";
 import { formatSequenceNumber } from "../utils/numbering.ts";
 import { paginationFor } from "./pagination.ts";
+import { createContentTransition } from "./motion.ts";
 
 export function initializeSheetSearch() {
     document.querySelectorAll<HTMLElement>("[data-sheet-browser]").forEach((root) => {
@@ -8,7 +9,8 @@ export function initializeSheetSearch() {
         const rows = [...root.querySelectorAll<HTMLElement>("[data-sheet-id]")];
         const empty = root.querySelector<HTMLElement>("[data-sheet-empty]")!;
         const pagination = paginationFor(root);
-        const search = createListSearch(root, rows, render);
+        const transition = createContentTransition(root.querySelector<HTMLElement>("[data-content-transition]")!);
+        const search = createListSearch(root, rows, () => transition.run(render, 0, "fade"));
 
         function render() {
             const matching = rows.filter(search.matches);

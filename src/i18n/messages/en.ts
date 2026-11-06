@@ -1,7 +1,7 @@
 export default {
     shell: {
         system: "System", light: "Light", dark: "Dark",
-        controls: "Control center", filters: "Filters", close: "Close",
+        controls: "Control Center", filters: "Filters", close: "Close",
         preset: "Appearance", piano: "Piano", aviation: "Aviation",
         theme: "Color mode", reset: "Restore defaults",
         language: "Language", desktop: "Workspace",

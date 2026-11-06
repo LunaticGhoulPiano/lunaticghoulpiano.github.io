@@ -162,4 +162,5 @@ const copy = useMessages(locale).carousel;
 <script>
     import { initializePageTurners } from "../../scripts/page_turner";
     initializePageTurners();
+    document.addEventListener("astro:page-load", initializePageTurners);
 </script>

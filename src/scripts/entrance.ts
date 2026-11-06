@@ -3,10 +3,10 @@ import { revealItems } from "./motion.ts";
 const revealed = new WeakSet<HTMLElement>();
 let entrance: AbortController | undefined;
 
-function entranceItems(root: HTMLElement) {
+export function entranceItems(root: HTMLElement) {
     const all = root.dataset.entrance === "all";
     const withControls = root.dataset.entranceControls !== undefined;
-    const content = "[data-reveal-item], [data-reveal-list] > ol > li";
+    const content = "[data-reveal-item], [data-reveal-list] > ol > li, .page-heading > :not([data-reveal-item]), .prose > *, .markdown > *, .theme-doc-breadcrumbs, .pagination-nav, .error-page > *";
     const candidates = root.querySelectorAll<HTMLElement>(withControls ? content + ", [data-reveal-last]" : content);
     const clipping = new Map<HTMLElement, { bounds: DOMRect; x: boolean; y: boolean }>();
     const items: HTMLElement[] = [];
@@ -44,9 +44,8 @@ function entranceItems(root: HTMLElement) {
     return { items: all ? items : visible.map(({ item }) => item), controls };
 }
 
-export async function initializeEntrances() {
-    const root = document.querySelector<HTMLElement>("[data-entrance]");
-    if (!root || revealed.has(root)) return;
+export async function initializeEntrances(root = document.querySelector<HTMLElement>("[data-entrance]"), replay = false) {
+    if (!root || (!replay && revealed.has(root))) return;
     revealed.add(root);
     entrance?.abort();
     const controller = new AbortController();
@@ -65,8 +64,10 @@ export async function initializeEntrances() {
     }
 }
 
+if (typeof document !== "undefined") {
 document.addEventListener("astro:before-preparation", () => entrance?.abort());
 // The head bootstrap emits this only while the initialized page is concealed.
 // Late modules and timeout fallbacks must not hide already-visible content again.
-document.addEventListener("site:page-ready", initializeEntrances);
+document.addEventListener("site:page-ready", () => initializeEntrances());
 for (const event of ["pagehide", "beforeprint"]) window.addEventListener(event, () => entrance?.abort());
+}

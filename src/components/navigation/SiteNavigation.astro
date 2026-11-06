@@ -12,7 +12,7 @@ const t = useTranslations(locale);
 <nav class="site-nav" data-glass="surface" aria-label={t("nav.main")}>
     <ul class="dock-items">
         {mainNavigation.map((item) => <li>
-            <a href={getRoutePath(item, locale)} class:list={{ "is-active": isSectionActive(route, item) }} aria-label={t(routes[item].title)} aria-current={route === item ? "page" : undefined}>
+            <a href={getRoutePath(item, locale)} data-glass="control" class:list={{ "is-active": isSectionActive(route, item) }} aria-label={t(routes[item].title)} aria-current={route === item ? "page" : undefined}>
                 <Icon name={item} /><span class="dock-label">{t(routes[item].title)}</span>
             </a>
         </li>)}

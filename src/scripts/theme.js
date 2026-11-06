@@ -1,7 +1,6 @@
 (() => {
     const preferences = ["system", "light", "dark"];
     const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
-    const root = document.documentElement;
     let preference = "system";
     let toggle = null;
     const boundToggles = new WeakSet();
@@ -14,16 +13,17 @@
         // Keep the system preference when browser storage is unavailable.
     }
 
-    function applyTheme() {
+    function applyTheme(target = document) {
+        const root = target.documentElement;
         const theme = preference === "system"
             ? (systemTheme.matches ? "dark" : "light")
             : preference;
         root.dataset.theme = theme;
         root.dataset.themePreference = preference;
-        document.querySelector('meta[name="theme-color"]')
+        target.querySelector('meta[name="theme-color"]')
             ?.setAttribute("content", root.dataset[`${theme}Color`]);
 
-        if (! toggle) return;
+        if (target !== document || ! toggle) return;
         const label = toggle.dataset[`${preference}Label`];
         toggle.setAttribute("aria-label", label);
         toggle.title = label;
@@ -65,7 +65,8 @@
     document.addEventListener("DOMContentLoaded", bindToggle, {
         once: true,
     });
-    document.addEventListener("astro:after-swap", applyTheme);
+    // Prepare the incoming root before Astro replaces attributes or measures layout.
+    document.addEventListener("astro:before-swap", (event) => applyTheme(event.newDocument));
     document.addEventListener("astro:page-load", bindToggle);
     document.addEventListener("site:reset", () => {
         preference = "system";

@@ -1,4 +1,4 @@
-import { createMotion } from "./motion.ts";
+import { createMotion, onPageLeave } from "./motion.ts";
 
 /** Use layout coordinates, never the transformed item bounds. */
 export function timelineItemPresentation(top: number, height: number, viewportHeight: number, arcWidth: number) {
@@ -29,6 +29,10 @@ export function initializeTimelines() {
         let frame = 0;
         let arcWidth = 0;
         let visualFocus: HTMLElement | undefined;
+        type Row = { item: HTMLElement; top: number; height: number };
+        let rows: Row[] = [];
+        let previousVisible: Row[] = [];
+        let refreshAll = true;
 
         function select(item?: HTMLElement) {
             if (item === visualFocus) return;
@@ -43,35 +47,44 @@ export function initializeTimelines() {
                 select();
                 return;
             }
-            const items = [...list.children] as HTMLElement[];
             const height = viewport.clientHeight;
-            const top = list.offsetTop - viewport.scrollTop;
-            // Read all layout before writing styles; transforms never affect sizing.
-            const bounds = items.map((item) => ({ top: top + item.offsetTop, height: item.hidden ? 0 : item.offsetHeight }));
-            const positions = bounds.map((item) => reducedMotion.matches
-                ? { x: 0, scale: 1, opacity: 1 }
-                : timelineItemPresentation(item.top, item.height, height, arcWidth));
-            // Visual selection never changes DOM focus, tab order, or link activation.
-            // Explicit keyboard focus takes precedence over automatic touch selection.
-            let centered = -1;
+            const start = viewport.scrollTop - list.offsetTop;
+            // Rows are ordered and do not overlap. Locate the first visible row,
+            // including on a jump from the first entry straight to the last.
+            let first = 0;
+            let end = rows.length;
+            while (first < end) {
+                const mid = Math.floor((first + end) / 2);
+                if (rows[mid].top + rows[mid].height <= start) first = mid + 1;
+                else end = mid;
+            }
+            let last = first;
+            while (last < rows.length && rows[last].top < start + height) last++;
+            const visible = rows.slice(first, last);
+            let centered: HTMLElement | undefined;
             let closest = Infinity;
             if (touchInput.matches && !list.querySelector(":focus-visible")) {
-                bounds.forEach((item, index) => {
-                    if (item.height <= 0 || item.top >= height || item.top + item.height <= 0) return;
-                    const distance = Math.abs(item.top + item.height / 2 - height / 2);
+                for (const row of visible) {
+                    const distance = Math.abs(row.top + row.height / 2 - start - height / 2);
                     if (distance < closest) {
                         closest = distance;
-                        centered = index;
+                        centered = row.item;
                     }
-                });
+                }
             }
-            select(items[centered]);
-            items.forEach((item, index) => {
-                const position = positions[index];
-                item.style.setProperty("--timeline-x", `${position.x.toFixed(2)}px`);
-                item.style.setProperty("--timeline-scale", String(position.scale));
-                item.style.setProperty("--timeline-opacity", String(position.opacity));
-            });
+            select(centered);
+            if (refreshAll || !reducedMotion.matches) {
+                const changed = refreshAll ? rows : new Set([...previousVisible, ...visible]);
+                for (const { item, top, height: rowHeight } of changed) {
+                    const position = reducedMotion.matches ? { x: 0, scale: 1, opacity: 1 }
+                        : timelineItemPresentation(top - start, rowHeight, height, arcWidth);
+                    item.style.setProperty("--timeline-x", `${position.x.toFixed(2)}px`);
+                    item.style.setProperty("--timeline-scale", String(position.scale));
+                    item.style.setProperty("--timeline-opacity", String(position.opacity));
+                }
+            }
+            refreshAll = false;
+            previousVisible = visible;
         }
 
         function scheduleDraw() {
@@ -106,6 +119,10 @@ export function initializeTimelines() {
                     viewport.style.height = `${lastVisible.offsetTop + lastVisible.offsetHeight + bottomPadding}px`;
                 }
             }
+            rows = ([...list.children] as HTMLElement[]).filter(item => !item.hidden)
+                .map(item => ({ item, top: item.offsetTop, height: item.offsetHeight }))
+                .filter(row => row.height > 0).sort((a, b) => a.top - b.top);
+            refreshAll = true;
             sync();
             scheduleDraw();
         }
@@ -136,11 +153,16 @@ export function initializeTimelines() {
         });
         viewport.addEventListener("focusin", scheduleDraw);
         viewport.addEventListener("focusout", scheduleDraw);
-        reducedMotion.addEventListener("change", scheduleDraw);
+        reducedMotion.addEventListener("change", resize);
         touchInput.addEventListener("change", scheduleDraw);
         const observer = new ResizeObserver(resize);
         observer.observe(list);
         observer.observe(viewport);
+        onPageLeave(() => {
+            motion.cancel(); cancelAnimationFrame(frame); observer.disconnect();
+            reducedMotion.removeEventListener("change", resize);
+            touchInput.removeEventListener("change", scheduleDraw);
+        });
         root.dataset.ready = "true";
         resize();
     });

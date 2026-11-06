@@ -4,10 +4,10 @@ import { readFile } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
 import { runInNewContext } from "node:vm";
 
-const helpers = stripTypeScriptTypes(await readFile(new URL("../src/scripts/motion.ts", import.meta.url), "utf8")).replaceAll("export ", "");
+const helpers = stripTypeScriptTypes(await readFile(new URL("../src/scripts/motion.ts", import.meta.url), "utf8")).replace(/^import .*;$/gm, "").replaceAll("export ", "");
 const entrance = stripTypeScriptTypes(await readFile(new URL("../src/scripts/entrance.ts", import.meta.url), "utf8"))
     .replace(/^import .*motion\.ts.*;$/m, "").replaceAll("export ", "");
-const script = helpers + "\n" + entrance + "\n" + stripTypeScriptTypes(await readFile(new URL("../src/scripts/profile-motion.ts", import.meta.url), "utf8"))
+const script = helpers + "\n" + entrance + "\n" + stripTypeScriptTypes(await readFile(new URL("../src/scripts/page-motion.ts", import.meta.url), "utf8"))
     .replace(/^import .*motion\.ts.*;$/m, "");
 
 function browser({ reduced = false, detail = true, scrollY = 0, holdAnimations = false } = {}) {
@@ -113,7 +113,7 @@ test("prepared pages reveal items and page-load does not replay the entrance", a
     assert.equal(page.animations.length, visible.length, "The same document must not animate twice.");
 });
 
-test("Overview and Resume fade and focus the main content without scrolling past the header", async () => {
+test("all routes fade and focus the main content without scrolling past the header", async () => {
     for (const detail of [true, false]) {
         const page = browser({ detail });
         await page.prepare();
@@ -142,14 +142,14 @@ test("reduced motion focuses without animations or automatic scrolling", async (
     }
 });
 
-test("history traversal and unrelated links do not override scroll restoration", async () => {
-    for (const change of [{ navigationType: "traverse" }, { sourceElement: undefined }]) {
+test("history traversal animates without overriding scroll or focus restoration", async () => {
+    for (const change of [{ navigationType: "traverse" }]) {
         const page = browser({ scrollY: 360 });
         Object.assign(page.event, change);
         await page.prepare();
         await page.reveal();
         assert.deepEqual(page.effects, [
-            ["load"], ...page.newPage.items.map((item) => [item.name, "fade", 0, 1]),
+            ["load"], ["old", "fade", 1, 0], ...page.newPage.items.map((item) => [item.name, "fade", 0, 1]),
         ]);
         assert.equal(page.window.scrollY, 360);
     }
@@ -165,6 +165,16 @@ test("failed loads and superseded navigation never leave the current page faded 
     aborted.controller.abort();
     assert.equal(aborted.oldPage.style.opacity, undefined);
     assert.equal(aborted.effects.some((effect) => effect[0] === "scroll"), false);
+});
+
+test("leaving for another site document does not cache an invisible main or change the reading position", async () => {
+    const page = browser({ scrollY: 640 });
+    page.event.defaultPrevented = true; // Astro handed this destination to full browser navigation.
+    await page.prepare();
+    assert.equal(page.oldPage.style.opacity, "0");
+    page.window.dispatchEvent(Object.assign(new Event("pagehide"), { persisted: true }));
+    assert.equal(page.oldPage.style.opacity, undefined);
+    assert.equal(page.window.scrollY, 640);
 });
 
 test("leaving during an entrance cancels all item animations even when the next load fails", async () => {
@@ -191,4 +201,21 @@ test("cancelling an entrance cannot clear the opacity owned by the next exit", a
     await leaving;
     assert.equal(page.oldPage.style.opacity, "0");
     assert.equal(page.newPage.style.opacity, undefined);
+});
+
+test("documentation query changes restore faded content without replaying the article entrance", async () => {
+    const source = await readFile(new URL("../src/contents/mymusic5-api/src/motion.js", import.meta.url), "utf8");
+    const main = { style: { opacity: "0", removeProperty(key) { delete this[key]; } } };
+    const context = {
+        document: { querySelector: () => main },
+        initializeEntrances() { assert.fail("A query-only change must not replay the article entrance."); },
+    };
+    runInNewContext(source.replace(/^import .*;$/gm, "").replaceAll("export ", ""), context);
+    const navigation = {
+        previousLocation: { pathname: "/javascript/", search: "" },
+        location: { pathname: "/javascript/", search: "?example=client" },
+    };
+    context.onRouteUpdate(navigation);
+    context.onRouteDidUpdate(navigation);
+    assert.equal(main.style.opacity, undefined);
 });

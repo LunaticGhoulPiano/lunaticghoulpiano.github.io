@@ -7,7 +7,6 @@ import { formatSequenceNumber } from "../../utils/numbering";
 import type { Repository } from "../../data/github/schema";
 import Pagination from "../common/Pagination.astro";
 import SearchField from "../common/SearchField.astro";
-import ContentTransition from "../common/ContentTransition.astro";
 
 interface Props {
     locale: Locale;
@@ -38,54 +37,54 @@ const copy = useMessages(locale).design;
             </div>
         </div>
     )}
-    <ContentTransition>
-    <ol class="repository-list">
-        {repositories.map((repository, index) => (
-            <li
-                class="repository-row focus-item" data-glass-rule
-                data-page-item
-                data-reveal-item
-                data-repository
-                data-type={repository.fork ? "fork" : "original"}
-                data-search={`${repository.name} ${repository.description ?? ""} ${repository.language ?? ""}`}
-            >
-                <span class="row-index" data-repository-index aria-hidden="true">{formatSequenceNumber(index + 1, repositories.length)}</span>
-                <div class="repository-content">
-                    <div class="repository-title">
-                        <h3><a href={repository.url}>{repository.name}</a></h3>
-                        {repository.fork && <span class="fork-label">{copy.fork}</span>}
+    <Pagination locale={locale}>
+        <ol class="repository-list">
+            {repositories.map((repository, index) => (
+                <li
+                    class="repository-row focus-item" data-glass-rule
+                    data-page-item
+                    data-reveal-item
+                    data-repository
+                    data-type={repository.fork ? "fork" : "original"}
+                    data-search={`${repository.name} ${repository.description ?? ""} ${repository.language ?? ""}`}
+                >
+                    <span class="row-index" data-repository-index aria-hidden="true">{formatSequenceNumber(index + 1, repositories.length)}</span>
+                    <div class="repository-content">
+                        <div class="repository-title">
+                            <h3><a href={repository.url}>{repository.name}</a></h3>
+                            {repository.fork && <span class="fork-label">{copy.fork}</span>}
+                        </div>
+                        <p class="repository-description">{repository.description || copy.noDescription}</p>
+                        <div class="repository-meta">
+                            {repository.language && (
+                                <span class="language-name">
+                                    <span class="language-dot" style={{ "--language-color": repositoryColor(repository.language) }} aria-hidden="true"></span>
+                                    {repository.language}
+                                </span>
+                            )}
+                            {repository.stars > 0 && (
+                                <span aria-label={formatMessage(copy.stars, {
+                                    count: repository.stars,
+                                }, languages[locale].formatLocale)}>☆ {repository.stars}</span>
+                            )}
+                            <span>{copy.updated} <time datetime={repository.updatedAt}>{repository.updatedAt.slice(0, 10)}</time></span>
+                        </div>
                     </div>
-                    <p class="repository-description">{repository.description || copy.noDescription}</p>
-                    <div class="repository-meta">
-                        {repository.language && (
-                            <span class="language-name">
-                                <span class="language-dot" style={{ "--language-color": repositoryColor(repository.language) }} aria-hidden="true"></span>
-                                {repository.language}
-                            </span>
-                        )}
-                        {repository.stars > 0 && (
-                            <span aria-label={formatMessage(copy.stars, {
-                                count: repository.stars,
-                            }, languages[locale].formatLocale)}>☆ {repository.stars}</span>
-                        )}
-                        <span>{copy.updated} <time datetime={repository.updatedAt}>{repository.updatedAt.slice(0, 10)}</time></span>
-                    </div>
-                </div>
-                <span class="row-arrow" aria-hidden="true">↗</span>
-            </li>
-        ))}
-    </ol>
-    <Pagination locale={locale} />
-    {filterable && (
-        <div class="no-results" data-no-results hidden>
-            <p>{copy.noResults}</p>
-            <button class="text-button" type="button" data-clear-filters>{copy.reset}</button>
-        </div>
-    )}
-    </ContentTransition>
+                    <span class="row-arrow" aria-hidden="true">↗</span>
+                </li>
+            ))}
+        </ol>
+        {filterable && (
+            <div class="no-results" data-no-results hidden>
+                <p>{copy.noResults}</p>
+                <button class="text-button" type="button" data-clear-filters>{copy.reset}</button>
+            </div>
+        )}
+    </Pagination>
 </div>
 
 <script>
     import { initializeRepositories } from "../../scripts/repositories";
     initializeRepositories();
+    document.addEventListener("astro:page-load", initializeRepositories);
 </script>

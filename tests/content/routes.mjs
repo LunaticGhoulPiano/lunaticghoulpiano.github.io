@@ -44,6 +44,10 @@ function text(html) {
     return decodeHtml(html.replace(/<[^>]+>/g, "")).trim();
 }
 
+function resetLanguagePath(html) {
+    return attributes(html.match(/<button\b[^>]*data-appearance-reset[^>]*>/)[0])["data-reset-language-path"];
+}
+
 function headings(html, level) {
     return [...html.matchAll(new RegExp(`<h${level}\\b[^>]*>([\\s\\S]*?)<\\/h${level}>`, "g"))]
         .map((match) => text(match[1]));
@@ -245,7 +249,7 @@ test("isolated builds cover every configured language plus an additional locale,
             const overview = await page("feeds", locale);
             const feed = await page("feeds/github", locale);
             assert.match(overview.match(/<main\b[^>]*>/)[0], /data-entrance/);
-            assert.doesNotMatch(profile.match(/<main\b[^>]*>/)[0], /data-entrance/);
+            assert.match(profile.match(/<main\b[^>]*>/)[0], /data-entrance="all"/);
             assert.deepEqual(headings(main(overview), 1), [copy.ui["route.feeds"]]);
             assert.deepEqual(headings(main(feed), 1), [copy.ui["route.github"]]);
             assert.deepEqual(headings(main(overview), 2), Object.values(feedSources).map((source) => source.title));
@@ -367,6 +371,15 @@ test("isolated builds cover every configured language plus an additional locale,
             const projects = await page("projects", locale);
             const youtubeFeedPage = await page(routes.youtube.path, locale);
             const githubProjects = await page(routes.githubProjects.path, locale);
+            for (const html of [projects, githubProjects]) {
+                // Both entry points keep the pager outside the list that becomes inert.
+                const repository = main(html).split("data-repository-browser")[1];
+                const pager = repository.match(/<nav\b[^>]*data-pagination\b/);
+                assert.ok(pager);
+                const list = repository.slice(0, pager.index);
+                assert.match(list, /data-content-transition-body[^>]*>\s*<ol\b[^>]*class="repository-list"/);
+                assert.equal([...list.matchAll(/<div\b/g)].length, [...list.matchAll(/<\/div>/g)].length);
+            }
             assert.deepEqual(headings(main(projects), 2), Object.values(projectSources).map((source) => source.title));
             for (const [html, definitions] of [[overview, feedSources], [projects, projectSources]]) {
                 assert.match(html, /data-page-turner /);
@@ -421,6 +434,8 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.match(mymusic5Projects, /<div\b[^>]*class="sheet-author"[^>]*data-reveal-item/);
             assert.match(mymusic5Projects, /class="statistics"/);
             assert.match(mymusic5Projects, /data-paginated-list/);
+            assert.match(mymusic5Projects, /data-content-transition-body[^>]*>[\s\S]*id="mymusic5-sheets"/);
+            assert.match(mymusic5Projects, /<nav\b[^>]*data-pagination/);
             assert.match(mymusic5Projects, new RegExp(`data-page-size="${collectionPageSize}"`));
             assert.doesNotMatch(mymusic5Projects, /data-timeline-window|data-timeline-scroll|data-timeline-newest|data-timeline-oldest/);
             assert.ok(projectSheets.every((row) => /data-page-item/.test(row)));
@@ -476,11 +491,11 @@ test("isolated builds cover every configured language plus an additional locale,
                 const bodyClasses = attributes(html.match(/<body\b[^>]*>/)[0]).class?.split(/\s+/) ?? [];
                 assert.equal(bodyClasses.includes("borderless-page"), section === "profile" || sourcePage);
                 const mainTag = html.match(/<main\b[^>]*>/)[0];
-                assert.equal(/\sdata-entrance[\s=>]/.test(mainTag), sourcePage || route === "documentations");
-                assert.equal(/\sdata-entrance-controls[\s=>]/.test(mainTag), section === "feeds" || route === "documentations");
+                assert.equal(/\sdata-entrance[\s=>]/.test(mainTag), true);
+                assert.equal(/\sdata-entrance-controls[\s=>]/.test(mainTag), true);
                 if (route === "documentations") {
                     assert.match(main(html), /<li\b[^>]*data-reveal-item/);
-                    assert.match(main(html), /<nav\b[^>]*data-animate-pages[^>]*data-reveal-last/);
+                    assert.match(main(html), /<nav\b[^>]*data-pagination[^>]*data-reveal-last/);
                 }
                 assert.doesNotMatch(html, /data-curved|timeline-curved/);
                 assert.deepEqual(headings(main(html), 1), [route === "profile" ? site.name : copy.ui[definition.title]]);
@@ -498,6 +513,7 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.doesNotMatch(html, /page-location/);
                 assert.equal(attributes(html.match(/<html\b[^>]*>/)[0]).lang, testLanguages[locale].htmlLang);
                 assert.deepEqual(links(html, "canonical").map((link) => link.href), [new URL(localizedPath(path, locale), site.url).href]);
+                assert.equal(resetLanguagePath(html), locale === defaultLocale ? undefined : localizedPath(path, defaultLocale));
                 for (const language of testLocales) {
                     assert.ok(links(html, "alternate").some((link) =>
                         link.hreflang === testLanguages[language].htmlLang
@@ -509,7 +525,11 @@ test("isolated builds cover every configured language plus an additional locale,
                     assert.deepEqual(urls, socialLinks.map((link) => link.url));
                 }
             }
-            for (const html of [projects, blogPage]) assert.ok(html.includes(`data-pagination data-page-size="${collectionPageSize}"`));
+            for (const html of [projects, blogPage]) {
+                const pagination = html.match(/<[^>]+\bdata-pagination\b[^>]*>/)?.[0];
+                assert.ok(pagination);
+                assert.equal(attributes(pagination)["data-page-size"], String(collectionPageSize));
+            }
 
             const paired = await page(`blog/${pairedSlugs.get(locale)}`, locale);
             assert.match(paired, /id="validation-heading"/);
@@ -532,6 +552,7 @@ test("isolated builds cover every configured language plus an additional locale,
                 assert.ok(sitemap.includes(`<loc>${new URL(path, site.url).href}</loc>`));
             }
             const defaultPost = localizedPath(`blog/${pairedSlugs.get(defaultLocale)}`, defaultLocale);
+            assert.equal(resetLanguagePath(paired), locale === defaultLocale ? undefined : defaultPost);
             assert.ok(alternates.some((link) => link.hreflang === "x-default" && link.href === new URL(defaultPost, site.url).href));
 
             const standalonePath = `blog/${standaloneSlugs.get(locale)}`;
@@ -539,6 +560,7 @@ test("isolated builds cover every configured language plus an additional locale,
             assert.deepEqual(links(alone, "alternate").map((link) => link.hreflang).sort(),
                 [testLanguages[locale].htmlLang, ...(locale === defaultLocale ? ["x-default"] : [])].sort());
             const switcher = alone.match(/<nav class="language-switcher"[^>]*>([\s\S]*?)<\/nav>/)[1];
+            assert.equal(resetLanguagePath(alone), locale === defaultLocale ? undefined : localizedPath("blog", defaultLocale));
             assert.equal([...switcher.matchAll(/aria-disabled="true"/g)].length, testLocales.length - 1);
             assert.equal([...switcher.matchAll(/aria-current="page"/g)].length, 1);
             assert.doesNotMatch(switcher, /<a\b/);

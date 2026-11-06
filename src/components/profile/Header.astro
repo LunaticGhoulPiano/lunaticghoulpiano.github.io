@@ -28,20 +28,11 @@ const Title = route === "profile" ? "h1" : "p";
 <style>
     .profile-name {
         margin: 0;
+        font-family: var(--font-display);
         font-size: clamp(3.5rem, 7vw, 7.5rem);
         font-weight: 400;
         line-height: 1.05;
         letter-spacing: -0.06em;
-    }
-
-    :global(:root[data-preset="piano"]) .profile-name {
-        font-family: Georgia, "Times New Roman", serif;
-    }
-
-    :global(:root[data-preset="aviation"]) .profile-name {
-        font-weight: 300;
-        font-style: normal;
-        letter-spacing: -0.055em;
     }
 
     .profile-identity {

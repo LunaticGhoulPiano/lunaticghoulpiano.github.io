@@ -103,6 +103,7 @@ function browser({ dark = false, saved = null, storageBlocked = false } = {}) {
         saved: () => saved,
         ready: () => documentListeners.get("DOMContentLoaded")(),
         click: () => buttonListeners.get("click")(),
+        prepare: (newDocument) => documentListeners.get("astro:before-swap")({ newDocument }),
         storage: (newValue) => windowListeners.get("storage")({ key: "theme", newValue }),
         system: (value) => {
             media.matches = value;
@@ -110,6 +111,28 @@ function browser({ dark = false, saved = null, storageBlocked = false } = {}) {
         },
     };
 }
+
+test("incoming pages have the selected theme before Astro swaps the root", () => {
+    for (const storageBlocked of [false, true]) {
+        const page = browser({ dark: true, storageBlocked });
+        page.ready();
+        page.click(); // Choose light even when storage cannot persist it.
+        const incoming = {
+            documentElement: { dataset: { lightColor: "#fefefe", darkColor: "#111111" } },
+            querySelector: () => ({ setAttribute: (_name, value) => { incoming.color = value; } }),
+        };
+        page.prepare(incoming);
+        assert.equal(incoming.documentElement.dataset.theme, "light");
+        assert.equal(incoming.documentElement.dataset.themePreference, "light");
+        assert.equal(incoming.color, "#fefefe");
+        page.click();
+        page.click(); // System tracks the current OS, including on history navigation.
+        page.system(false);
+        page.prepare(incoming);
+        assert.equal(incoming.documentElement.dataset.theme, "light");
+        assert.equal(incoming.documentElement.dataset.themePreference, "system");
+    }
+});
 
 test("first visit follows the system before DOM ready and reacts to system changes", () => {
     for (const dark of [false, true]) {

@@ -1,5 +1,5 @@
 import { carouselState, carouselWidths } from "../utils/carousel.ts";
-import { createMotion } from "./motion.ts";
+import { createMotion, onPageLeave } from "./motion.ts";
 
 export function initializeCarousels() {
     document.querySelectorAll<HTMLElement>("[data-carousel]").forEach((carousel) => {
@@ -25,6 +25,9 @@ export function initializeCarousels() {
         let barOffset = 0;
         let gap = 0;
         let naturalWidths: number[] = [];
+        let announcedIndex = -1;
+        let firstVisible = -1;
+        let lastVisible = -1;
         let selected = Math.max(0, cards.findIndex((card) => card.getAttribute("aria-pressed") === "true"));
         let state = carouselState(cards.length, columns, 0, loop);
         const motion = createMotion();
@@ -40,17 +43,20 @@ export function initializeCarousels() {
             cards[selected]?.dispatchEvent(new CustomEvent("carousel:select", { detail: { direction } }));
         }
 
-        function syncHeight() {
-            if (navigation) return;
-            const viewport = track.getBoundingClientRect();
-            const visible = cards.filter((card) => {
-                const bounds = card.getBoundingClientRect();
-                return bounds.right > viewport.left + 1 && bounds.left < viewport.right - 1;
-            });
+        function syncHeight(force = false) {
+            if (navigation || step <= 0) return;
+            const first = base + Math.floor((trackOffset + gap + 1) / step);
+            const last = base + Math.min(cards.length, Math.ceil((trackOffset + trackWidth - 1) / step)) - 1;
+            if (!force && first === firstVisible && last === lastVisible) return;
+            firstVisible = first;
+            lastVisible = last;
+            let tallest = 0;
+            for (let index = first; index <= last; index++) {
+                tallest = Math.max(tallest, cards[index % cards.length].offsetHeight);
+            }
             const style = getComputedStyle(track);
             const padding = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
-            const height = Math.max(0, ...visible.map((card) => card.offsetHeight)) + padding;
-            track.style.height = `${height}px`;
+            track.style.height = `${tallest + padding}px`;
         }
 
         function navigationWidths(index: number) {
@@ -98,13 +104,15 @@ export function initializeCarousels() {
             previous.disabled = navigationState.previous === null;
             next.disabled = navigationState.next === null;
             controls.hidden = ! navigation && state.previous === null && state.next === null;
-            position.textContent = state.indices.map((cardIndex) => cards[cardIndex].getAttribute("aria-label") ?? cards[cardIndex].textContent ?? "").join(" · ");
+            if (announcedIndex !== state.index) {
+                announcedIndex = state.index;
+                position.textContent = state.indices.map((cardIndex) => cards[cardIndex].getAttribute("aria-label") ?? cards[cardIndex].textContent ?? "").join(" · ");
+                scrollbar?.setAttribute("aria-valuenow", String(state.index));
+                scrollbar?.setAttribute("aria-valuetext", position.textContent);
+            }
             if (scrollbar) {
                 if (updateScrollbar) scrollbar.scrollLeft = maximum > 0 ? offset / maximum * (scrollbar.scrollWidth - scrollbar.clientWidth) : 0;
                 barOffset = scrollbar.scrollLeft;
-                scrollbar.setAttribute("aria-valuemax", String(maximum));
-                scrollbar.setAttribute("aria-valuenow", String(state.index));
-                scrollbar.setAttribute("aria-valuetext", position.textContent);
             }
             syncHeight();
         }
@@ -214,12 +222,13 @@ export function initializeCarousels() {
             gap = Number.parseFloat(style.columnGap);
             step = (track.clientWidth + gap) / columns;
             if (navigation && (changed || naturalWidths.length === 0)) {
-                naturalWidths = cards.map((card) => {
-                    card.style.width = "max-content";
-                    return card.getBoundingClientRect().width;
-                });
+                for (const card of cards) card.style.width = "max-content";
+                naturalWidths = cards.map(card => card.getBoundingClientRect().width);
             }
             maximum = cards.length > columns ? (loop ? cards.length - 1 : cards.length - columns) : 0;
+            scrollbar?.setAttribute("aria-valuemax", String(maximum));
+            announcedIndex = -1;
+            firstVisible = -1;
             if (navigation && changed) {
                 offset = Math.round(offset);
                 if (! carouselState(cards.length, columns, offset, loop).indices.includes(selected)) offset = selected;
@@ -244,10 +253,11 @@ export function initializeCarousels() {
             resizeFrame = requestAnimationFrame(() => {
                 resizeFrame = 0;
                 if (geometryChanged()) resize();
-                else syncHeight();
+                else syncHeight(true);
             });
         });
         observer.observe(track);
+        onPageLeave(() => { motion.cancel(); cancelAnimationFrame(resizeFrame); observer.disconnect(); });
         if (! navigation) cards.forEach((card) => observer.observe(card));
         carousel.dataset.ready = "true";
         resize();

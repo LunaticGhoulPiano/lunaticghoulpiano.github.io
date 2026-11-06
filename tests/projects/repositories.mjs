@@ -59,11 +59,16 @@ test("repository search and reset cancel pending changes and preserve pagination
     view.select(2);
     view.search("piano");
     view.transition.frame(1000);
+    view.transition.frame(1240);
     assert.deepEqual(view.visible(), [view.rows[1]]);
     assert.equal(view.rows[1].querySelectorAll("mark")[0].textContent, "piano");
     view.search("no-match");
+    view.transition.frame(1300);
+    view.transition.frame(1540);
     assert.equal(view.empty.hidden, false);
     view.reset.dispatchEvent(new Event("click"));
+    view.transition.frame(1600);
+    view.transition.frame(1840);
     assert.equal(view.visible().length, 3);
     assert.equal(view.buttons[0]["aria-pressed"], "true");
     assert.equal(view.transition.pending(), 0);

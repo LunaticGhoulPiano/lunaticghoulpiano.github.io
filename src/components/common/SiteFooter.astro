@@ -11,7 +11,38 @@ const t = useTranslations(Astro.props.locale);
 
 <footer class="site-footer">
     <div class="container footer-inner" data-glass-rule>
-        <span class="footer-name">{site.name} © 2026</span>
-        <a href="#top">{t("footer.top")}</a>
+        <span class="footer-name">{site.copyright}</span>
+        <a class="back-to-top" href="#top" data-glass="control" aria-label={t("footer.top")} title={t("footer.top")}>
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="m5 15 7-7 7 7" />
+            </svg>
+        </a>
     </div>
 </footer>
+
+<script>
+    import { onPageLeave } from "../../scripts/motion";
+
+    document.addEventListener("astro:page-load", () => {
+        const link = document.querySelector<HTMLAnchorElement>(".back-to-top");
+        if (!link) return;
+        let previous = window.scrollY;
+        const scroll = () => {
+            const y = window.scrollY;
+            if (y !== previous) link.toggleAttribute("data-visible", y >= 300 && y < previous);
+            previous = y;
+        };
+        const toTop = (event: MouseEvent) => {
+            if (event.button || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+            event.preventDefault();
+            if (event.detail === 0) document.querySelector<HTMLElement>("#top .brand")?.focus({ preventScroll: true });
+            window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+        };
+        window.addEventListener("scroll", scroll, { passive: true });
+        link.addEventListener("click", toTop);
+        onPageLeave(() => {
+            window.removeEventListener("scroll", scroll);
+            link.removeEventListener("click", toTop);
+        });
+    });
+</script>

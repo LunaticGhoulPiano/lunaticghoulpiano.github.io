@@ -1,11 +1,10 @@
 :root {
-    font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    font-style: italic;
+    font-family: var(--font-body);
+    font-style: normal;
     color: var(--text);
     background: var(--background);
     font-synthesis: style;
-    --mono: "Cascadia Code", Consolas, monospace;
-    --content-divider-width: 1px;
+    --content-divider-width: 0px;
 }
 
 * {
@@ -264,48 +263,6 @@ h3 {
 
 @media (prefers-reduced-motion: reduce), print {
     [data-entering] { --entrance-progress: 1 !important; }
-}
-
-/* Shared content focus: pointer, keyboard and touch selection use the same lift. */
-.focus-item {
-    --item-focused: 0;
-    --item-glow: color-mix(in srgb, var(--focus-glow) calc(100% * var(--item-focused)), transparent);
-    position: relative;
-    z-index: var(--item-focused);
-    /* Growing upward keeps the resting hit area inside the enlarged item. */
-    transform-origin: left bottom;
-    text-shadow: 0 0 2px var(--item-glow), 0 0 6px var(--item-glow);
-}
-
-.focus-item :where(img, svg, .language-dot) {
-    filter: drop-shadow(0 0 4px var(--item-glow));
-}
-
-.focus-item:focus-within, .focus-item[data-visual-focus] { --item-focused: 1; }
-
-/* A link can wrap inside a clipped title; keep its focus cue inside the text. */
-.focus-item a:focus-visible {
-    outline: none;
-    text-decoration: underline solid var(--accent) 2px;
-    text-underline-offset: 0.18em;
-}
-
-@media (hover: hover) {
-    .focus-item:hover:not([data-entering]) { --item-focused: 1; }
-}
-
-@media screen and (prefers-reduced-motion: no-preference) {
-    .focus-item {
-        --focus-scale: 1.07;
-        /* Reserve the enlarged width before focus so adjacent content stays put. */
-        max-inline-size: calc(100% / var(--focus-scale));
-        scale: calc(1 + (var(--focus-scale) - 1) * var(--item-focused));
-        transition: scale 180ms ease, text-shadow 180ms ease;
-    }
-
-    .focus-item :where(img, svg, .language-dot) {
-        transition: filter 180ms ease;
-    }
 }
 
 .activity-repository, .youtube-video-title, .sheet-content h3 a {
@@ -713,7 +670,6 @@ h3 {
 }
 
 .prose code {
-    font-family: var(--mono);
     font-size: 0.9375rem;
 }
 

@@ -16,7 +16,7 @@
             "./pnpm-lock.yaml",
             "./pnpm-workspace.yaml"
         ],
-        "sharedInputs": ["./src/config", "./src/i18n", "./src/scripts/appearance.js", "./src/scripts/migrate-theme.js", "./src/scripts/glass", "./src/styles/liquid-glass.css", "./src/styles/reading.css", "./src/styles/wallpaper.css", "./src/assets/wallpapers"]
+        "sharedInputs": ["./src/config", "./src/i18n", "./src/routing.ts", "./src/scripts/appearance.js", "./src/scripts/migrate-theme.js", "./src/scripts/page-ready.js", "./src/scripts/glass", "./src/scripts/motion.ts", "./src/scripts/entrance.ts", "./src/styles/liquid-glass.css", "./src/styles/reading.css", "./src/styles/typography.css", "./src/styles/wallpaper.css", "./src/assets/fonts", "./src/assets/wallpapers"]
     },
     "links": [
         {

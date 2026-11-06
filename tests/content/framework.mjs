@@ -162,11 +162,12 @@ const { item, locale } = Astro.props;
                     && body.includes(`name="tag" value="${tag}"`));
             }
             article.tags.push("العربية");
-            await writeItem(root, article, {});
-            await until(tagPath("العربية", defaultLocale), (status, body) => status === 200 && body.includes("العربية"));
             article.tags = article.tags.filter((tag) => tag !== "ピアノ");
             await writeItem(root, article, {});
-            await until(tagPath("ピアノ", defaultLocale), (status, body) => status === 200 && ! body.includes('name="tag" value="ピアノ"'));
+            // One save updates both directions; consecutive same-file writes may
+            // be coalesced by the filesystem watcher before its change throttle expires.
+            await until(tagPath("العربية", defaultLocale), (status, body) => status === 200
+                && body.includes('name="tag" value="العربية"') && !body.includes('name="tag" value="ピアノ"'));
             const added = configuration("fixture-added", { type: "astro", file: "./Added.astro", path: "/games/fixture-added/" });
             const addedDirectory = join(root, "src/contents/fixture-added");
             await mkdir(addedDirectory, { recursive: true });

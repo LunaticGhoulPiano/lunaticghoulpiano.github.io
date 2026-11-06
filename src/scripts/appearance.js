@@ -12,8 +12,8 @@
         ]));
     }
     let preferences = readPreferences();
-    const apply = () => {
-        for (const [key, value] of Object.entries(preferences)) root.dataset[key] = value;
+    const apply = (target = root) => {
+        for (const [key, value] of Object.entries(preferences)) target.dataset[key] = value;
     };
     const save = () => {
         try { localStorage.setItem("site-appearance", JSON.stringify(preferences)); }
@@ -55,7 +55,7 @@
         sync();
     };
     document.addEventListener("DOMContentLoaded", bindControls, { once: true });
-    document.addEventListener("astro:after-swap", apply);
+    document.addEventListener("astro:before-swap", (event) => apply(event.newDocument.documentElement));
     document.addEventListener("astro:page-load", bindControls);
     window.addEventListener("storage", (event) => {
         if (event.key !== "site-appearance" && event.key !== null) return;

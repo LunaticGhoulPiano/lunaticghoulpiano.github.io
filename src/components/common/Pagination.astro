@@ -2,23 +2,23 @@
 import { languages, type Locale } from "../../config/site";
 import { collectionPageSize } from "../../config/collections";
 import { useMessages } from "../../i18n/ui";
+import ContentTransition from "./ContentTransition.astro";
 
 interface Props {
     locale: Locale;
     pageSize?: number;
-    animatePages?: boolean;
 }
 
-const { locale, pageSize = collectionPageSize, animatePages } = Astro.props;
+const { locale, pageSize = collectionPageSize } = Astro.props;
 const copy = useMessages(locale).pagination;
 ---
 
+<ContentTransition><slot /></ContentTransition>
 <nav
     class="pagination"
     aria-label={copy.label}
     data-pagination
-    data-animate-pages={animatePages || undefined}
-    data-reveal-last={animatePages || undefined}
+    data-reveal-last
     data-page-size={pageSize}
     data-format-locale={languages[locale].formatLocale}
     data-page-label={copy.page}

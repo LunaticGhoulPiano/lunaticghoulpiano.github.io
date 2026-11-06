@@ -1,6 +1,7 @@
 @import "../../../../styles/liquid-glass.css";
 @import "../../../../styles/wallpaper.css";
 @import "../../../../styles/reading.css";
+@import "../../../../styles/typography.css";
 
 /* Map the same materials onto Docusaurus' native controls and reading surfaces. */
 :root, html[data-theme] {
@@ -24,30 +25,18 @@
     --ifm-breadcrumb-item-background-active: transparent;
     --ifm-dropdown-hover-background-color: transparent;
     --ifm-breadcrumb-color-active: var(--accent);
-    --ifm-font-family-base: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
-    --ifm-font-family-monospace: "Cascadia Code", Consolas, monospace;
+    --ifm-font-family-base: var(--font-body);
+    --ifm-font-family-monospace: var(--font-code);
     --ifm-heading-font-weight: 600;
     --ifm-global-radius: 6px;
     --ifm-navbar-shadow: none;
 }
 
 body { isolation: isolate; }
-.docs-wrapper body::before { content: ""; }
-
-/* Blur the background independently so the mobile sidebar stays viewport-fixed. */
-.navbar[data-glass="surface"] { backdrop-filter: none; }
-.navbar::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    backdrop-filter: var(--glass-frost);
-}
+.main-wrapper { overflow-x: clip; }
 
 .dropdown__menu, .navbar-sidebar {
     background-color: color-mix(in srgb, var(--surface) 80%, var(--glass-surface));
-    backdrop-filter: var(--glass-frost);
 }
 .navbar-sidebar__backdrop { background-color: var(--glass-scrim); }
 .menu__link--active, .tabs__item--active, .breadcrumbs__item--active .breadcrumbs__link, .dropdown__link--active {
@@ -58,3 +47,8 @@ body { isolation: isolate; }
 .markdown { line-height: 1.85; }
 .markdown h1 { letter-spacing: -0.04em; }
 .pagination-nav__link:hover { color: var(--accent); }
+.footer { background: transparent; color: var(--muted); border-top: 1px solid var(--line); }
+::view-transition-old(root) { animation: docs-exit 180ms ease-out both; }
+::view-transition-new(root) { animation: none; }
+@keyframes docs-exit { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { ::view-transition-old(root) { animation: none; display: none; } }

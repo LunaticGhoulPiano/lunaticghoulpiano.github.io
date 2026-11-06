@@ -68,6 +68,17 @@ test("retired presets fall back to the default appearance", () => {
     assert.equal(page.controls.find((control) => control.checked).value, "piano");
 });
 
+test("incoming pages retain the active wallpaper before the root is replaced", () => {
+    const page = appearance(null, true);
+    page.ready();
+    const control = page.controls.find((item) => item.value === "aviation");
+    control.checked = true;
+    control.dispatchEvent(new Event("change"));
+    const newDocument = { documentElement: { dataset: { preset: "piano" } } };
+    page.document.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument }));
+    assert.equal(newDocument.documentElement.dataset.preset, "aviation");
+});
+
 test("removed appearance settings cannot override the fixed presentation on returning visits", () => {
     const page = appearance('{"preset":"aviation","wallpaper":"plain","shade":"deep","dock":"icons","motion":"off","density":"compact"}');
     page.ready();

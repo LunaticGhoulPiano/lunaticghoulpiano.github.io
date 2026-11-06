@@ -4,23 +4,20 @@ import type { ContentEntry } from "../../data/contents";
 import { contentPath, categoryPath, tagPath } from "../../routing";
 import { tagName } from "../../data/taxonomy";
 import { useMessages } from "../../i18n/ui";
-import ContentTransition from "./ContentTransition.astro";
 import Pagination from "./Pagination.astro";
 
 interface Props {
     locale: Locale;
     items: ContentEntry[];
     placement?: string;
-    animatePages?: boolean;
 }
 
-const { locale, items, placement, animatePages = false } = Astro.props;
+const { locale, items, placement } = Astro.props;
 const copy = useMessages(locale).content;
-const ListFrame = animatePages ? ContentTransition : Fragment;
 ---
 
 <div data-paginated-list>
-    <ListFrame>
+    <Pagination locale={locale}>
         <ol class="post-list" data-glass-rows>
             {items.map((item) => (
                 <li class="focus-item" data-page-item data-reveal-item>
@@ -40,6 +37,5 @@ const ListFrame = animatePages ? ContentTransition : Fragment;
                 </li>
             ))}
         </ol>
-    </ListFrame>
-    <Pagination locale={locale} animatePages={animatePages} />
+    </Pagination>
 </div>

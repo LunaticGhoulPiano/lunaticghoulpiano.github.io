@@ -30,6 +30,11 @@ export function contentTransitionFixture(reduced = true) {
         root, body, preference,
         environment: {
             window,
+            document: Object.assign(new EventTarget(), {
+                createElement: () => Object.assign(element(), { append() {}, remove() {}, className: "" }),
+                body: { append() {} },
+            }),
+            innerWidth: 1280, innerHeight: 800,
             requestAnimationFrame(callback) { frames.set(++id, callback); return id; },
             cancelAnimationFrame(key) { frames.delete(key); },
         },
@@ -39,6 +44,10 @@ export function contentTransitionFixture(reduced = true) {
 }
 
 export function installGlobals(context, environment, writable = false) {
+    environment = { ...environment };
+    for (const name of ["document", "window"]) {
+        if (environment[name] && !environment[name].addEventListener) environment[name] = Object.assign(new EventTarget(), environment[name]);
+    }
     const previous = new Map(Object.keys(environment).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
     for (const [key, value] of Object.entries(environment)) {
         Object.defineProperty(globalThis, key, { configurable: true, writable, value });

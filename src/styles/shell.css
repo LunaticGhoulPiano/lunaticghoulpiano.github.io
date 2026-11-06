@@ -9,6 +9,10 @@ body {
     isolation: isolate;
 }
 
+/* The shared exit/entrance owns the content; no second router crossfade. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { display: none; }
+
 button, select {
     font: inherit;
 }
@@ -190,21 +194,36 @@ button, select {
     border-top: 1px solid var(--chrome-line);
 }
 
-.footer-inner a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    text-decoration: none;
+.site-footer .back-to-top {
+    position: fixed;
+    z-index: 3;
+    inset-inline-end: max(1.3rem, env(safe-area-inset-right));
+    bottom: calc(1.3rem + env(safe-area-inset-bottom));
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: var(--field);
+    color: var(--text);
+    opacity: 0;
+    scale: .8;
+    visibility: hidden;
 }
 
-.footer-inner a:hover {
-    color: var(--accent);
+.back-to-top[data-visible] { visibility: visible; opacity: 1; scale: 1; }
+@media (scripting: none) {
+    .site-footer .back-to-top { position: static; visibility: visible; opacity: 1; scale: 1; }
 }
 .global-search {
     width: 100%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
+
+    .site-footer .back-to-top {
+        transition: opacity 160ms ease, scale 160ms ease, visibility 160ms;
+    }
 
     .dock-items a {
         transition: background-color 180ms ease, color 180ms ease;
@@ -317,6 +336,8 @@ button, select {
     .footer-inner {
         font-size: 0.7rem;
     }
+
+    .site-footer .back-to-top { bottom: calc(7.25rem + env(safe-area-inset-bottom)); }
 
 }
 

@@ -26,7 +26,6 @@ function fixture(totalItems, transition) {
         querySelector: (selector) => selector === "[data-page-status]" ? status : controls.find((control) => control.dataset.pageControl === "current"),
     };
     let items = Array.from({ length: totalItems }, () => ({ hidden: false }));
-    if (transition) navigation.dataset.animatePages = "";
     const root = { querySelector: (selector) => selector === "[data-pagination]" ? navigation : transition, querySelectorAll: () => items };
     const controller = paginationFor(root);
     return {
@@ -118,21 +117,22 @@ test("filtering or replacing results updates pagination totals without duplicate
 
 test("animated pagination swaps at the fade midpoint and discards superseded page requests", (context) => {
     const motion = contentTransitionFixture(false);
+    motion.body.querySelectorAll = () => [];
     installGlobals(context, motion.environment);
     const page = fixture(31, motion.root);
     page.click("next");
     motion.frame(0);
     motion.frame(140);
     assert.equal(page.visibleItems()[0], 0);
-    assert.ok(Number.parseFloat(motion.body.style.translate) < 0);
+    assert.equal(Number.parseFloat(motion.body.style.translate), 0, "shattering does not slide the whole list");
     motion.frame(280);
-    assert.equal(motion.body.style.opacity, "0");
+    assert.equal(motion.body.style.opacity, "1", "incoming rows own their staggered entrance");
     assert.equal(page.visibleItems()[0], 10);
     motion.frame(560);
     page.click("previous");
     motion.frame(600);
     motion.frame(740);
-    assert.ok(Number.parseFloat(motion.body.style.translate) > 0);
+    assert.equal(Number.parseFloat(motion.body.style.translate), 0);
     page.click("current");
     motion.frame(1300);
     assert.equal(page.visibleItems()[0], 10);
