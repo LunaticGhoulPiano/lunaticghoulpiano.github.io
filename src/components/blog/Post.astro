@@ -6,7 +6,6 @@ import type { getContentContext, ContentEntry } from "../../data/contents";
 import { contentPath, categoryPath, tagPath, getRoutePath } from "../../routing";
 import { tagName } from "../../data/taxonomy";
 import { useMessages } from "../../i18n/ui";
-import { formatSequenceNumber } from "../../utils/numbering";
 
 interface Props {
     post: ContentEntry;
@@ -50,16 +49,25 @@ const toc = headings.filter((heading) => (contentRules.tocDepths as readonly num
                     <li><a href={tagPath(tag, locale, route)}>{tagName(tag, locale)}</a></li>
                 ))}
             </ul>
+            {post.data.links.length > 0 && (
+                <nav class="article-links" aria-label={copy.links}>
+                    <span>{copy.links}</span>
+                    <ul>
+                        {post.data.links.map((link) => (
+                            <li><a href={link.url}>{link.label}</a></li>
+                        ))}
+                    </ul>
+                </nav>
+            )}
         </header>
         {toc.length > 0 && (
             <details class="article-toc" data-glass-rule open>
                 <summary>{copy.contents}</summary>
                 <nav aria-label={copy.articleContents}>
                     <ol>
-                        {toc.map((heading, index) => (
+                        {toc.map((heading) => (
                             <li
                                 class:list={{ "toc-child": heading.depth > Math.min(...contentRules.tocDepths) }}
-                                data-sequence-number={formatSequenceNumber(index + 1, toc.length)}
                             >
                                 <a href={`#${heading.slug}`}>{heading.text}</a>
                             </li>
@@ -71,16 +79,6 @@ const toc = headings.filter((heading) => (contentRules.tocDepths as readonly num
         <div class="prose">
             <Content />
         </div>
-        {post.data.links.length > 0 && (
-            <aside class="content-section">
-                <h2>{copy.links}</h2>
-                <ul>
-                    {post.data.links.map((link) => (
-                        <li><a href={link.url}>{link.label}</a></li>
-                    ))}
-                </ul>
-            </aside>
-        )}
         {related.length > 0 && (
             <aside class="content-section">
                 <h2>{copy.relatedContent}</h2>
@@ -93,3 +91,31 @@ const toc = headings.filter((heading) => (contentRules.tocDepths as readonly num
         )}
     </article>
 </BaseLayout>
+
+<style>
+    .article-links, .article-links ul {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem 1rem;
+    }
+
+    .article-links {
+        margin-block: 0.75rem;
+        font-size: 0.875rem;
+        overflow-wrap: anywhere;
+    }
+
+    .article-links ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        min-width: 0;
+    }
+
+    .article-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+</style>

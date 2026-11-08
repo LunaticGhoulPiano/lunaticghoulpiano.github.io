@@ -1,0 +1,37 @@
+{
+    "id": "cc4-embedded-system-docs",
+    "kind": "documentation",
+    "category": "development",
+    "tags": ["embedded", "STM32", "lwIP", "TypeScript", "fsdata", "嵌入式", "壓縮"],
+    "placements": ["documentations"],
+    "links": [
+        { "label": "npm", "url": "https://www.npmjs.com/package/cc4-embedded-system" },
+        { "label": "GitHub", "url": "https://github.com/LunaticGhoulPiano/CC4EmbeddedSystem" }
+    ],
+    "locales": {
+        "en": {
+            "title": "CC4EmbeddedSystem User Guide",
+            "description": "Generate lwIP fsdata.c with CC4EmbeddedSystem and check the compression results",
+            "date": "2026-11-07",
+            "updated": "2026-11-08",
+            "draft": false,
+            "entry": {
+                "type": "markdown",
+                "file": "./i18n/en/index.md",
+                "path": "/documentations/cc4-embedded-system/"
+            }
+        },
+        "zh-tw": {
+            "title": "CC4EmbeddedSystem 使用指南",
+            "description": "如何透過 CC4EmbeddedSystem 產生 LwIP fsdata.c 並查看壓縮效果",
+            "date": "2026-11-07",
+            "updated": "2026-11-08",
+            "draft": false,
+            "entry": {
+                "type": "markdown",
+                "file": "./i18n/zh-tw/index.md",
+                "path": "/documentations/cc4-embedded-system/"
+            }
+        }
+    }
+}

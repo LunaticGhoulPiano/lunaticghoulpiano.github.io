@@ -632,11 +632,8 @@ h3 {
 }
 
 .article-toc ol {
+    list-style: none;
     padding-inline-start: 1.5rem;
-}
-
-.article-toc li::marker {
-    content: attr(data-sequence-number) ". ";
 }
 
 .article-toc a {
@@ -649,7 +646,6 @@ h3 {
 }
 
 .prose {
-    max-width: 70ch;
     font-size: 1.125rem;
     line-height: 1.85;
     overflow-wrap: anywhere;
